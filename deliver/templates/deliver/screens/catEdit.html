@@ -1,0 +1,186 @@
+{% extends 'deliver/base.html' %}
+ {% comment %} {% block title %} {{ title }} {% endblock title %}  {% endcomment %}
+ {% block content %}
+<!-- Main content -->
+<main class="main">
+
+    <!-- Breadcrumb -->
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">میزکار</li>
+
+        <li class="breadcrumb-item active"> فرم ها</li>
+
+        <!-- Breadcrumb Menu-->
+        <li class="breadcrumb-menu d-md-down-none">
+            <div class="btn-group" role="group" aria-label="Button group">
+                <a class="btn" href="#"><i class="icon-speech"></i></a>
+                <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
+                <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;تنظیمات</a>
+            </div>
+        </li>
+    </ol>
+
+
+
+    <div class="container-fluid">
+        <div class="animated fadeIn">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fa fa-edit"></i>فورمی جوری خواردنه‌كان
+                            <div class="card-actions">
+                                <a href="#" class="btn-setting"><i class="icon-settings"></i></a>
+                                <a href="#" class="btn-minimize"><i class="icon-arrow-up"></i></a>
+                                <a href="#" class="btn-close"><i class="icon-close"></i></a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <form enctype="multipart/form-data" class="form-horizontal" id="ajaxForm" method="POST" action="{% url 'deliver:ajax' %}">
+                                {% csrf_token %}
+                                <input name="action" value="cat_edit" hidden>
+                                <input type="hidden" name="id" value="{{ cat.id }}">
+                                <div class="form-group">
+                                    <label class="form-control-label" for="prependedInput">ناوی كوردی</label>
+                                    <div class="controls">
+                                        <div class="input-prepend input-group">
+                                            <!-- <span class="input-group-addon">@</span> -->
+                                            <input name="nameKu" id="prependedInput" class="form-control" size="16" type="text" value="{{ cat.nameKu }}">
+                                        </div>
+                                        <p class="help-block">Here's some help text</p>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-control-label" for="prependedInput">ناوی بیانی</label>
+                                    <div class="controls">
+                                        <div class="input-prepend input-group">
+                                            <!-- <span class="input-group-addon">@</span> -->
+                                            <input name="nameEg" id="prependedInput" class="form-control" size="16" type="text" value="{{ cat.nameEg }}">
+                                        </div>
+                                        <p class="help-block">Here's some help text</p>
+                                    </div>
+                                </div>
+                                <div class="container">
+                                    <div class="panel">
+                                        <div class="card-body" id="inn">
+                                        {% if cat.image %}
+                                            <img src="{{ cat.image.url }}" height="300">
+                                            {% endif %}
+                                        </div>
+                                        <div class="button_outer">
+                                            <div class="btn_upload">
+                                                <input type="file" id="upload_file" name="image"> Upload Image
+                                            </div>
+                                            <div class="processing_bar"></div>
+                                            <div class="success_box"></div>
+                                        </div>
+                                    </div>
+                                    <div class="error_msg"></div>
+                                    <div class="uploaded_file_view" id="uploaded_view">
+                                        <span class="file_remove">X</span>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Save changes</button>
+                                    <button type="button" class="btn btn-secondary">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <!--/.col-->
+            </div>
+            <!--/.row-->
+        </div>
+
+    </div>
+    <!-- /.conainer-fluid -->
+</main>
+{% endblock content %}
+<!-- Main content -->
+<main class="main">
+
+    <!-- Breadcrumb -->
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">میزکار</li>
+
+        <li class="breadcrumb-item active"> فرم ها</li>
+
+        <!-- Breadcrumb Menu-->
+        <li class="breadcrumb-menu d-md-down-none">
+            <div class="btn-group" role="group" aria-label="Button group">
+                <a class="btn" href="#"><i class="icon-speech"></i></a>
+                <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
+                <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;تنظیمات</a>
+            </div>
+        </li>
+    </ol>
+
+
+
+    <div class="container-fluid">
+        <div class="animated fadeIn">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fa fa-edit"></i>فورمی جوری خواردنه‌كان
+                            <div class="card-actions">
+                                <a href="#" class="btn-setting"><i class="icon-settings"></i></a>
+                                <a href="#" class="btn-minimize"><i class="icon-arrow-up"></i></a>
+                                <a href="#" class="btn-close"><i class="icon-close"></i></a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <form class="form-horizontal" method="POST" action="">
+                                <div class="form-group">
+                                    <label class="form-control-label" for="prependedInput">ناوی كوردی</label>
+                                    <div class="controls">
+                                        <div class="input-prepend input-group">
+                                            <!-- <span class="input-group-addon">@</span> -->
+                                            <input id="prependedInput" class="form-control" size="16" type="text">
+                                        </div>
+                                        <p class="help-block">Here's some help text</p>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-control-label" for="prependedInput">ناوی بیانی</label>
+                                    <div class="controls">
+                                        <div class="input-prepend input-group">
+                                            <!-- <span class="input-group-addon">@</span> -->
+                                            <input id="prependedInput" class="form-control" size="16" type="text">
+                                        </div>
+                                        <p class="help-block">Here's some help text</p>
+                                    </div>
+                                </div>
+                                <div class="container">
+                                    <div class="panel">
+                                        <div class="button_outer">
+                                            <div class="btn_upload">
+                                                <input type="file" id="upload_file" name=""> Upload Image
+                                            </div>
+                                            <div class="processing_bar"></div>
+                                            <div class="success_box"></div>
+                                        </div>
+                                    </div>
+                                    <div class="error_msg"></div>
+                                    <div class="uploaded_file_view" id="uploaded_view">
+                                        <span class="file_remove">X</span>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Save changes</button>
+                                    <button type="button" class="btn btn-secondary">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <!--/.col-->
+            </div>
+            <!--/.row-->
+        </div>
+
+    </div>
+    <!-- /.conainer-fluid -->
+</main>

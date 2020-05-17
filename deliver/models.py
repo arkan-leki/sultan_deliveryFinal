@@ -1,0 +1,214 @@
+from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+
+from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from rest_framework.authtoken.models import Token
+from django.utils.safestring import mark_safe
+
+
+# Create your models here.
+class MyAccountManager(BaseUserManager):
+    def create_user(self, email, username, password=None):
+        if not email:
+            raise ValueError('Users must have an email address')
+        if not username:
+            raise ValueError('Users must have a username')
+
+        user = self.model(
+            email=self.normalize_email(email),
+            username=username,
+        )
+
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, username, password):
+        user = self.create_user(
+            email=self.normalize_email(email),
+            password=password,
+            username=username,
+        )
+        user.is_admin = True
+        user.is_staff = True
+        user.is_superuser = True
+        user.save(using=self._db)
+        return user
+
+
+class Account(AbstractBaseUser):
+    email = models.EmailField(verbose_name="email", max_length=60, unique=True)
+    username = models.CharField(max_length=30, unique=True)
+    date_joined = models.DateTimeField(
+        verbose_name='date joined', auto_now_add=True)
+    last_login = models.DateTimeField(verbose_name='last login', auto_now=True)
+    is_admin = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
+
+    objects = MyAccountManager()
+
+    def __str__(self):
+        return self.email
+
+    # For checking permissions. to keep it simple all admin have ALL permissons
+    def has_perm(self, perm, obj=None):
+        return self.is_admin
+
+    # Does this user have permission to view this app? (ALWAYS YES FOR SIMPLICITY)
+    def has_module_perms(self, app_label):
+        return True
+    
+    # @property
+    # def is_staff(self):
+    #     "Is the user a member of staff?"
+    #     # Simplest possible answer: All admins are staff
+    #     return self.is_admin
+
+    class Meta:
+        verbose_name_plural = "هه‌ژمار"
+
+
+class Cat(models.Model):
+    image = models.ImageField(upload_to='images/', blank=True, null=True,verbose_name='وێنه‌')
+    nameEg = models.CharField(max_length=100,verbose_name="ناوی بیانی")
+    nameKu = models.CharField(max_length=100,verbose_name="ناوی كوردی")
+    deleted = models.BooleanField(default=False)
+    date_added = models.DateField(
+        verbose_name='ریكه‌وتی دانان', auto_now_add=True)
+
+    def __str__(self):
+        return self.nameEg
+
+    def __unicode__(self):
+        return
+
+    class Meta:
+        verbose_name_plural = "جۆره‌كانی خواردن"
+
+
+class Food(models.Model):
+    category = models.ForeignKey(
+        Cat, related_name='Food_category', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
+    price = models.CharField(max_length=11,verbose_name="نرخ")
+    disprice = models.CharField(max_length=11,verbose_name="داشكاند")
+    title = models.CharField(max_length=50,verbose_name="ناو")
+    subtitle = models.CharField(max_length=300,verbose_name="ناونیشان")
+    detiles = models.CharField(max_length=300,verbose_name="ورده‌كاری")
+    date_added = models.DateField(
+        auto_now_add=True,verbose_name="به‌ره‌واری دانان")
+    is_dispriced = models.BooleanField(default=False)
+    cost = models.CharField(max_length=11, blank=True, null=True)
+
+    def __str__(self):
+        return self.title
+
+    def __unicode__(self):
+        return
+    
+    class Meta:
+        verbose_name_plural = "خواردنه‌كان"
+
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_auth_token(sender, instance=None, created=False, **kwargs):
+    if created:
+        Token.objects.create(user=instance)
+
+
+class Specify(models.Model):
+    food = models.ForeignKey(Food, related_name='specify_food', on_delete=models.CASCADE)
+    title = models.CharField(max_length=100)
+    date_added = models.DateField(
+        verbose_name='date added', auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+    def __unicode__(self):
+        return
+    
+    class Meta:
+        verbose_name_plural = "تام و چێش"
+
+class Request(models.Model):
+    name = models.CharField(max_length=110)
+    phone = models.CharField(max_length=110)
+    address = models.CharField(max_length=110)
+    total_price = models.CharField(max_length=11)
+    request_detail = models.ManyToManyField('RequestDetail')
+    phoneid = models.CharField(max_length=110, default='Unknown')
+    date_added = models.DateField(
+        verbose_name='date added', auto_now_add=True)
+    last_edit = models.DateTimeField(verbose_name='last edit', auto_now=True)
+    status = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
+
+    def __unicode__(self):
+        return
+    
+    class Meta:
+        verbose_name_plural = "داواكاریه‌كان"
+
+
+class RequestDetail(models.Model):
+    food = models.ForeignKey(
+        Food, related_name='form_food', on_delete=models.CASCADE)
+    quantity = models.CharField(max_length=11)
+    specify = models.ManyToManyField('Specify')
+    total_price = models.CharField(max_length=11)
+    phoneid = models.CharField(max_length=110, default='Unknown')
+    date_added = models.DateField(
+        verbose_name='date added', auto_now_add=True)
+    last_edit = models.DateTimeField(verbose_name='last edit', auto_now=True)
+    status = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.food.title+str(self.total_price)
+
+    def __unicode__(self):
+        return
+    
+
+    class Meta:
+        verbose_name_plural = "ورده‌كاری داواكاری"
+
+
+class Dliver(models.Model):
+    name = models.CharField(max_length=110,)
+    user = models.ForeignKey(Account, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return str(self.name)
+
+    def __unicode__(self):
+        return
+    
+    class Meta:
+        verbose_name_plural = "شۆفێر"
+
+
+class Transport(models.Model):
+    dliver = models.ForeignKey(Dliver, on_delete=models.CASCADE)
+    request = models.ForeignKey(Request, on_delete=models.CASCADE)
+    start_date = models.DateTimeField(verbose_name='start date')
+    end_date = models.DateTimeField(verbose_name='end date')
+    status = models.BooleanField(default=False)
+
+    def __str__(self):
+        return str(self.request)
+
+    def __unicode__(self):
+        return
+    
+    class Meta:
+        verbose_name_plural = "باركراو"

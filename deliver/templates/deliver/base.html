@@ -1,0 +1,268 @@
+<!--
+ * CoreUI - Open Source Bootstrap Admin Template
+ * @version v1.0.0-alpha.6
+ * @link http://coreui.io
+ * Copyright (c) 2017 creativeLabs Łukasz Holeczek
+ * @license MIT
+ -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    {% load static %}
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="CoreUI - Open Source Bootstrap Admin Template">
+    <meta name="author" content="Łukasz Holeczek">
+    <meta name="keyword" content="Bootstrap,Admin,Template,Open,Source,AngularJS,Angular,Angular2,Angular 2,Angular4,Angular 4,jQuery,CSS,HTML,RWD,Dashboard,React,React.js,Vue,Vue.js">
+    <link rel="shortcut icon" href="{% static 'img/favicon.png' %}">
+    <title>{% block title %}
+    {% endblock title %}</title>
+
+    <!-- Icons -->
+    <link href="{% static 'css/font-awesome.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/simple-line-icons.css' %}" rel="stylesheet">
+
+    <!-- Main styles for this application -->
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    
+    <style>
+.table-image td, th {
+    vertical-align: middle;
+}
+        * {margin: 0; padding: 0; box-sizing: border-box;}
+body {background: #f6f6f6; color: #444; font-family: 'Roboto', sans-serif; font-size: 16px; line-height: 1;}
+.container {max-width: 1100px; padding: 0 20px; margin:0 auto;}
+.panel {margin: 100px auto 40px; max-width: 500px; text-align: center;}
+.button_outer {background: #83ccd3; border-radius:30px; text-align: center; height: 50px; width: 200px; display: inline-block; transition: .2s; position: relative; overflow: hidden;}
+.btn_upload {padding: 17px 30px 12px; color: #fff; text-align: center; position: relative; display: inline-block; overflow: hidden; z-index: 3; white-space: nowrap;}
+.btn_upload input {position: absolute; width: 100%; left: 0; top: 0; width: 100%; height: 105%; cursor: pointer; opacity: 0;}
+.file_uploading {width: 100%; height: 10px; margin-top: 20px; background: #ccc;}
+.file_uploading .btn_upload {display: none;}
+.processing_bar {position: absolute; left: 0; top: 0; width: 0; height: 100%; border-radius: 30px; background:#83ccd3; transition: 3s;}
+.file_uploading .processing_bar {width: 100%;}
+.success_box {display: none; width: 50px; height: 50px; position: relative;}
+.success_box:before {content: ''; display: block; width: 9px; height: 18px; border-bottom: 6px solid #fff; border-right: 6px solid #fff; -webkit-transform:rotate(45deg); -moz-transform:rotate(45deg); -ms-transform:rotate(45deg); transform:rotate(45deg); position: absolute; left: 17px; top: 10px;}
+.file_uploaded .success_box {display: inline-block;}
+.file_uploaded {margin-top: 0; width: 50px; background:#83ccd3; height: 50px;}
+.uploaded_file_view {max-width: 300px; margin: 40px auto; text-align: center; position: relative; transition: .2s; opacity: 0; border: 2px solid #ddd; padding: 15px;}
+.file_remove{width: 30px; height: 30px; border-radius: 50%; display: block; position: absolute; background: #aaa; line-height: 30px; color: #fff; font-size: 12px; cursor: pointer; right: -15px; top: -15px;}
+.file_remove:hover {background: #222; transition: .2s;}
+.uploaded_file_view img {max-width: 100%;}
+.uploaded_file_view.show {opacity: 1;}
+.error_msg {text-align: center; color: #f00}
+    </style>
+
+</head>
+
+<!-- BODY options, add following classes to body to change options
+
+// Header options
+1. '.header-fixed'					- Fixed Header
+
+// Sidebar options
+1. '.sidebar-fixed'					- Fixed Sidebar
+2. '.sidebar-hidden'				- Hidden Sidebar
+3. '.sidebar-off-canvas'		- Off Canvas Sidebar
+4. '.sidebar-minimized'			- Minimized Sidebar (Only icons)
+5. '.sidebar-compact'			  - Compact Sidebar
+
+// Aside options
+1. '.aside-menu-fixed'			- Fixed Aside Menu
+2. '.aside-menu-hidden'			- Hidden Aside Menu
+3. '.aside-menu-off-canvas'	- Off Canvas Aside Menu
+
+// Breadcrumb options
+1. '.breadcrumb-fixed'			- Fixed Breadcrumb
+
+// Footer options
+1. '.footer-fixed'					- Fixed footer
+
+-->
+
+<body class="app header-fixed sidebar-fixed aside-menu-fixed aside-menu-hidden">
+    {% include 'includes/navbar.html' %}
+    <div class="app-body">
+        {% include 'includes/sidebar.html' %} {% block content %} {% endblock content %} {% include 'includes/aside.html' %}
+    </div>
+
+    <footer class="app-footer ltr">
+        <a href="http://coreui.io">CoreUI - RTL </a> © 2017 creativeLabs.
+        <span class="float-left">Powered by <a href="http://coreui.io">CoreUI</a>
+        </span>
+    </footer>
+
+    <!-- Bootstrap and necessary plugins -->
+    <script src="{% static 'bower_components/jquery/dist/jquery.min.js' %}"></script>
+    <script src="{% static 'bower_components/popper.js/dist/umd/popper.min.js' %}"></script>
+    <script src="{% static 'bower_components/bootstrap/dist/js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'bower_components/pace/pace.min.js' %}"></script>
+
+
+    <!-- Plugins and scripts required by all views -->
+    <script src="{% static 'bower_components/chart.js/dist/Chart.min.js' %}"></script>
+
+
+ <script type='text/javascript'>
+
+  var btnUpload = $("#upload_file"),
+		btnOuter = $(".button_outer");
+	btnUpload.on("change", function(e){
+		var ext = btnUpload.val().split('.').pop().toLowerCase();
+		if($.inArray(ext, ['gif','png','jpg','jpeg']) == -1) {
+			$(".error_msg").text("Not an Image...");
+		} else {
+			$(".error_msg").text("");
+			btnOuter.addClass("file_uploading");
+			setTimeout(function(){
+				btnOuter.addClass("file_uploaded");
+			},3000);
+			var uploadedFile = URL.createObjectURL(e.target.files[0]);
+			setTimeout(function(){
+                $('#inn').hide();
+				$("#uploaded_view").append('<img src="'+uploadedFile+'" />').addClass("show");
+			},3500);
+		}
+	});
+	$(".file_remove").on("click", function(e){
+		$("#uploaded_view").removeClass("show");
+		$("#uploaded_view").find("img").remove();
+		btnOuter.removeClass("file_uploading");
+		btnOuter.removeClass("file_uploaded");
+        
+	});
+
+ var csrftoken = jQuery("[name=csrfmiddlewaretoken]").val();
+    var adifier_data = {
+        "ajaxurl": "https://{{ request.get_host }}/ajax/",
+    };
+
+
+$(function(){
+    //Obtenemos la información de csfrtoken que se almacena por cookies en el cliente
+    var csrftoken = getCookie('csrftoken');
+
+    //Agregamos en la configuración de la funcion $.ajax de Jquery lo siguiente:
+    $.ajaxSetup({
+        contentType: 'multipart/form-data',
+                    beforeSend: function(xhr, settings) {
+                        if (!csrfSafeMethod(settings.type) && sameOrigin(settings.url)) {
+                            // Send the token to same-origin, relative URLs only.
+                            // Send the token only if the method warrants CSRF protection
+                            // Using the CSRFToken value acquired earlier
+                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        }
+                    }
+    });
+
+function sameOrigin(url) {
+    // test that a given url is a same-origin URL
+    // url could be relative or scheme relative or absolute
+    var host = document.location.host; // host + port
+    var protocol = document.location.protocol;
+    var sr_origin = '//' + host;
+    var origin = protocol + sr_origin;
+    // Allow absolute or scheme relative URLs to same origin
+    return (url == origin || url.slice(0, origin.length + 1) == origin + '/') ||
+        (url == sr_origin || url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
+        // or any other URL that isn't scheme relative or absolute i.e relative.
+        !(/^(\/\/|http:|https:).*/.test(url));
+}
+
+// usando jQuery
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+    function csrfSafeMethod(method) {
+        // estos métodos no requieren CSRF
+        return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+    }
+});
+
+
+$(document).ready(function(){
+
+    $("#ajaxForm").submit( function(e) {
+ 
+  // Stop form from submitting normally
+        e.preventDefault();    
+
+        
+    var fd = new FormData(this);
+        var files = $('#upload_file')[0].files[0];
+        fd.append('images',files);
+
+        $.ajax({
+            xhr: function() {
+        var xhr = new window.XMLHttpRequest();
+        xhr.upload.addEventListener("progress", function(evt) {
+            if (evt.lengthComputable) {
+                var percentComplete = evt.loaded / evt.total;
+                //Do something with upload progress here
+                 $('.pace').attr('class', 'pace pace-active');
+                        $('.pace-progress').attr('data-progress-text',percentComplete+'%');
+                        $('.percentComplete').attr('style','transform: translate3d('+percentComplete+'%, 0px, 0px);')
+
+                
+            }
+       }, false);
+
+       xhr.addEventListener("progress", function(evt) {
+           if (evt.lengthComputable) {
+               var percentComplete = evt.loaded / evt.total;
+               //Do something with download progress
+           }
+       }, false);
+
+       return xhr;
+    },
+            url : $(this).attr('action'),
+            type : $(this).attr('method'),
+            data  : fd,
+            contentType: false,
+            processData: false,
+            success: function(response){
+                if(response != 0){
+                   alert(response.message);// Display image element
+                }else{
+                    alert(response.message);
+                }
+                if(response.redirect){
+                    window.location.href = response.redirect;
+                }
+            },
+        });
+    });
+});
+
+// Attach a submit handler to the form
+
+     </script>
+
+    <!-- GenesisUI main scripts -->
+    1
+    <script src="{% static 'js/app.js' %}"></script>
+
+    <!-- Plugins and scripts required by this views -->
+
+    <!-- Custom scripts required by this view -->
+    <script src="{% static 'js/views/main.js' %}"></script>
+
+</body>
+
+</html>
