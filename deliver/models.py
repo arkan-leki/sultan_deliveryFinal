@@ -64,7 +64,7 @@ class Account(AbstractBaseUser):
     # Does this user have permission to view this app? (ALWAYS YES FOR SIMPLICITY)
     def has_module_perms(self, app_label):
         return True
-    
+
     # @property
     # def is_staff(self):
     #     "Is the user a member of staff?"
@@ -76,9 +76,10 @@ class Account(AbstractBaseUser):
 
 
 class Cat(models.Model):
-    image = models.ImageField(upload_to='images/', blank=True, null=True,verbose_name='وێنه‌')
-    nameEg = models.CharField(max_length=100,verbose_name="ناوی بیانی")
-    nameKu = models.CharField(max_length=100,verbose_name="ناوی كوردی")
+    image = models.ImageField(
+        upload_to='images/', blank=True, null=True, verbose_name='وێنه‌')
+    nameEg = models.CharField(max_length=100, verbose_name="ناوی بیانی")
+    nameKu = models.CharField(max_length=100, verbose_name="ناوی كوردی")
     deleted = models.BooleanField(default=False)
     date_added = models.DateField(
         verbose_name='ریكه‌وتی دانان', auto_now_add=True)
@@ -96,23 +97,22 @@ class Cat(models.Model):
 class Food(models.Model):
     category = models.ForeignKey(
         Cat, related_name='Food_category', on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
-    price = models.CharField(max_length=11,verbose_name="نرخ")
-    disprice = models.CharField(max_length=11,verbose_name="داشكاند")
-    title = models.CharField(max_length=50,verbose_name="ناو")
-    subtitle = models.CharField(max_length=300,verbose_name="ناونیشان")
-    detiles = models.CharField(max_length=300,verbose_name="ورده‌كاری")
-    date_added = models.DateField(
-        auto_now_add=True,verbose_name="به‌ره‌واری دانان")
-    is_dispriced = models.BooleanField(default=False)
+    image = models.ImageField(
+        upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
+    sell_price = models.CharField(max_length=11, verbose_name="نرخ")
+    title = models.CharField(max_length=50, verbose_name="ناو")
+    subtitle = models.CharField(max_length=300, verbose_name="ناونیشان")
+    detiles = models.CharField(max_length=300, verbose_name="ورده‌كاری")
+    date_add = models.DateField(auto_now_add=True, verbose_name="به‌ره‌واری دانان")
     cost = models.CharField(max_length=11, blank=True, null=True)
+    deleted = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
 
     def __unicode__(self):
         return
-    
+
     class Meta:
         verbose_name_plural = "خواردنه‌كان"
 
@@ -124,19 +124,39 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 
 
 class Specify(models.Model):
-    food = models.ForeignKey(Food, related_name='specify_food', on_delete=models.CASCADE)
+    food = models.ForeignKey(
+        Food, related_name='specify_food', on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
-    date_added = models.DateField(
-        verbose_name='date added', auto_now_add=True)
+    price = models.CharField(max_length=11, verbose_name="نرخ")
+    date_added = models.DateField(verbose_name='date added', auto_now_add=True)
 
     def __str__(self):
         return self.title
 
     def __unicode__(self):
         return
-    
+
     class Meta:
         verbose_name_plural = "تام و چێش"
+
+class Dipricing(models.Model):
+    food = models.ForeignKey(
+        Food, related_name='disprice_food', on_delete=models.CASCADE)
+    title = models.CharField(max_length=100)
+    price = models.CharField(max_length=11, verbose_name="نرخ")
+    exp_date = models.DateField(verbose_name='expire added')
+    date_added = models.DateField(verbose_name='date added', auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+    def __unicode__(self):
+        return
+
+    class Meta:
+        verbose_name_plural = "داشکاندن"
+
+
 
 class Request(models.Model):
     name = models.CharField(max_length=110)
@@ -145,8 +165,7 @@ class Request(models.Model):
     total_price = models.CharField(max_length=11)
     request_detail = models.ManyToManyField('RequestDetail')
     phoneid = models.CharField(max_length=110, default='Unknown')
-    date_added = models.DateField(
-        verbose_name='date added', auto_now_add=True)
+    date_added = models.DateField(verbose_name='date added', auto_now_add=True)
     last_edit = models.DateTimeField(verbose_name='last edit', auto_now=True)
     status = models.BooleanField(default=False)
 
@@ -155,7 +174,7 @@ class Request(models.Model):
 
     def __unicode__(self):
         return
-    
+
     class Meta:
         verbose_name_plural = "داواكاریه‌كان"
 
@@ -177,7 +196,6 @@ class RequestDetail(models.Model):
 
     def __unicode__(self):
         return
-    
 
     class Meta:
         verbose_name_plural = "ورده‌كاری داواكاری"
@@ -192,7 +210,7 @@ class Dliver(models.Model):
 
     def __unicode__(self):
         return
-    
+
     class Meta:
         verbose_name_plural = "شۆفێر"
 
@@ -209,6 +227,6 @@ class Transport(models.Model):
 
     def __unicode__(self):
         return
-    
+
     class Meta:
         verbose_name_plural = "باركراو"
