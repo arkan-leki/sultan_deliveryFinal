@@ -250,6 +250,168 @@ $(document).ready(function(){
     });
 });
 
+$(document).ready(function(){
+
+    $(".ajaxForm").submit( function(e) {
+ 
+  // Stop form from submitting normally
+        e.preventDefault();    
+
+        
+    var fd = new FormData(this);
+        var files = $('#upload_file')[0].files[0];
+        fd.append('images',files);
+
+        $.ajax({
+            xhr: function() {
+        var xhr = new window.XMLHttpRequest();
+        xhr.upload.addEventListener("progress", function(evt) {
+            if (evt.lengthComputable) {
+                var percentComplete = evt.loaded / evt.total;
+                //Do something with upload progress here
+                 $('.pace').attr('class', 'pace pace-active');
+                        $('.pace-progress').attr('data-progress-text',percentComplete+'%');
+                        $('.percentComplete').attr('style','transform: translate3d('+percentComplete+'%, 0px, 0px);')
+
+                
+            }
+       }, false);
+
+       xhr.addEventListener("progress", function(evt) {
+           if (evt.lengthComputable) {
+               var percentComplete = evt.loaded / evt.total;
+               //Do something with download progress
+           }
+       }, false);
+
+       return xhr;
+    },
+            url : $(this).attr('action'),
+            type : $(this).attr('method'),
+            data  : fd,
+            contentType: false,
+            processData: false,
+            success: function(response){
+                if(response != 0){
+                   alert(response.message);// Display image element
+                }else{
+                    alert(response.message);
+                }
+                if(response.redirect){
+                    window.location.href = response.redirect;
+                }
+            },
+        });
+    });
+});
+
+$(document).ready(function(){
+
+    $("#simpleForm").submit( function(e) {
+ 
+  // Stop form from submitting normally
+        e.preventDefault();    
+
+        
+    var fd = new FormData(this);
+
+        $.ajax({
+            xhr: function() {
+        var xhr = new window.XMLHttpRequest();
+        xhr.upload.addEventListener("progress", function(evt) {
+            if (evt.lengthComputable) {
+                var percentComplete = evt.loaded / evt.total;
+                //Do something with upload progress here
+                 $('.pace').attr('class', 'pace pace-active');
+                        $('.pace-progress').attr('data-progress-text',percentComplete+'%');
+                        $('.percentComplete').attr('style','transform: translate3d('+percentComplete+'%, 0px, 0px);')
+
+                
+            }
+       }, false);
+
+       xhr.addEventListener("progress", function(evt) {
+           if (evt.lengthComputable) {
+               var percentComplete = evt.loaded / evt.total;
+               //Do something with download progress
+           }
+       }, false);
+
+       return xhr;
+    },
+            url : $(this).attr('action'),
+            type : $(this).attr('method'),
+            data  : fd,
+            contentType: false,
+            processData: false,
+            success: function(response){
+                if(response != 0){
+                   alert(response.message);// Display image element
+                }else{
+                    alert(response.message);
+                }
+                if(response.redirect){
+                    window.location.href = response.redirect;
+                }
+            },
+        });
+    });
+});
+
+$(document).ready(function(){
+
+    $(".simpleForm").submit( function(e) {
+ 
+  // Stop form from submitting normally
+        e.preventDefault();    
+
+        
+    var fd = new FormData(this);
+
+        $.ajax({
+            xhr: function() {
+        var xhr = new window.XMLHttpRequest();
+        xhr.upload.addEventListener("progress", function(evt) {
+            if (evt.lengthComputable) {
+                var percentComplete = evt.loaded / evt.total;
+                //Do something with upload progress here
+                 $('.pace').attr('class', 'pace pace-active');
+                        $('.pace-progress').attr('data-progress-text',percentComplete+'%');
+                        $('.percentComplete').attr('style','transform: translate3d('+percentComplete+'%, 0px, 0px);')
+
+                
+            }
+       }, false);
+
+       xhr.addEventListener("progress", function(evt) {
+           if (evt.lengthComputable) {
+               var percentComplete = evt.loaded / evt.total;
+               //Do something with download progress
+           }
+       }, false);
+
+       return xhr;
+    },
+            url : $(this).attr('action'),
+            type : $(this).attr('method'),
+            data  : fd,
+            contentType: false,
+            processData: false,
+            success: function(response){
+                if(response != 0){
+                   alert(response.message);// Display image element
+                }else{
+                    alert(response.message);
+                }
+                if(response.redirect){
+                    window.location.href = response.redirect;
+                }
+            },
+        });
+    });
+});
+
+
 // Attach a submit handler to the form
 
      </script>

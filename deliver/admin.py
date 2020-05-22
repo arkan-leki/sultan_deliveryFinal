@@ -1,10 +1,10 @@
-# from django import forms
-# from django.contrib import admin
-# from django.contrib.auth.forms import ReadOnlyPasswordHashField
-# from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-# from django.contrib.auth.models import Group
-# from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport
-# from django.utils.html import format_html
+from django import forms
+from django.contrib import admin
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import Group
+from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport
+from django.utils.html import format_html
 
 # # Register your models here.
 # class CatAdmin(admin.ModelAdmin):
@@ -152,3 +152,8 @@
 #     filter_horizontal = ()
 
 # admin.site.register(Account, UserAdmin)
+
+
+
+admin.site.register(Cat)
+admin.site.register(Food)

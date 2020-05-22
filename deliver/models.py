@@ -125,7 +125,7 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 
 class Specify(models.Model):
     food = models.ForeignKey(
-        Food, related_name='specify_food', on_delete=models.CASCADE)
+        Food, related_name='specifies', on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     price = models.CharField(max_length=11, verbose_name="نرخ")
     date_added = models.DateField(verbose_name='date added', auto_now_add=True)
@@ -154,7 +154,7 @@ class Dipricing(models.Model):
         return
 
     class Meta:
-        verbose_name_plural = "داشکاندن"
+        verbose_name_plural = "disprice"
 
 
 

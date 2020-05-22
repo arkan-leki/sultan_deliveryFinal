@@ -24,13 +24,18 @@ urlpatterns = [
     path('api/account/', include("deliver.api.urls", 'deliver_api')),
     path('', views.index, name="home"),
     path('cats/', views.cat, name="cats"),
-    path('catDetail/<pk>', views.catDetail, name="catDetail"),
     path('catEdit/<pk>', views.catEdit, name="catEdit"),
+    path('catDetail/<pk>', views.catDetail, name="catDetail"),
+    path('foods/', views.foods, name="foods"),
+    path('foodEdit/<pk>', views.foodEdit, name="foodEdit"),
+    path('foodDetail/<pk>', views.foodDetail, name="foodDetail"),
+    path('disprices/', views.disprices, name="disprice"),
+    path('specifies/', views.specifies, name="specifies"),
     path('ajax/', views.ajax, name="ajax"),
     url('^api/requestz/$', views.RequestDetailListView.as_view()),
     url('^api/foodz/$', views.FoodListView.as_view()),
     url('^api/specifyz/$', views.SpecifyListView.as_view()),
     url(r'^api/', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    
+
 ]
