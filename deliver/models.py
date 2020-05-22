@@ -144,6 +144,7 @@ class Dipricing(models.Model):
         Food, related_name='disprice_food', on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     price = models.CharField(max_length=11, verbose_name="نرخ")
+    start_date =  models.DateField(verbose_name='start added')
     exp_date = models.DateField(verbose_name='expire added')
     date_added = models.DateField(verbose_name='date added', auto_now_add=True)
 

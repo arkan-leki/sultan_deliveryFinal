@@ -37,25 +37,11 @@
                                 <h5 class="card-title">{{ food.title }}</h5>
                                 <p class="card-text">{{ food.detiles }}</p>
                                 <a href="#" class="btn btn-primary">د.ع{{ food.sell_price }}</a>
-                                {% for dsp in food.disprice_food.all %}
-                                داشکاندن <span class="badge badge-danger">د.ع{{ dsp.price }}</span>
-                                {% endfor %}
+                                
                             </div>
                             <div class="card-footer">{{ food.subtitle }}</div>
                            
                     </div>
-                     <div class="container">
-                                <table class="table">
-                                <tbody>
-                                <tr>
-                                {% for specify in food.specifies.all %}
-                                 <td><span class="badge badge-primary">{{ specify}} {{ specify.price}}</span></td>
-                                </div>
-                                {% endfor %}
-                                </tr>
-                                </tbody>
-                                </table>
-                        </div>
                  </div>
  
              </div>

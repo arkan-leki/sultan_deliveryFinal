@@ -200,14 +200,17 @@
                                 enctype="multipart/form-data" class="form-horizontal">
                                 <input name="action" type="text" value="food_add" hidden>
                                 <div class="form-group row">
-                                    <label class="col-md-3 form-control-label" for="select">جوری خواردن</label>
+                                    <label class="col-md-3 form-control-label" for="appendedPrependedInput">دیاری کردنی خوارن</label>
                                     <div class="col-md-9">
-                                        <select id="select" name="catId" class="form-control form-control-md">
-                                            <option value="0">جوری خواردنه‌كان</option>
+                                        <div class="input-prepend input-group">
+                                            <select id="select" name="catId" class="form-control">
+                                            <option value="0">خواردنەکان</option>
                                             {% for cat in cats %}
-                                            <option value="{{cat.id}}">{{ cat.nameKu }}</option>
+                                            <option value="{{ cat.id }}">{{ cat.nameKu }}</option>
                                             {% endfor %}
                                         </select>
+                                            <a href="{% url 'deliver:cats' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="form-group row">
@@ -287,14 +290,17 @@
                                 method="post">
                                 <input name="action" type="text" value="specify" hidden>
                                 <div class="form-group row">
-                                    <label class="col-md-5 form-control-label" for="select">دیاری کردنی خوارن</label>
+                                    <label class="col-md-5 form-control-label" for="appendedPrependedInput">دیاری کردنی خوارن</label>
                                     <div class="col-md-6">
-                                        <select id="select" name="foodId" class="form-control form-control-sm">
+                                        <div class="input-prepend input-group">
+                                            <select id="select" name="foodId" class="form-control">
                                             <option value="0">خواردنەکان</option>
                                             {% for food in foods %}
                                             <option value="{{ food.id }}">{{ food.title }}</option>
                                             {% endfor %}
                                         </select>
+                                            <a href="{% url 'deliver:foods' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="form-group row">
@@ -333,14 +339,17 @@
                                 method="post">
                                 <input name="action" type="text" value="disprice" hidden>
                                 <div class="form-group row">
-                                    <label class="col-md-5 form-control-label" for="select">دیاری کردنی خوارن</label>
+                                    <label class="col-md-5 form-control-label" for="appendedPrependedInput">دیاری کردنی خوارن</label>
                                     <div class="col-md-6">
-                                        <select id="select" name="foodId" class="form-control form-control-sm">
+                                        <div class="input-prepend input-group">
+                                            <select id="select" name="foodId" class="form-control">
                                             <option value="0">خواردنەکان</option>
                                             {% for food in foods %}
                                             <option value="{{ food.id }}">{{ food.title }}</option>
                                             {% endfor %}
                                         </select>
+                                            <a href="{% url 'deliver:foods' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="form-group row">
@@ -350,9 +359,9 @@
                                             placeholder="ناو">
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-control-label" for="appendedPrependedInput">نرخی داشکاند</label>
-                                    <div class="controls">
+                                <div class="form-group row">
+                                    <label class="col-sm-5 form-control-label" for="appendedPrependedInput">نرخی داشکاند</label>
+                                    <div class="col-sm-6">
                                         <div class="input-prepend input-group">
                                             <span class="input-group-addon">$</span>
                                             <input id="appendedPrependedInput" class="form-control" size="16"
@@ -361,53 +370,15 @@
                                         </div>
                                     </div>
                                 </div>
-                                <style type="text/css">
-                                    #date {
-                                        position: relative;
-                                        width: 250px;
-                                        height: 20px;
-                                        color: white;
-                                    }
-
-                                    #date:before {
-                                        position: absolute;
-                                        top: 3px;
-                                        left: 3px;
-                                        content: attr(my-date);
-                                        display: inline-block;
-                                        color: black;
-                                    }
-                                </style>
-                                <script
-                                    src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-                                <script
-                                    src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.3/moment.min.js"></script>
-                                <div class="form-group">
-                                    <label class="form-control-label" for="appendedPrependedInput">تاوەکو کەی بەردەام
-                                        ببێت</label>
-                                    <input id="date" type="date" my-date="" my-date-format="DD/MM/YYYY, hh:mm:ss"
-                                        value="2020-08-09" name="exp_date">
+                                    <div class="form-group">
+                                    <div class="controls">
+                                    <div class="input-daterange input-group" id="datepicker">
+                                        <input type="date" class="input-sm form-control" name="start_date" />
+                                        <span class="input-group-addon">بۆ</span>
+                                        <input type="date" class="input-sm form-control" name="exp_date" />
+                                    </div>
+                                    </div>
                                 </div>
-                                <script type="text/javascript">
-                                    function nowAsDuration() {
-                                        return moment.duration({
-                                            hours: moment().hour(),
-                                            minutes: moment().minute(),
-                                            seconds: moment().second()
-                                        });
-                                    }
-
-
-                                    $("input").on("change", function () {
-                                        var a = moment(this.value);
-                                        var b = nowAsDuration();
-                                        var c = a.add(b);
-
-
-                                        this.setAttribute("my-date", c.format(this.getAttribute("my-date-format"))
-                                        )
-                                    }).trigger("change")
-                                </script>
                                 <div class="card-footer">
                                     <div class="form-actions">
                                         <button type="submit" class="btn btn-sm btn-primary"><i
@@ -511,19 +482,6 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
-                            <script type="text/javascript">
-                                $(document).ready(function () {
-                                    $("#search").on("keyup", function () {
-                                        var value = $(this).val().toLowerCase();
-                                        $("#tab tr").filter(function () {
-                                            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-                                        });
-                                    });
-                                });
-                                $(document).ready(function () {
-                                    $('#tab').DataTable();
-                                });
-                            </script>
                             <nav>
                                 <ul class="pagination">
                                     <li class="page-item"><a class="page-link" href="#">Prev</a>

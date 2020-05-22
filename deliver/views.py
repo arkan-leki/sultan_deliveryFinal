@@ -201,6 +201,7 @@ def ajax(request):
             dp.food_id = request.POST.get('foodId')
             dp.title = request.POST.get('title')
             dp.price = request.POST.get('price')
+            dp.start_date = request.POST.get('start_date')
             dp.exp_date = request.POST.get('exp_date')
             dp.save()
             data = {

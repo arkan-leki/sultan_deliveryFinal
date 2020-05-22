@@ -201,14 +201,17 @@
                                 >
                                 <input name="action" type="text" value="specify" hidden>
                                 <div class="form-group row">
-                                    <label class="col-md-5 form-control-label" for="select">دیاری کردنی خوارن</label>
+                                    <label class="col-md-5 form-control-label" for="appendedPrependedInput">دیاری کردنی خوارن</label>
                                     <div class="col-md-6">
-                                        <select id="select" name="foodId" class="form-control form-control-sm">
+                                        <div class="input-prepend input-group">
+                                            <select id="select" name="foodId" class="form-control">
                                             <option value="0">خواردنەکان</option>
                                             {% for food in foods %}
                                             <option value="{{ food.id }}">{{ food.title }}</option>
                                             {% endfor %}
                                         </select>
+                                            <a href="{% url 'deliver:foods' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="form-group row">

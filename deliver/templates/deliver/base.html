@@ -421,7 +421,19 @@ $(document).ready(function(){
     <script src="{% static 'js/app.js' %}"></script>
 
     <!-- Plugins and scripts required by this views -->
-
+      <script type="text/javascript">
+                                $(document).ready(function () {
+                                    $("#search").on("keyup", function () {
+                                        var value = $(this).val().toLowerCase();
+                                        $("#tab tr").filter(function () {
+                                            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                                        });
+                                    });
+                                });
+                                $(document).ready(function () {
+                                    $('#tab').DataTable();
+                                });
+                            </script>
     <!-- Custom scripts required by this view -->
     <script src="{% static 'js/views/main.js' %}"></script>
 
