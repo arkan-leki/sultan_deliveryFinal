@@ -260,6 +260,7 @@
                                         <th>ناونیشان</th>
                                         <th>نرخی</th>
                                         <th>بەرواری زیادکردن </th>
+                                        <th>سڕینەوە</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -270,6 +271,12 @@
                                         <td><a href="#">{{ specify.title }}</a></td>
                                         <td>{{ specify.price }}</td>
                                         <td>{{specify.date_added}}</td>
+                                        <th>
+                                            </a>
+                                                <a role="button" href="{% url 'deliver:ajax' %}?action=spdelete&id={{specify.id}} " class="btn btn-danger">
+                                                <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
+                                            </a>
+                                        </th>
                                     </tr>
                                     {% endfor %}
                                 </tbody>

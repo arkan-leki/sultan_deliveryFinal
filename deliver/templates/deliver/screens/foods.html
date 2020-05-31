@@ -295,7 +295,7 @@
                                         <div class="input-prepend input-group">
                                             <select id="select" name="foodId" class="form-control">
                                             <option value="0">خواردنەکان</option>
-                                            {% for food in foods %}
+                                            {% for food in foodz %}
                                             <option value="{{ food.id }}">{{ food.title }}</option>
                                             {% endfor %}
                                         </select>
@@ -344,7 +344,7 @@
                                         <div class="input-prepend input-group">
                                             <select id="select" name="foodId" class="form-control">
                                             <option value="0">خواردنەکان</option>
-                                            {% for food in foods %}
+                                            {% for food in foodz %}
                                             <option value="{{ food.id }}">{{ food.title }}</option>
                                             {% endfor %}
                                         </select>
@@ -415,7 +415,7 @@
                                         <th>ناونیشان </th>
                                         <th>ن.فرۆشتن</th>
                                         <th>ن.تێچوو</th>
-                                        {% comment %} <th>وردەکاری</th> {% endcomment %}
+                                        <th>رەیت</th>
                                         <th>وێنه‌</th>
                                         <th>بارودۆخ</th>
                                         <th>كرداره‌كان</th>
@@ -433,7 +433,11 @@
                                         <td>{{ food.subtitle }}</td>
                                         <td>{{ food.sell_price }}</td>
                                         <td>{{ food.cost }}</td>
-                                        {% comment %} <td>{{ food.detiles }}</td> {% endcomment %}
+                                        <td class="fa-3x">                                            <span class="fa-layers fa-fw" style="background:MistyRose">
+                                                <i class="fa fa-star text-success"></i>
+                                                <span class="fa-layers-text fa-inverse" data-fa-transform="shrink-11.5 rotate--30" style="font-weight:900">{{ food.avg_ratings }}</span>
+                                            </span>                                        
+                                        </td>
                                         <td>
                                             {% if food.image %}
                                             <img src="{{ food.image.url }}" height="40">

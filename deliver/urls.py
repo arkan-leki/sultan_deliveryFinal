@@ -2,7 +2,7 @@ from django.conf.urls import url, include
 from django.contrib.auth.models import User
 from deliver.models import Cat
 from rest_framework import routers, serializers, viewsets
-from . import views
+import views
 from django.urls import path, include
 
 # Routers provide an easy way of automatically determining the URL conf.
@@ -31,6 +31,7 @@ urlpatterns = [
     path('foodDetail/<pk>', views.foodDetail, name="foodDetail"),
     path('disprices/', views.disprices, name="disprice"),
     path('specifies/', views.specifies, name="specifies"),
+    path('delivers/', views.delivers, name="delivers"),
     path('ajax/', views.ajax, name="ajax"),
     url('^api/requestz/$', views.RequestDetailListView.as_view()),
     url('^api/foodz/$', views.FoodListView.as_view()),

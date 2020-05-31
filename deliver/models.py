@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.db.models import Avg
 
 from django.conf import settings
 from django.db.models.signals import post_save
@@ -112,7 +113,10 @@ class Food(models.Model):
 
     def __unicode__(self):
         return
-
+    
+    def avg_ratings(self):
+        the_values = self.rate_food.aggregate(Avg('stars')).values()
+        return list(the_values)[0]
     class Meta:
         verbose_name_plural = "خواردنه‌كان"
 
@@ -157,7 +161,10 @@ class Dipricing(models.Model):
     class Meta:
         verbose_name_plural = "disprice"
 
-
+class Rate(models.Model):
+    food = models.ForeignKey(Food, related_name='rate_food', on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    stars = models.IntegerField(default=0)
 
 class Request(models.Model):
     name = models.CharField(max_length=110)
@@ -203,9 +210,11 @@ class RequestDetail(models.Model):
 
 
 class Dliver(models.Model):
-    name = models.CharField(max_length=110,)
+    name = models.CharField(max_length=110, blank=True, null=True)
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
-
+    phone = models.CharField(max_length=11, blank=True, null=True)
+    phoneId = models.CharField(max_length=110, blank=True, null=True)
+    
     def __str__(self):
         return str(self.name)
 

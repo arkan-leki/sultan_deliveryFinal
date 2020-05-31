@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.models import User
 from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing
 from rest_framework import viewsets
-from . import serializer
+import serializer
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from django.contrib.auth import login, authenticate, logout
@@ -59,9 +59,11 @@ def catEdit(request, pk):
 def foods(request):
     cats = Cat.objects.all()
     foods = Food.objects.all()
+    foodz = Food.objects.filter(deleted=False)
     context = {
         'cats': cats,
         'foods': foods,
+        'foodz': foodz,
         'title': "Child Food",
     }
     return render(request, 'deliver/screens/foods.html', context)
@@ -69,7 +71,7 @@ def foods(request):
 
 def foodEdit(request, pk):
     foods = Food.objects.get(id=pk)
-    cats = Cat.objects.all()
+    cats = Cat.objects.filter(deleted=False)
     context = {
         'cats': cats,
         'food': foods,
@@ -88,7 +90,7 @@ def foodDetail(request, pk):
 
 def disprices(request):
     disprices = Dipricing.objects.all()
-    foods = Food.objects.all()
+    foods = Food.objects.filter(deleted=False)
     context = {
         'foods': foods,
         'disprices': disprices,
@@ -98,7 +100,7 @@ def disprices(request):
 
 def specifies(request):
     specifies = Specify.objects.all()
-    foods = Food.objects.all()
+    foods = Food.objects.filter(deleted=False)
     context = {
         'foods': foods,
         'specifies': specifies,
@@ -106,12 +108,35 @@ def specifies(request):
     }
     return render(request, 'deliver/screens/specify.html', context)
 
+def delivers(request):
+    delivers = Dliver.objects.all()
+    context = {
+        'delivers': delivers,
+        'title': "Delivers of Food",
+    }
+    return render(request, 'deliver/screens/delivers.html', context)
 
 @csrf_exempt
 def ajax(request):
     data = {
         'message': 'failed'
     }
+    if request.GET.get('action') == 'spdelete':
+        id = request.GET.get('id')
+        sp = Specify.objects.get(pk=id)
+        sp.delete()
+        data = {
+            'message': sp.id
+        }
+        return redirect('deliver:specifies')
+    if request.GET.get('action') == 'disdelete':
+        id = request.GET.get('id')
+        dis = Dipricing.objects.get(pk=id)
+        dis.delete()
+        data = {
+            'message': dis.id
+        }
+        return redirect('deliver:disprice')
     if request.GET.get('action') == 'catdelete':
         id = request.GET.get('id')
         cat = Cat.objects.get(pk=id)

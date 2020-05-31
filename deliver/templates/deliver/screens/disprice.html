@@ -271,7 +271,8 @@
                                         <th>خواردن</th>
                                         <th>ناونیشان</th>
                                         <th>نرخی داشکاندن</th>
-                                        <th>بەرواری بەسەرچوون </th>
+                                        <th>بەرواری دەستپێك</th>
+                                        <th>سڕینەوە </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -281,7 +282,13 @@
                                         <td>{{ disprice.food }}</td>
                                         <td><a href="#">{{ disprice.title }}</a></td>
                                         <td>{{ disprice.price }}</td>
-                                        <td>{{disprice.exp_date}}</td>
+                                        <td>{{disprice.start_date}}-{{disprice.exp_date}}</td>
+                                        <th>
+                                            </a>
+                                                <a role="button" href="{% url 'deliver:ajax' %}?action=disdelete&id={{disprice.id}} " class="btn btn-danger">
+                                                <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
+                                            </a>
+                                        </th>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
