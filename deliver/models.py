@@ -208,12 +208,30 @@ class RequestDetail(models.Model):
     class Meta:
         verbose_name_plural = "ورده‌كاری داواكاری"
 
+class Motors(models.Model):
+    title = models.CharField(max_length=110, blank=True, null=True)
+    number = models.CharField(max_length=11, blank=True, null=True)
+    image = models.ImageField(
+       upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
+    status = models.BooleanField(default=False)
+        
+    def __str__(self):
+        return str(self.title)
+
+    def __unicode__(self):
+        return
+
+    class Meta:
+        verbose_name_plural = "Motors"
 
 class Dliver(models.Model):
     name = models.CharField(max_length=110, blank=True, null=True)
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
+    motor = models.ForeignKey(Motors, related_name='owed_motor', on_delete=models.CASCADE)
     phone = models.CharField(max_length=11, blank=True, null=True)
     phoneId = models.CharField(max_length=110, blank=True, null=True)
+    image = models.ImageField(
+       upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
     
     def __str__(self):
         return str(self.name)

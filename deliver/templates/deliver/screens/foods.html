@@ -455,14 +455,15 @@
                                         <td><a role="button" href="{% url 'deliver:foodEdit' food.id %}"
                                                 class="btn btn-warning">
                                                 دەستکاریکردن
-                                                <i class="fa fa-pencil fa-1x" aria-hidden="true"></i></i>
+                                                <i class="fa fa-plus fa-1x" aria-hidden="true"></i></i>
                                             </a>
                                             {% if food.deleted %}
                                             <a role="button"
                                                 href="{% url 'deliver:ajax' %}?action=fooddelete&id={{food.id}} "
                                                 class="btn btn-primary">
                                                 گەڕاندنەوە
-                                                <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
+                                                <i class="fa fa-trash-restore fa-1x" aria-hidden="true"></i></i>
+                                                
                                             </a>{% else %}
                                             <a role="button"
                                                 href="{% url 'deliver:ajax' %}?action=fooddelete&id={{food.id}} "

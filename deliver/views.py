@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from django.contrib.auth.models import User
-from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing
+from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors
 from rest_framework import viewsets
-import serializer
+from . import serializer
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from django.contrib.auth import login, authenticate, logout
@@ -57,7 +57,7 @@ def catEdit(request, pk):
 
 
 def foods(request):
-    cats = Cat.objects.all()
+    cats = Cat.objects.filter(deleted=False)
     foods = Food.objects.all()
     foodz = Food.objects.filter(deleted=False)
     context = {
@@ -108,19 +108,40 @@ def specifies(request):
     }
     return render(request, 'deliver/screens/specify.html', context)
 
+
 def delivers(request):
     delivers = Dliver.objects.all()
+    users = Account.objects.all()
+    motors = Motors.objects.all()
     context = {
+        'users': users, 
+        'motors': motors, 
         'delivers': delivers,
         'title': "Delivers of Food",
     }
     return render(request, 'deliver/screens/delivers.html', context)
+
+def motors(request):
+    motors = Motors.objects.all()
+    context = {
+        'motors': motors,
+        'title': "Delivers of Food",
+    }
+    return render(request, 'deliver/screens/motors.html', context)
 
 @csrf_exempt
 def ajax(request):
     data = {
         'message': 'failed'
     }
+    if request.GET.get('action') == 'motordelete':
+        id = request.GET.get('id')
+        db = Motors.objects.get(pk=id)
+        db.delete()
+        data = {
+            'message': 'deleted'
+        }
+        return redirect('deliver:motors')
     if request.GET.get('action') == 'spdelete':
         id = request.GET.get('id')
         sp = Specify.objects.get(pk=id)
@@ -144,6 +165,14 @@ def ajax(request):
         cat.save()
         data = {
             'message': cat.deleted
+        }
+        return redirect('deliver:cats')
+    if request.GET.get('action') == 'catremove':
+        id = request.GET.get('id')
+        cat = Cat.objects.get(pk=id)
+        cat.delete()
+        data = {
+            'message': "deleted"
         }
         return redirect('deliver:cats')
     if request.GET.get('action') == 'fooddelete':
@@ -231,6 +260,17 @@ def ajax(request):
             dp.save()
             data = {
                 'redirect': '/disprices/',
+                'message': 'success'
+            }
+        if request.POST.get('action') == 'add_motor':
+            dp = Motors()
+            dp.title = request.POST.get('title')
+            dp.number = request.POST.get('number')
+            dp.image = request.FILES['images']
+            dp.status = False
+            dp.save()
+            data = {
+                'redirect': '/motors/',
                 'message': 'success'
             }
     return JsonResponse(data)

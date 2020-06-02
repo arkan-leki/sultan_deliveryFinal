@@ -1,28 +1,27 @@
-{% extends 'deliver/base.html' %} 
+{% extends 'deliver/base.html' %}
 
 {% block title %} {{ title }}
 {% endblock title %}
 {% block content %}
 <!-- Main content -->
-        <main class="main">
+<main class="main">
 
-            <!-- Breadcrumb -->
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">مێزیكار</li>
+    <!-- Breadcrumb -->
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">مێزیكار</li>
 
-                <li class="breadcrumb-item active">جوری خواردنه‌كان</li>
+        <li class="breadcrumb-item active">جوری خواردنه‌كان</li>
 
-                <!-- Breadcrumb Menu-->
-                <li class="breadcrumb-menu d-md-down-none">
-                    <div class="btn-group" role="group" aria-label="Button group">
-                        <a class="btn" href="#"><i class="icon-speech"></i></a>
-                        <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
-                        <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;تنظیمات</a>
-                    </div>
-                </li>
-            </ol>
-
-            <style>
+        <!-- Breadcrumb Menu-->
+        <li class="breadcrumb-menu d-md-down-none">
+            <div class="btn-group" role="group" aria-label="Button group">
+                <a class="btn" href="#"><i class="icon-speech"></i></a>
+                <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
+                <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;تنظیمات</a>
+            </div>
+        </li>
+    </ol>
+ <style>
                 * {
                     margin: 0;
                     padding: 0;
@@ -187,12 +186,12 @@
                     color: #f00
                 }
             </style>
-            <div class="container-fluid">
-                <div class="animated fadeIn">
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <div class="card">
-                                <div class="card-header">
+    <div class="container-fluid">
+        <div class="animated fadeIn">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-header">
                                     <i class="fa fa-edit"></i>فورمی جوری خواردنه‌كان
                                     <div class="card-actions">
                                         <a href="#" class="btn-setting"><i class="icon-settings"></i></a>
@@ -200,150 +199,210 @@
                                         <a href="#" class="btn-close"><i class="icon-close"></i></a>
                                     </div>
                                 </div>
-                                <div class="card-body">
-                            <form enctype="multipart/form-data" class="form-horizontal" id="ajaxForm" method="POST" action="{% url 'deliver:ajax' %}">
-                                         <input name="action" value="add_cat" hidden>
-                                        <div class="form-group">
-                                            <label class="form-control-label" for="prependedInput">ناوی كوردی</label>
+                        <div class="card-body">
+                            <form id="ajaxForm" method="POST" action="{% url 'deliver:ajax' %}" method="post"
+                                enctype="multipart/form-data" class="form-horizontal">
+                                <input name="action" type="text" value="food_add" hidden>
+                                <div class="form-group ">
+                                    <label class="col-md-3 form-control-label" for="appendedPrependedInput">دیاری کردنی خوارن</label>
                                             <div class="controls">
-                                                <div class="input-prepend input-group">
-                                                    <!-- <span class="input-group-addon">@</span> -->
-                                                    <input name="nameKu" id="prependedInput" class="form-control" size="16"
-                                                        type="text">
-                                                </div>
-                                                <p class="help-block">Here's some help text</p>
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="form-control-label" for="prependedInput">ناوی بیانی</label>
-                                            <div class="controls">
-                                                <div class="input-prepend input-group">
-                                                    <!-- <span class="input-group-addon">@</span> -->
-                                                    <input name="nameEg" id="prependedInput" class="form-control" size="16"
-                                                        type="text">
-                                                </div>
-                                                <p class="help-block">Here's some help text</p>
-                                            </div>
-                                        </div>
-                                        <div class="container">
-                                            <div class="panel">
-                                                <div class="button_outer">
-                                                    <div class="btn_upload">
-                                                        <input type="file" id="upload_file" name="image">
-                                                        Upload Image
-                                                    </div>
-                                                    <div class="processing_bar"></div>
-                                                    <div class="success_box"></div>
-                                                </div>
-                                            </div>
-                                            <div class="error_msg"></div>
-                                            <div class="uploaded_file_view" id="uploaded_view">
-                                                <span class="file_remove">X</span>
-                                            </div>
-                                        </div>
-                                        <div class="form-actions">
-                                            <button type="submit" class="btn btn-sm btn-primary"><i
-                                                    class="fa fa-dot-circle-o"></i> زیادكردن</button>
-                                            <button type="بازیابی" class="btn btn-sm btn-danger"><i
-                                                    class="fa fa-ban"></i> وازهینان</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                        <!--/.col-->
-                    </div>
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <div class="card">
-                                <div class="card-header">
-                                    <i class="fa fa-align-justify"></i> جوری خواردنه‌كان
-                                </div>
-                                <div class="card-body">
-                                    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-                                    <h2>گەڕان لە خواردنەکان</h2>
-                                    <p>بو فلتەوە کردنی خشتەکە :</p>
-                                    <input class="form-control" id="search" type="text" placeholder="بۆ .....">
-                                    <br>
-                                    <table id="tab" class="table table-bordered table-striped table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>#</th>
-                                                <th>ناو خواردن</th>
-                                                <th>رێكه‌وتی زیادكرد</th>
-                                                <th>ناوی بیانی</th>
-                                                <th>وێنه‌</th>
-                                                <th>ناکارایە</th>
-                                                <th>كرداره‌كان</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for cat in cats %}
-                                             <tr>
-                                                <td>{{ cat.id }}</td>
-                                                <td><a href="{% url 'deliver:catDetail' cat.id %}">{{ cat.nameKu }}</a></td>
-                                                <td>{{cat.date_added}}</td>
-                                                <td>{{ cat.nameEg }}</td>
-                                                <td>
-                                                {% if cat.image %}
-                                                <img src="{{ cat.image.url }}" height="40">
-                                                {% endif %}
-                                                </td>
-                                                <td>
-                                                {% if cat.deleted %}
-                                                    <span class="badge badge-danger">سڕکراوە</span>
-                                                {% else %}
-                                                    <span class="badge badge-success">چالاکە</span>
-                                                {% endif %}
-                                                
-                                                    
-                                                </td>
-                                                <td><a role="button" href="{% url 'deliver:catEdit' cat.id %}" class="btn btn-warning">
-                                                دەستکاریکردن
-                                                        <i class="fa fa-pencil fa-1x" aria-hidden="true"></i></i>
-                                                    </a>
-                                                    {% if cat.deleted %}
-                                                        <a role="button" href="{% url 'deliver:ajax' %}?action=catdelete&id={{cat.id}} " class="btn btn-primary">
-                                                        گەڕاندنەوە
-                                                        <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
-                                                    </a>{% else %}
-                                                        <a role="button" href="{% url 'deliver:ajax' %}?action=catdelete&id={{cat.id}} " class="btn btn-danger">
-                                                        سڕەینەوە
-                                                        <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
-                                                    </a>{% endif %}
-                                                    
-                                                </td>
-                                            </tr>
+                                        <div class="input-prepend input-group">
+                                            <select id="select" name="catId" class="form-control">
+                                            <option value="0">خواردنەکان</option>
+                                            {% for food in foods %}
+                                            <option value="{{ food.id }}">{{ food.title }}</option>
                                             {% endfor %}
-                                        </tbody>
-                                    </table>
-                                    <nav>
-                                        <ul class="pagination">
-                                            <li class="page-item"><a class="page-link" href="#">Prev</a>
-                                            </li>
-                                            <li class="page-item active">
-                                                <a class="page-link" href="#">1</a>
-                                            </li>
-                                            <li class="page-item"><a class="page-link" href="#">2</a>
-                                            </li>
-                                            <li class="page-item"><a class="page-link" href="#">3</a>
-                                            </li>
-                                            <li class="page-item"><a class="page-link" href="#">4</a>
-                                            </li>
-                                            <li class="page-item"><a class="page-link" href="#">Next</a>
-                                            </li>
-                                        </ul>
-                                    </nav>
+                                        </select>
+                                            <a href="{% url 'deliver:foods' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                        <!--/.col-->
-                    </div>
-                    <!--/.row-->
-                </div>
+                                <div class="form-group  ">
+                                    <label class="col-md-3 form-control-label" for="appendedPrependedInput">دیاری ماتور </label>
+                                            <div class="controls">
+                                        <div class="input-prepend input-group">
+                                            <select id="select" name="catId" class="form-control">
+                                            <option value="0">مـاتورەکان</option>
+                                            {% for motor in motors %}
+                                            <option value="{{ motor.id }}">{{ motor.title }}</option>
+                                            {% endfor %}
+                                        </select>
+                                            <a href="{% url 'deliver:motors' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group ">
+                                    <label class="col-md-3 form-control-label" for="text-input">ناو</label>
+                                            <div class="controls">
+                                        <input type="text" id="text-input" name="title" class="form-control"
+                                            placeholder="ناو">
+                                        <span class="help-block">This is a help text</span>
+                                    </div>
+                                </div>
+                                <div class="form-group ">
+                                    <label class="col-md-3 form-control-label" for="text-input">ژمارەی موبایل</label>
+                                            <div class="controls">
+                                        <input type="text" id="text-input" name="subtitle" class="form-control"
+                                            placeholder="٠٧٧٠٢٣٤٥١١٢">
+                                        <span class="help-block">This is a help text</span>
+                                    </div>
+                                </div>
+                                <div class="form-group ">
+                                    <label class="col-md-3 form-control-label" for="text-input">موبایل ئێستا</label>
+                                            <div class="controls">
+                                        <input type="text" id="text-input" name="cost" class="form-control"
+                                            placeholder="نرخ" disabled>
+                                        <span class="help-block">ژمارەی دوبارەنەبوی ئۆتۆماتیکی</span>
+                                    </div>
+                                </div>
+                                <div class="container">
+                                    <div class="panel">
+                                        <div class="button_outer">
+                                            <div class="btn_upload">
+                                                <input type="file" id="upload_file" name="image">
+                                                Upload Image
+                                            </div>
+                                            <div class="processing_bar"></div>
+                                            <div class="success_box"></div>
+                                        </div>
+                                    </div>
+                                    <div class="error_msg"></div>
+                                    <div class="uploaded_file_view" id="uploaded_view">
+                                        <span class="file_remove">X</span>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-sm btn-primary"><i
+                                            class="fa fa-dot-circle-o"></i> زیادكردن</button>
+                                    <button type="cancel" class="btn btn-sm btn-danger"><i class="fa fa-ban"></i>
+                                        وازهینان</button>
+                                </div>
 
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <!-- /.conainer-fluid -->
-        </main>
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fa fa-align-justify"></i> خواردنه‌كان
+                        </div>
+                        <div class="card-body">
+                            <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+                            <h2>گەڕان لە خواردنەکان</h2>
+                            <p>بو فلتەوە کردنی خشتەکە :</p>
+                            <input class="form-control" id="search" type="text" placeholder="بۆ .....">
+                            <br>
+                            <table id="tab" class="table table-bordered table-striped table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>ناو</th>
+                                        <th>ماتور</th>
+                                        <th>ژ.موبایل</th>
+                                        <th>بەکارهینەر </th>
+                                        <th>ژ.ماتور</th>
+                                        <th>وینەی ماتور</th>
+                                        <th>وینەی شۆفهر</th>
+                                        <th>بارودۆخ</th>
+                                        <th>كرداره‌كان</th>
+                                        <th hidden>تابەیمەندیەکان</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                
+                                    {% for data in delivers %}
+                                    
+                                    <tr><td>{{ data.id }}</td>
+                                        <td>{{ data.name }}</td>
+                                        <td><a href="{% url 'deliver:foodDetail' data.id %}">{{ data.motor }}</a></td>
+                                        <td>{{data.phone}}</td>
+                                        <td>{{ data.phoneId }}</td>
+                                        <td>{{ data.user }}</td>
+                                        <td>{{ data.motor_number }}</td>
+                                        <td class="fa-3x">                                            
+                                            <span class="fa-layers fa-fw" style="background:MistyRose">
+                                                <i class="fa fa-star text-success"></i>
+                                                <span class="fa-layers-text fa-inverse" data-fa-transform="shrink-11.5 rotate--30" style="font-weight:900">{{ food.avg_ratings }}</span>
+                                            </span>                                        
+                                        </td>
+                                        <td>
+                                            {% if food.image %}
+                                            <img src="{{ food.image.url }}" height="40">
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if food.deleted %}
+                                            <span class="badge badge-danger">سڕکراوە</span>
+                                            {% else %}
+                                            <span class="badge badge-success">چالاکە</span>
+                                            {% endif %}
+
+
+                                        </td>        
+                                        <td><a role="button" href="{% url 'deliver:foodEdit' food.id %}"
+                                                class="btn btn-warning">
+                                                دەستکاریکردن
+                                                <i class="fa fa-pencil fa-1x" aria-hidden="true"></i></i>
+                                            </a>
+                                            {% if food.deleted %}
+                                            <a role="button"
+                                                href="{% url 'deliver:ajax' %}?action=fooddelete&id={{food.id}} "
+                                                class="btn btn-primary">
+                                                گەڕاندنەوە
+                                                <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
+                                            </a>{% else %}
+                                            <a role="button"
+                                                href="{% url 'deliver:ajax' %}?action=fooddelete&id={{food.id}} "
+                                                class="btn btn-danger">
+                                                سڕەینەوە
+                                                <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
+                                            </a>{% endif %}
+                                        </td>
+                                        <td hidden>
+                                           
+                                                    {% for specify in food.specifies.all %}
+                                                       <span class="badge badge-success" >
+                                                                                                    {{ specify }}
+                                                </span>
+
+                                                    {% endfor %}    
+                                                    
+                                        </td>
+                                    </tr>
+                                    
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <nav>
+                                <ul class="pagination">
+                                    <li class="page-item"><a class="page-link" href="#">Prev</a>
+                                    </li>
+                                    <li class="page-item active">
+                                        <a class="page-link" href="#">1</a>
+                                    </li>
+                                    <li class="page-item"><a class="page-link" href="#">2</a>
+                                    </li>
+                                    <li class="page-item"><a class="page-link" href="#">3</a>
+                                    </li>
+                                    <li class="page-item"><a class="page-link" href="#">4</a>
+                                    </li>
+                                    <li class="page-item"><a class="page-link" href="#">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+                <!--/.col-->
+            </div>
+            <!--/.row-->
+        </div>
+
+    </div>
+    <!-- /.conainer-fluid -->
+</main>
 
 {% endblock %}
