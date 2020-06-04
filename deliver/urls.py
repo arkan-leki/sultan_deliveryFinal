@@ -33,6 +33,8 @@ urlpatterns = [
     path('specifies/', views.specifies, name="specifies"),
     path('delivers/', views.delivers, name="delivers"),
     path('motors/', views.motors, name="motors"),
+    path('motorEdit/<pk>', views.motorEdit, name="motorEdit"),
+    path('accounts/', views.accounts, name="accounts"),
     path('ajax/', views.ajax, name="ajax"),
     url('^api/requestz/$', views.RequestDetailListView.as_view()),
     url('^api/foodz/$', views.FoodListView.as_view()),

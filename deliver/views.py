@@ -18,7 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core import files
 from io import BytesIO
 import requests
-
+from deliver.forms import UserForm
 # Create your views here.
 
 
@@ -79,6 +79,7 @@ def foodEdit(request, pk):
     }
     return render(request, 'deliver/screens/foodEdit.html', context)
 
+
 def foodDetail(request, pk):
     foods = Food.objects.get(id=pk)
     context = {
@@ -98,6 +99,7 @@ def disprices(request):
     }
     return render(request, 'deliver/screens/disprice.html', context)
 
+
 def specifies(request):
     specifies = Specify.objects.all()
     foods = Food.objects.filter(deleted=False)
@@ -114,12 +116,13 @@ def delivers(request):
     users = Account.objects.all()
     motors = Motors.objects.all()
     context = {
-        'users': users, 
-        'motors': motors, 
+        'users': users,
+        'motors': motors,
         'delivers': delivers,
         'title': "Delivers of Food",
     }
     return render(request, 'deliver/screens/delivers.html', context)
+
 
 def motors(request):
     motors = Motors.objects.all()
@@ -128,6 +131,27 @@ def motors(request):
         'title': "Delivers of Food",
     }
     return render(request, 'deliver/screens/motors.html', context)
+
+def motorEdit(request, pk):
+    motor = Motors.objects.get(id=pk)
+    motors = Motors.objects.all()
+    context = {
+        'motors': motors,
+        'motor': motor,
+        'title': "Delivers of Food",
+    }
+    return render(request, 'deliver/screens/motors.html', context)
+
+
+def accounts(request):
+    accounts = Account.objects.all()
+    context = {
+        'userform': UserForm,
+        'accounts': accounts,
+        'title': "Delivers of Food",
+    }
+    return render(request, 'deliver/screens/accounts.html', context)
+
 
 @csrf_exempt
 def ajax(request):
@@ -263,6 +287,31 @@ def ajax(request):
                 'message': 'success'
             }
         if request.POST.get('action') == 'add_motor':
+            id = request.POST.get('id')
+            db = Motors.objects.get(pk=id)
+            dp.title = request.POST.get('title')
+            dp.number = request.POST.get('number')
+            dp.image = request.FILES['images']
+            dp.status =  request.FILES['status']
+            dp.save()
+            data = {
+                'redirect': '/motors/',
+                'message': 'success'
+            }
+        if request.POST.get('action') == 'deliver_add':
+            dp = Dliver()
+            dp.name = request.POST.get('name')
+            dp.user_id = request.POST.get('user')
+            dp.motor_id = request.POST.get('motor')
+            dp.phone = request.POST.get('phone')
+            dp.phoneId = request.POST.get('phoneId')
+            dp.image = request.FILES['images']
+            dp.save()
+            data = {
+                'redirect': '/delivers/',
+                'message': 'success'
+            }
+        if request.POST.get('action') == 'add_motor':
             dp = Motors()
             dp.title = request.POST.get('title')
             dp.number = request.POST.get('number')
@@ -273,6 +322,43 @@ def ajax(request):
                 'redirect': '/motors/',
                 'message': 'success'
             }
+        if request.POST.get('action') == 'motorEdit':
+            dp = Motors()
+            dp.title = request.POST.get('title')
+            dp.number = request.POST.get('number')
+            dp.image = request.FILES['images']
+            dp.status = False
+            dp.save()
+            data = {
+                'redirect': '/motors/',
+                'message': 'success'
+            }
+        if request.POST.get('action') == 'add_user':
+            post = {
+                'username': request.POST.get('username'),
+                'password': request.POST.get('password'),
+                'password_repeat': request.POST.get('password_repeat'),
+                'email': request.POST.get('email'),
+            }
+            form = UserForm(post)
+            if form.is_valid():
+                username = form.cleaned_data['username']
+                password = form.cleaned_data['password']
+                form.clean()
+                form.save(commit=True)
+                data = {
+                    'redirect': '/accounts/',
+                    'message': 'success'
+                }
+            else:
+                errors = ''
+                if form.errors:
+                    for key, value in form.errors.items():
+                        for error in value:
+                            errors = error
+                data = {
+                    'message': errors
+                }
     return JsonResponse(data)
 
 

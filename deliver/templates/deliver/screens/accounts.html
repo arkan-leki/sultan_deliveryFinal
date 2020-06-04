@@ -1,0 +1,345 @@
+{% extends 'deliver/base.html' %} 
+
+{% block title %} {{ title }}
+{% endblock title %}
+{% block content %}
+<!-- Main content -->
+        <main class="main">
+
+            <!-- Breadcrumb -->
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">مێزیكار</li>
+
+                <li class="breadcrumb-item active">جوری خواردنه‌كان</li>
+
+                <!-- Breadcrumb Menu-->
+                <li class="breadcrumb-menu d-md-down-none">
+                    <div class="btn-group" role="group" aria-label="Button group">
+                        <a class="btn" href="#"><i class="icon-speech"></i></a>
+                        <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
+                        <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;تنظیمات</a>
+                    </div>
+                </li>
+            </ol>
+
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+
+                body {
+                    background: #f6f6f6;
+                    color: #444;
+                    font-family: 'Roboto', sans-serif;
+                    font-size: 16px;
+                    line-height: 1;
+                }
+
+                .container {
+                    max-width: 1100px;
+                    padding: 0 20px;
+                    margin: 0 auto;
+                }
+
+                .panel {
+                    margin: 100px auto 40px;
+                    max-width: 500px;
+                    text-align: center;
+                }
+
+                .button_outer {
+                    background: #83ccd3;
+                    border-radius: 30px;
+                    text-align: center;
+                    height: 50px;
+                    width: 200px;
+                    display: inline-block;
+                    transition: .2s;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .btn_upload {
+                    padding: 17px 30px 12px;
+                    color: #fff;
+                    text-align: center;
+                    position: relative;
+                    display: inline-block;
+                    overflow: hidden;
+                    z-index: 3;
+                    white-space: nowrap;
+                }
+
+                .btn_upload input {
+                    position: absolute;
+                    width: 100%;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    height: 105%;
+                    cursor: pointer;
+                    opacity: 0;
+                }
+
+                .file_uploading {
+                    width: 100%;
+                    height: 10px;
+                    margin-top: 20px;
+                    background: #ccc;
+                }
+
+                .file_uploading .btn_upload {
+                    display: none;
+                }
+
+                .processing_bar {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 0;
+                    height: 100%;
+                    border-radius: 30px;
+                    background: #83ccd3;
+                    transition: 3s;
+                }
+
+                .file_uploading .processing_bar {
+                    width: 100%;
+                }
+
+                .success_box {
+                    display: none;
+                    width: 50px;
+                    height: 50px;
+                    position: relative;
+                }
+
+                .success_box:before {
+                    content: '';
+                    display: block;
+                    width: 9px;
+                    height: 18px;
+                    border-bottom: 6px solid #fff;
+                    border-right: 6px solid #fff;
+                    -webkit-transform: rotate(45deg);
+                    -moz-transform: rotate(45deg);
+                    -ms-transform: rotate(45deg);
+                    transform: rotate(45deg);
+                    position: absolute;
+                    left: 17px;
+                    top: 10px;
+                }
+
+                .file_uploaded .success_box {
+                    display: inline-block;
+                }
+
+                .file_uploaded {
+                    margin-top: 0;
+                    width: 50px;
+                    background: #83ccd3;
+                    height: 50px;
+                }
+
+                .uploaded_file_view {
+                    max-width: 300px;
+                    margin: 40px auto;
+                    text-align: center;
+                    position: relative;
+                    transition: .2s;
+                    opacity: 0;
+                    border: 2px solid #ddd;
+                    padding: 15px;
+                }
+
+                .file_remove {
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    display: block;
+                    position: absolute;
+                    background: #aaa;
+                    line-height: 30px;
+                    color: #fff;
+                    font-size: 12px;
+                    cursor: pointer;
+                    right: -15px;
+                    top: -15px;
+                }
+
+                .file_remove:hover {
+                    background: #222;
+                    transition: .2s;
+                }
+
+                .uploaded_file_view img {
+                    max-width: 100%;
+                }
+
+                .uploaded_file_view.show {
+                    opacity: 1;
+                }
+
+                .error_msg {
+                    text-align: center;
+                    color: #f00
+                }
+            </style>
+            <div class="container-fluid">
+                <div class="animated fadeIn">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fa fa-edit"></i>فورمی جوری خواردنه‌كان
+                                    <div class="card-actions">
+                                        <a href="#" class="btn-setting"><i class="icon-settings"></i></a>
+                                        <a href="#" class="btn-minimize"><i class="icon-arrow-up"></i></a>
+                                        <a href="#" class="btn-close"><i class="icon-close"></i></a>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                            <form enctype="multipart/form-data" class="form-horizontal" id="simpleForm" method="POST" action="{% url 'deliver:ajax' %}">
+                                         <input name="action" value="add_user" hidden>
+                                         {{ form.errors }}
+                                        <div class="form-group">
+                                            <label class="form-control-label" for="username-input">ناوی بەکارهێنەر </label>
+                                            <div class="controls">
+                                                <div class="input-prepend input-group">
+                                                    <!-- <span class="input-group-addon">@</span> -->
+                                                    <input type="text" id="username-input" name="username" class="form-control" placeholder="Enter UserName">
+                                                </div>
+                                                <p class="help-block">Here's some help text</p>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-control-label" for="email-input">ئیمەیل</label>
+                                            <div class="controls">
+                                                <div class="input-prepend input-group">
+                                                    <!-- <span class="input-group-addon">@</span> -->
+                                                    <input type="email" id="email-input" name="email" class="form-control" placeholder="Enter Email">
+                                                </div>
+                                                <p class="help-block">Here's some help text</p>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-control-label" for="password-input">تێپەڕەوشە</label>
+                                            <div class="controls">
+                                                <div class="input-prepend input-group">
+                                                    <!-- <span class="input-group-addon">@</span> -->
+                                                    <input type="password" id="password-input" name="password" class="form-control" placeholder="Password">
+                                                </div>
+                                                <span class="help-block">Please enter a complex password</span>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-control-label" for="password_repeat-input">تێپەڕەوشە</label>
+                                            <div class="controls">
+                                                <div class="input-prepend input-group">
+                                                    <!-- <span class="input-group-addon">@</span> -->
+                                                    <input type="password" id="password_repeat-input" name="password_repeat" class="form-control" placeholder="Password">
+                                                </div>
+                                                <span class="help-block">Please enter a complex password</span>
+                                            </div>
+                                        </div>
+                                        <div class="form-actions">
+                                            <button type="submit" class="btn btn-sm btn-primary"><i
+                                                    class="fa fa-plus"></i> زیادكردن</button>
+                                            <button type="بازیابی" class="btn btn-sm btn-danger"><i
+                                                    class="fa fa-ban"></i> وازهینان</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <!--/.col-->
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fa fa-align-justify"></i> جوری خواردنه‌كان
+                                </div>
+                                <div class="card-body">
+                                    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+                                    <h2>گەڕان لە خواردنەکان</h2>
+                                    <p>بو فلتەوە کردنی خشتەکە :</p>
+                                    <input class="form-control" id="search" type="text" placeholder="بۆ .....">
+                                    <br>
+                                    <table id="tab" class="table table-bordered table-striped table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>ناو بەکارهێنەر</th>
+                                                <th>ئیمەیل</th>
+                                                <th>بارودۆخ</th>
+                                                <th>بارودۆخ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for usr in accounts %}
+                                             <tr>
+                                                <td>{{ usr.id }}</td>
+                                                <td><a href="{% url 'deliver:catDetail' usr.id %}">{{ usr.username }}</a></td>
+                                                <td>{{ usr.email }}</td>
+                                                <td>
+                                                {% if usr.isActive %}
+                                                    <span class="badge badge-danger">سڕکراوە</span>
+                                                {% else %}
+                                                    <span class="badge badge-success">چالاکە</span>
+                                                {% endif %}
+                                                
+                                                    
+                                                </td>
+                                                <td><a role="button" href="{% url 'deliver:catEdit' usr.id %}" class="btn btn-warning">
+                                                دەستکاریکردن
+                                                        <i class="fa fa-plus fa-1x" aria-hidden="true"></i></i>
+                                                    </a>
+                                                    {% if cat.deleted %}
+                                                        <a role="button" href="{% url 'deliver:ajax' %}?action=catdelete&id={{usr.id}} " class="btn btn-primary">
+                                                        گەڕاندنەوە
+                                                        <i class="fa fa-trash-restore fa-1x" aria-hidden="true"></i></i>                                                         <a role="button" href="{% url 'deliver:ajax' %}?action=catremove&id={{cat.id}} " class="btn btn-danger">
+                                                        سڕەینەوە
+                                                        <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
+                                                    </a>{% else %}
+                                                        <a role="button" href="{% url 'deliver:ajax' %}?action=catdelete&id={{usr.id}} " class="btn btn-danger">
+                                                        سڕەینەوە
+                                                        <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
+                                                    </a>{% endif %}
+                                                    
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <nav>
+                                        <ul class="pagination">
+                                            <li class="page-item"><a class="page-link" href="#">Prev</a>
+                                            </li>
+                                            <li class="page-item active">
+                                                <a class="page-link" href="#">1</a>
+                                            </li>
+                                            <li class="page-item"><a class="page-link" href="#">2</a>
+                                            </li>
+                                            <li class="page-item"><a class="page-link" href="#">3</a>
+                                            </li>
+                                            <li class="page-item"><a class="page-link" href="#">4</a>
+                                            </li>
+                                            <li class="page-item"><a class="page-link" href="#">Next</a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                        <!--/.col-->
+                    </div>
+                    <!--/.row-->
+                </div>
+            </div>
+            <!-- /.conainer-fluid -->
+        </main>
+
+{% endblock %}

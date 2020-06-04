@@ -199,23 +199,34 @@
                         <div class="card-body">
                             <form id="ajaxForm" method="POST" action="{% url 'deliver:ajax' %}" method="post"
                                 enctype="multipart/form-data" class="form-horizontal">
+                                {% if motor %}
+                                <input name="action" type="text" value="motorEdit" hidden>
+                                {% else %}
                                 <input name="action" type="text" value="add_motor" hidden>
+                                {% endif %}
                                 <div class="form-group row">
                                     <label class="col-sm-5 form-control-label" for="input-normal">ناو</label>
                                     <div class="col-sm-6">
                                         <input type="text" id="input-normal" name="title" class="form-control"
-                                            placeholder="ناو">
+                                            placeholder="ناو" value="{{ motor.title }}">
                                     </div>
                                 </div>
                                 <div class="form-group row">
                                     <label class="col-sm-5 form-control-label" for="input-large">ژمارە</label>
                                     <div class="col-sm-6">
                                         <input type="text" id="input-large" name="number"
-                                            class="form-control form-control-lg" placeholder=" سولیمانی ١٢٣٤">
+                                            class="form-control form-control-lg" placeholder=" سولیمانی ١٢٣٤"  value="{{ motor.number }}">
                                     </div>
+                                </div>
+                                <div class="container">
                                 </div>
                                 <div class="control">
                                     <div class="panel">
+                                    <div class="card-body" id="inn">
+                                        {% if motor.image %}
+                                            <img src="{{ motor.image.url }}" height="200">
+                                            {% endif %}
+                                        </div>
                                         <div class="button_outer">
                                             <div class="btn_upload">
                                                 <input type="file" id="upload_file" name="image">

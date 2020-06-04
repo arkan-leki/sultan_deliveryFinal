@@ -202,15 +202,15 @@
                         <div class="card-body">
                             <form id="ajaxForm" method="POST" action="{% url 'deliver:ajax' %}" method="post"
                                 enctype="multipart/form-data" class="form-horizontal">
-                                <input name="action" type="text" value="food_add" hidden>
+                                <input name="action" type="text" value="deliver_add" hidden>
                                 <div class="form-group ">
-                                    <label class="col-md-3 form-control-label" for="appendedPrependedInput">دیاری کردنی خوارن</label>
+                                    <label class="col-md-3 form-control-label" for="appendedPrependedInput">بەکارهینەری چونەژورەوە</label>
                                             <div class="controls">
                                         <div class="input-prepend input-group">
-                                            <select id="select" name="catId" class="form-control">
-                                            <option value="0">خواردنەکان</option>
-                                            {% for food in foods %}
-                                            <option value="{{ food.id }}">{{ food.title }}</option>
+                                            <select id="select" name="user" class="form-control">
+                                            <option value="0">بەکارهینەرەکان</option>
+                                            {% for user in users %}
+                                            <option value="{{ user.id }}">{{ user }}</option>
                                             {% endfor %}
                                         </select>
                                             <a href="{% url 'deliver:foods' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
@@ -221,7 +221,7 @@
                                     <label class="col-md-3 form-control-label" for="appendedPrependedInput">دیاری ماتور </label>
                                             <div class="controls">
                                         <div class="input-prepend input-group">
-                                            <select id="select" name="catId" class="form-control">
+                                            <select id="select" name="motor" class="form-control">
                                             <option value="0">مـاتورەکان</option>
                                             {% for motor in motors %}
                                             <option value="{{ motor.id }}">{{ motor.title }}</option>
@@ -234,7 +234,7 @@
                                 <div class="form-group ">
                                     <label class="col-md-3 form-control-label" for="text-input">ناو</label>
                                             <div class="controls">
-                                        <input type="text" id="text-input" name="title" class="form-control"
+                                        <input type="text" id="text-input" name="name" class="form-control"
                                             placeholder="ناو">
                                         <span class="help-block">This is a help text</span>
                                     </div>
@@ -242,7 +242,7 @@
                                 <div class="form-group ">
                                     <label class="col-md-3 form-control-label" for="text-input">ژمارەی موبایل</label>
                                             <div class="controls">
-                                        <input type="text" id="text-input" name="subtitle" class="form-control"
+                                        <input type="text" id="text-input" name="phone" class="form-control"
                                             placeholder="٠٧٧٠٢٣٤٥١١٢">
                                         <span class="help-block">This is a help text</span>
                                     </div>
@@ -250,7 +250,7 @@
                                 <div class="form-group ">
                                     <label class="col-md-3 form-control-label" for="text-input">موبایل ئێستا</label>
                                             <div class="controls">
-                                        <input type="text" id="text-input" name="cost" class="form-control"
+                                        <input type="text" id="text-input" name="phoneId" class="form-control"
                                             placeholder="نرخ" disabled>
                                         <span class="help-block">ژمارەی دوبارەنەبوی ئۆتۆماتیکی</span>
                                     </div>
@@ -317,45 +317,41 @@
                                     
                                     <tr><td>{{ data.id }}</td>
                                         <td>{{ data.name }}</td>
-                                        <td><a href="{% url 'deliver:foodDetail' data.id %}">{{ data.motor }}</a></td>
+                                        <td><a href="{% url 'deliver:motorEdit' data.motor.id %}">{{ data.motor }}</a></td>
                                         <td>{{data.phone}}</td>
-                                        <td>{{ data.phoneId }}</td>
-                                        <td>{{ data.user }}</td>
-                                        <td>{{ data.motor_number }}</td>
-                                        <td class="fa-3x">                                            
-                                            <span class="fa-layers fa-fw" style="background:MistyRose">
-                                                <i class="fa fa-star text-success"></i>
-                                                <span class="fa-layers-text fa-inverse" data-fa-transform="shrink-11.5 rotate--30" style="font-weight:900">{{ food.avg_ratings }}</span>
-                                            </span>                                        
-                                        </td>
+                                        <td>{{ data.user.username }}</td>
+                                        <td>{{ data.motor.number }}</td>
                                         <td>
-                                            {% if food.image %}
-                                            <img src="{{ food.image.url }}" height="40">
+                                            {% if data.motor.image %}
+                                            <img src="{{ data.motor.image.url }}" height="40">
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if food.deleted %}
-                                            <span class="badge badge-danger">سڕکراوە</span>
-                                            {% else %}
-                                            <span class="badge badge-success">چالاکە</span>
+                                            {% if data.image %}
+                                            <img src="{{ data.image.url }}" height="40">
                                             {% endif %}
-
-
-                                        </td>        
-                                        <td><a role="button" href="{% url 'deliver:foodEdit' food.id %}"
+                                        </td>
+                                        <td>
+                                                {% if data.user.isActive and data.motor.status %}
+                                                    <span class="badge badge-danger">سڕکراوە</span>
+                                                {% else %}
+                                                    <span class="badge badge-success">چالاکە</span>
+                                                {% endif %}
+                                        </td>
+                                        <td><a role="button" href="{% url 'deliver:foodEdit' data.id %}"
                                                 class="btn btn-warning">
                                                 دەستکاریکردن
                                                 <i class="fa fa-pencil fa-1x" aria-hidden="true"></i></i>
                                             </a>
                                             {% if food.deleted %}
                                             <a role="button"
-                                                href="{% url 'deliver:ajax' %}?action=fooddelete&id={{food.id}} "
+                                                href="{% url 'deliver:ajax' %}?action=fooddelete&id={{data.id}} "
                                                 class="btn btn-primary">
                                                 گەڕاندنەوە
                                                 <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
                                             </a>{% else %}
                                             <a role="button"
-                                                href="{% url 'deliver:ajax' %}?action=fooddelete&id={{food.id}} "
+                                                href="{% url 'deliver:ajax' %}?action=fooddelete&id={{data.id}} "
                                                 class="btn btn-danger">
                                                 سڕەینەوە
                                                 <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
@@ -365,7 +361,7 @@
                                            
                                                     {% for specify in food.specifies.all %}
                                                        <span class="badge badge-success" >
-                                                                                                    {{ specify }}
+                                                        {{ specify }}
                                                 </span>
 
                                                     {% endfor %}    
