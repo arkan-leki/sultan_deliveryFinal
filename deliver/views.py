@@ -311,23 +311,14 @@ def ajax(request):
                 'redirect': '/delivers/',
                 'message': 'success'
             }
-        if request.POST.get('action') == 'add_motor':
-            dp = Motors()
-            dp.title = request.POST.get('title')
-            dp.number = request.POST.get('number')
-            dp.image = request.FILES['images']
-            dp.status = False
-            dp.save()
-            data = {
-                'redirect': '/motors/',
-                'message': 'success'
-            }
         if request.POST.get('action') == 'motorEdit':
             dp = Motors()
             dp.title = request.POST.get('title')
             dp.number = request.POST.get('number')
-            dp.image = request.FILES['images']
-            dp.status = False
+            image = request.FILES.get('images', False)
+            if image:
+                db.image = request.FILES['images']
+            dp.status = request.POST.get('status')
             dp.save()
             data = {
                 'redirect': '/motors/',
