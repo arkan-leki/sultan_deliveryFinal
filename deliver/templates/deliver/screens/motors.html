@@ -200,6 +200,7 @@
                             <form id="ajaxForm" method="POST" action="{% url 'deliver:ajax' %}" method="post"
                                 enctype="multipart/form-data" class="form-horizontal">
                                 {% if motor %}
+                                <input name="id" type="text" value="{{motor.id}}" hidden>                                
                                 <input name="action" type="text" value="motorEdit" hidden>
                                 {% else %}
                                 <input name="action" type="text" value="add_motor" hidden>
@@ -218,11 +219,20 @@
                                             class="form-control form-control-lg" placeholder=" سولیمانی ١٢٣٤"  value="{{ motor.number }}">
                                     </div>
                                 </div>
-                                <div class="container">
+                                <div class="form-group row">
+                                    <label class="col-sm-5 form-control-label" for="input-large">بارودۆخ</label>
+                                    <div class="col-sm-6">
+                                        <div class="checkbox">
+                                            <label for="checkbox1">
+                                                <input type="checkbox" id="checkbox1" name="status" value="False" {% if motors.status %}checked{% endif %}> Status
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
+                                
                                 <div class="control">
                                     <div class="panel">
-                                    <div class="card-body" id="inn">
+                                        <div class="card-body" id="inn">
                                         {% if motor.image %}
                                             <img src="{{ motor.image.url }}" height="200">
                                             {% endif %}
@@ -279,17 +289,19 @@
                                     {% for data in motors %}
                                     <tr>
                                         <td>{{ data.id }}</td>
-                                        <td><a href="#">{{ data.title }}</a></td>
+                                        <td><a href="{% url 'deliver:motorEdit' data.id %}">{{ data.title }}</a></td>
                                         <td>{{ data.number }}</td>
                                         <td>
-                                                                                         {% if data.image %}
-
+                                            {% if data.image %}
                                            <a href="{{data.image.url}} ">
                                                 <img src="{{ data.image.url }}" height="50">
                                             </a>
-                                                                                              {% endif %}</td>
-
+                                            {% endif %}</td>
                                         <th>
+                                         </a>
+                                                <a role="button" href="{% url 'deliver:motorEdit' data.id %}" class="btn btn-warning">
+                                                <i class="fa fa-edit fa-1x" aria-hidden="true"></i></i>
+                                            </a>
                                             </a>
                                                 <a role="button" href="{% url 'deliver:ajax' %}?action=motordelete&id={{data.id}} " class="btn btn-danger">
                                                 <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>

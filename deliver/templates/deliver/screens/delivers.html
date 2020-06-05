@@ -202,7 +202,12 @@
                         <div class="card-body">
                             <form id="ajaxForm" method="POST" action="{% url 'deliver:ajax' %}" method="post"
                                 enctype="multipart/form-data" class="form-horizontal">
-                                <input name="action" type="text" value="deliver_add" hidden>
+                                {% if deliver %}
+                                        <input name="action" type="text" value="deliver_edit" hidden>
+                                        <input name="id" type="text" value="{{deliver.id}}" hidden>
+                                {% else %}
+                                        <input name="action" type="text" value="deliver_add" hidden>
+                                {% endif %}
                                 <div class="form-group ">
                                     <label class="col-md-3 form-control-label" for="appendedPrependedInput">بەکارهینەری چونەژورەوە</label>
                                             <div class="controls">
@@ -210,7 +215,11 @@
                                             <select id="select" name="user" class="form-control">
                                             <option value="0">بەکارهینەرەکان</option>
                                             {% for user in users %}
-                                            <option value="{{ user.id }}">{{ user }}</option>
+                                                {% if user.id is deliver.user.id %}
+                                                        <option value="{{ user.id }}" selected>{{ user.username }}</option>
+                                                {% else %}
+                                                        <option value="{{ user.id }}">{{ user.username }}</option>
+                                                {% endif %}
                                             {% endfor %}
                                         </select>
                                             <a href="{% url 'deliver:foods' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
@@ -224,7 +233,11 @@
                                             <select id="select" name="motor" class="form-control">
                                             <option value="0">مـاتورەکان</option>
                                             {% for motor in motors %}
-                                            <option value="{{ motor.id }}">{{ motor.title }}</option>
+                                                {% if motor.id is deliver.motor.id %}
+                                                        <option value="{{ motor.id }}" selected>{{ motor.title }}</option>
+                                                {% else %}
+                                                        <option value="{{ motor.id }}">{{ motor.title }}</option>
+                                                {% endif %}
                                             {% endfor %}
                                         </select>
                                             <a href="{% url 'deliver:motors' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
@@ -235,7 +248,7 @@
                                     <label class="col-md-3 form-control-label" for="text-input">ناو</label>
                                             <div class="controls">
                                         <input type="text" id="text-input" name="name" class="form-control"
-                                            placeholder="ناو">
+                                            placeholder="ناو" value="{{deliver.name}}">
                                         <span class="help-block">This is a help text</span>
                                     </div>
                                 </div>
@@ -243,7 +256,7 @@
                                     <label class="col-md-3 form-control-label" for="text-input">ژمارەی موبایل</label>
                                             <div class="controls">
                                         <input type="text" id="text-input" name="phone" class="form-control"
-                                            placeholder="٠٧٧٠٢٣٤٥١١٢">
+                                            placeholder="٠٧٧٠٢٣٤٥١١٢" value="{{ deliver.phone }}">
                                         <span class="help-block">This is a help text</span>
                                     </div>
                                 </div>
@@ -251,12 +264,17 @@
                                     <label class="col-md-3 form-control-label" for="text-input">موبایل ئێستا</label>
                                             <div class="controls">
                                         <input type="text" id="text-input" name="phoneId" class="form-control"
-                                            placeholder="نرخ" disabled>
+                                            placeholder="نرخ" disabled value="{{ deliver.phoneId }}">
                                         <span class="help-block">ژمارەی دوبارەنەبوی ئۆتۆماتیکی</span>
                                     </div>
                                 </div>
                                 <div class="container">
                                     <div class="panel">
+                                        <div class="card-body" id="inn">
+                                            {% if deliver.image %}
+                                            <img src="{{ deliver.image.url }}" height="200">
+                                            {% endif %}
+                                        </div>
                                         <div class="button_outer">
                                             <div class="btn_upload">
                                                 <input type="file" id="upload_file" name="image">
@@ -273,7 +291,7 @@
                                 </div>
                                 <div class="form-actions">
                                     <button type="submit" class="btn btn-sm btn-primary"><i
-                                            class="fa fa-dot-circle-o"></i> زیادكردن</button>
+                                            class="fa fa-plus"></i> زیادكردن</button>
                                     <button type="cancel" class="btn btn-sm btn-danger"><i class="fa fa-ban"></i>
                                         وازهینان</button>
                                 </div>
@@ -338,24 +356,17 @@
                                                     <span class="badge badge-success">چالاکە</span>
                                                 {% endif %}
                                         </td>
-                                        <td><a role="button" href="{% url 'deliver:foodEdit' data.id %}"
+                                        <td><a role="button" href="{% url 'deliver:deliverEdit' data.id %}"
                                                 class="btn btn-warning">
                                                 دەستکاریکردن
-                                                <i class="fa fa-pencil fa-1x" aria-hidden="true"></i></i>
+                                                <i class="fa fa-edit fa-1x" aria-hidden="true"></i></i>
                                             </a>
-                                            {% if food.deleted %}
                                             <a role="button"
-                                                href="{% url 'deliver:ajax' %}?action=fooddelete&id={{data.id}} "
-                                                class="btn btn-primary">
-                                                گەڕاندنەوە
-                                                <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
-                                            </a>{% else %}
-                                            <a role="button"
-                                                href="{% url 'deliver:ajax' %}?action=fooddelete&id={{data.id}} "
+                                                href="{% url 'deliver:ajax' %}?action=deliverdelete&id={{data.id}} "
                                                 class="btn btn-danger">
                                                 سڕەینەوە
                                                 <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
-                                            </a>{% endif %}
+                                            </a>
                                         </td>
                                         <td hidden>
                                            

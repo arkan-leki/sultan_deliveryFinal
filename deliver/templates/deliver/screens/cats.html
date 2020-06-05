@@ -243,7 +243,7 @@
                                         </div>
                                         <div class="form-actions">
                                             <button type="submit" class="btn btn-sm btn-primary"><i
-                                                    class="fa fa-dot-circle-o"></i> زیادكردن</button>
+                                                    class="fa fa-plus"></i> زیادكردن</button>
                                             <button type="بازیابی" class="btn btn-sm btn-danger"><i
                                                     class="fa fa-ban"></i> وازهینان</button>
                                         </div>
@@ -300,7 +300,7 @@
                                                 </td>
                                                 <td><a role="button" href="{% url 'deliver:catEdit' cat.id %}" class="btn btn-warning">
                                                 دەستکاریکردن
-                                                        <i class="fa fa-plus fa-1x" aria-hidden="true"></i></i>
+                                                        <i class="fa fa-edit fa-1x" aria-hidden="true"></i></i>
                                                     </a>
                                                     {% if cat.deleted %}
                                                         <a role="button" href="{% url 'deliver:ajax' %}?action=catdelete&id={{cat.id}} " class="btn btn-primary">

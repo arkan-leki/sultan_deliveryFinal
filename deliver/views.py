@@ -123,6 +123,20 @@ def delivers(request):
     }
     return render(request, 'deliver/screens/delivers.html', context)
 
+def deliverEdit(request, pk):
+    delivers = Dliver.objects.all()
+    users = Account.objects.all()
+    motors = Motors.objects.all()
+    deliver = Dliver.objects.get(id=pk)
+    context = {
+        'users': users,
+        'deliver': deliver,
+        'motors': motors,
+        'delivers': delivers,
+        'title': "Delivers of Food",
+    }
+    return render(request, 'deliver/screens/delivers.html', context)
+
 
 def motors(request):
     motors = Motors.objects.all()
@@ -208,6 +222,22 @@ def ajax(request):
             'message': food.deleted
         }
         return redirect('deliver:foods')
+    if request.GET.get('action') == 'motordelete':
+        id = request.GET.get('id')
+        sp = Motors.objects.get(pk=id)
+        sp.delete()
+        data = {
+            'message': sp.id
+        }
+        return redirect('deliver:motors')
+    if request.GET.get('action') == 'deliverdelete':
+        id = request.GET.get('id')
+        sp = Dliver.objects.get(pk=id)
+        sp.delete()
+        data = {
+            'message': sp.id
+        }
+        return redirect('deliver:delivers')
     if request.method == 'POST':
         if request.POST.get('action') == 'add_cat':
             cat = Cat()
@@ -287,8 +317,7 @@ def ajax(request):
                 'message': 'success'
             }
         if request.POST.get('action') == 'add_motor':
-            id = request.POST.get('id')
-            db = Motors.objects.get(pk=id)
+            dp = Motors()
             dp.title = request.POST.get('title')
             dp.number = request.POST.get('number')
             dp.image = request.FILES['images']
@@ -311,14 +340,35 @@ def ajax(request):
                 'redirect': '/delivers/',
                 'message': 'success'
             }
+        if request.POST.get('action') == 'deliver_edit':
+            id = request.POST.get('id')
+            dp = Dliver.objects.get(pk=id)
+            dp.name = request.POST.get('name')
+            dp.user_id = request.POST.get('user')
+            dp.motor_id = request.POST.get('motor')
+            dp.phone = request.POST.get('phone')
+            dp.phoneId = request.POST.get('phoneId')
+            image = request.FILES.get('images', False)
+            if image:
+                dp.image = request.FILES['images']
+            dp.save()
+            data = {
+                'redirect': '/delivers/',
+                'message': 'success'
+            }
         if request.POST.get('action') == 'motorEdit':
-            dp = Motors()
+            id = request.POST.get('id')
+            dp = Motors.objects.get(pk=id)
             dp.title = request.POST.get('title')
             dp.number = request.POST.get('number')
             image = request.FILES.get('images', False)
             if image:
-                db.image = request.FILES['images']
-            dp.status = request.POST.get('status')
+                dp.image = request.FILES['images']
+            status = request.FILES.get('status', False)
+            if status:
+                dp.status = True
+            else:
+                dp.status = False
             dp.save()
             data = {
                 'redirect': '/motors/',
