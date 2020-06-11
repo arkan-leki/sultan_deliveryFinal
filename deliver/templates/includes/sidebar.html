@@ -2,7 +2,7 @@
     <nav class="sidebar-nav">
         <ul class="nav">
             <li class="nav-item">
-                <a class="nav-link" href="index.html"><i class="icon-speedometer"></i> میزکار <span class="badge badge-primary">جدید</span></a>
+                <a class="nav-link" href="{% url 'deliver:home' %}"><i class="icon-speedometer"></i> میزکار <span class="badge badge-primary">جدید</span></a>
             </li>
 
             <li class="nav-title">
@@ -26,7 +26,7 @@
                 </ul>
             </li>
             <li class="nav-item nav-dropdown">
-                <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-direction"></i>  رۆتینه‌كان</a>
+                <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-direction"></i>  شۆفێره‌كان</a>
                 <ul class="nav-dropdown-items">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'deliver:delivers' %}"><i class="icon-puzzle"></i> شۆفێره‌كان</a>
@@ -34,11 +34,20 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'deliver:motors' %}"><i class="icon-puzzle"></i> گه‌یاندنه‌كان</a>
                     </li>
+                    
+                </ul>
+            </li>
+            <li class="nav-item nav-dropdown">
+                <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-direction"></i>  گەیاندنەکان</a>
+                <ul class="nav-dropdown-items">
                     <li class="nav-item">
-                        <a class="nav-link" href="components-cards.html"><i class="icon-puzzle"></i> داواكردنه‌كان</a>
+                        <a class="nav-link" href="{% url 'deliver:requestDetail' %}"><i class="icon-puzzle"></i> داواكردنه‌كان</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="components-forms.html"><i class="icon-puzzle"></i> ورده‌كاری گه‌یاندن</a>
+                        <a class="nav-link" href="{% url 'deliver:requests' %}"><i class="icon-puzzle"></i> ورده‌كاری گه‌یاندن</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'deliver:transports' %}"><i class="icon-puzzle"></i>  بارکراوەکان</a>
                     </li>
                 </ul>
             </li>

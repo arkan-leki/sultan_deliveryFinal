@@ -1,0 +1,97 @@
+{% extends 'deliver/base.html' %} 
+
+{% block title %} {{ title }}
+{% endblock title %}
+{% block content %}
+<!-- Main content -->
+        <main class="main">
+
+            <!-- Breadcrumb -->
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">مێزیكار</li>
+
+                <li class="breadcrumb-item active">جوری خواردنه‌كان</li>
+
+                <!-- Breadcrumb Menu-->
+                <li class="breadcrumb-menu d-md-down-none">
+                    <div class="btn-group" role="group" aria-label="Button group">
+                        <a class="btn" href="#"><i class="icon-speech"></i></a>
+                        <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
+                        <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;تنظیمات</a>
+                    </div>
+                </li>
+            </ol>
+            <div class="container-fluid">
+                <div class="animated fadeIn">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fa fa-align-justify"></i> جوری خواردنه‌كان
+                                </div>
+                                <div class="card-body">
+                                    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+                                    <h2>گەڕان لە خواردنەکان</h2>
+                                    <p>بو فلتەوە کردنی خشتەکە :</p>
+                                    <input class="form-control" id="search" type="text" placeholder="بۆ .....">
+                                    <br>
+                                    <table id="tab" class="table table-bordered table-striped table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>ناو داواکاری</th>
+                                                <th>شۆفێر </th>
+                                                <th>بەرواری دەسپێەک</th>
+                                                <th>بەروار گەشتن</th>
+                                                <th>بارودۆخ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for transport in transports %}
+                                             <tr>
+                                                <td>{{ transport.id }}</td>
+                                                <td><a href="{% url 'deliver:requestView' transport.request.id%}">{{ transport.request }}</a></td>
+                                                <td>{{ transport.dliver }}</td>
+                                                <td>{{ transport.start_date }}</td>
+                                                <td>{{ transport.end_date }}</td>
+                                                <td>
+                                                {% if request.status %}
+                                                    <span class="badge badge-danger">سڕکراوە</span>
+                                                {% else %}
+                                                    <span class="badge badge-success">چالاکە</span>
+                                                {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <nav>
+                                        <ul class="pagination">
+                                            <li class="page-item"><a class="page-link" href="#">Prev</a>
+                                            </li>
+                                            <li class="page-item active">
+                                                <a class="page-link" href="#">1</a>
+                                            </li>
+                                            <li class="page-item"><a class="page-link" href="#">2</a>
+                                            </li>
+                                            <li class="page-item"><a class="page-link" href="#">3</a>
+                                            </li>
+                                            <li class="page-item"><a class="page-link" href="#">4</a>
+                                            </li>
+                                            <li class="page-item"><a class="page-link" href="#">Next</a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                        <!--/.col-->
+                    </div>
+                    <!--/.row-->
+                </div>
+
+            </div>
+            <!-- /.conainer-fluid -->
+        </main>
+
+{% endblock %}

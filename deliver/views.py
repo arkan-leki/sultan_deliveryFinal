@@ -19,6 +19,8 @@ from django.core import files
 from io import BytesIO
 import requests
 from deliver.forms import UserForm
+import datetime
+
 # Create your views here.
 
 
@@ -111,6 +113,14 @@ def specifies(request):
     return render(request, 'deliver/screens/specify.html', context)
 
 
+def transports(request):
+    transports = Transport.objects.all()
+    context = {
+        'transports': transports,
+        'title': "transports of Request",
+    }
+    return render(request, 'deliver/screens/transports.html', context)
+
 def delivers(request):
     delivers = Dliver.objects.all()
     users = Account.objects.all()
@@ -133,7 +143,7 @@ def deliverEdit(request, pk):
         'deliver': deliver,
         'motors': motors,
         'delivers': delivers,
-        'title': "Delivers of Food",
+        'title': "Deliver Edit",
     }
     return render(request, 'deliver/screens/delivers.html', context)
 
@@ -142,7 +152,7 @@ def motors(request):
     motors = Motors.objects.all()
     context = {
         'motors': motors,
-        'title': "Delivers of Food",
+        'title': "Motors",
     }
     return render(request, 'deliver/screens/motors.html', context)
 
@@ -152,7 +162,7 @@ def motorEdit(request, pk):
     context = {
         'motors': motors,
         'motor': motor,
-        'title': "Delivers of Food",
+        'title': "Motors Edit",
     }
     return render(request, 'deliver/screens/motors.html', context)
 
@@ -162,10 +172,46 @@ def accounts(request):
     context = {
         'userform': UserForm,
         'accounts': accounts,
-        'title': "Delivers of Food",
+        'title': "Accounts",
     }
     return render(request, 'deliver/screens/accounts.html', context)
 
+def requestDetail(request):
+    requests = RequestDetail.objects.all()
+    context = {
+        'requests': requests,
+        'title': "Requests of Food",
+    }
+    return render(request, 'deliver/screens/requestDetail.html', context)
+
+def requestDetailView(request,pk):
+    f = RequestDetail.objects.get(id=pk)
+    context = {
+        'request': f,
+        'title': "Requests of Food",
+    }
+    return render(request, 'deliver/screens/RequestDetailView.html', context)
+
+
+def requestView(request,pk):
+    f = Request.objects.get(id=pk)
+    context = {
+        'request': f,
+        'title': "Requests of Food",
+    }
+    return render(request, 'deliver/screens/RequestView.html', context)
+
+
+
+def requests(request):
+    dlivers = Dliver.objects.all()
+    requests = Request.objects.all()
+    context = {
+        'requests': requests,
+        'dlivers': dlivers,
+        'title': "Detail Delivery of Request",
+    }
+    return render(request, 'deliver/screens/requests.html', context)
 
 @csrf_exempt
 def ajax(request):
@@ -238,6 +284,15 @@ def ajax(request):
             'message': sp.id
         }
         return redirect('deliver:delivers')
+    if request.GET.get('action') == 'reqdelete':
+        id = request.GET.get('id')
+        sp = Request.objects.get(pk=id)
+        sp.status = False
+        sp.save()
+        data = {
+            'message': sp.status
+        }
+        return redirect('deliver:requests')
     if request.method == 'POST':
         if request.POST.get('action') == 'add_cat':
             cat = Cat()
@@ -354,6 +409,21 @@ def ajax(request):
             dp.save()
             data = {
                 'redirect': '/delivers/',
+                'message': 'success'
+            }
+        if request.POST.get('action') == 'add_trasnport':
+            dp = Transport()
+            dp.dliver_id = request.POST.get('dliver')
+            dp.request_id = request.POST.get('request')
+            dp.start_date = datetime.datetime.now()
+            dp.end_date = datetime.datetime.now()
+            dp.save()
+            id = request.POST.get('request')
+            form = Request.objects.get(pk=id)
+            form.status = True
+            form.save()
+            data = {
+                'redirect': '/requests/',
                 'message': 'success'
             }
         if request.POST.get('action') == 'motorEdit':

@@ -1,0 +1,54 @@
+{% extends 'deliver/base.html' %} 
+
+{% block title %} {{ title }}
+{% endblock title %}
+{% block content %}
+
+<!-- Main content -->
+         <main class="main">
+ 
+ 
+             <!-- Breadcrumb -->
+             <ol class="breadcrumb">
+                 <li class="breadcrumb-item">میزکار</li>
+              
+                 <li class="breadcrumb-item active"> کارت ها</li>
+ 
+                 <!-- Breadcrumb Menu-->
+                 <li class="breadcrumb-menu d-md-down-none">
+                     <div class="btn-group" role="group" aria-label="Button group">
+                         <a class="btn" href="#"><i class="icon-speech"></i></a>
+                         <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
+                         <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;تنظیمات</a>
+                     </div>
+                 </li>
+             </ol>
+ 
+ 
+             <div class="container-fluid">
+                 <div class="animated fadeIn">
+                 {% for request_detail in request.request_detail.all  %}
+                    <div class="col-sm-6 col-md-4">
+                        <div class="card animated fadeInLeft">
+                            <img src="{{ request_detail.food.image.url }}" class="card-img-top img-responsive" alt="">
+                            <div class="card-img-overlay">
+                                <a href="{% url 'deliver:catEdit' request.id %}" class="btn btn-primary">{{request_detail.food}}   X{{ request_detail.quantity }}</a>
+                            </div>
+                            <div class="card-body">
+                                                $<td>{{ request.total_price }}</td>$
+                                                <td>{{ request.address }}</td>
+                                                <td>{{ request.phone }}</td>
+                                                <td>
+                            </div>
+                            <div class="card-footer">{{  request.date_added }} {{  request }}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+                    
+                 </div>
+ 
+             </div>
+             <!-- /.conainer-fluid -->
+         </main>
+
+{% endblock %}

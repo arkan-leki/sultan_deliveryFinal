@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
-from .models import Cat, Dipricing
+from .models import Cat, Dipricing, Customer
 
 
 class CatForm(forms.ModelForm):
@@ -57,3 +57,10 @@ class UserForm(forms.ModelForm):
             user.save()
         return user
 
+
+class CustomerForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput)
+
+    class Meta:
+        model = Customer
+        fields = ('name', 'email', 'password', 'instrument_purchase', 'house_no', 'address_line1', 'address_line2', 'telephone', 'zip_code', 'state', 'country')
