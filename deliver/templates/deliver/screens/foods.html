@@ -433,9 +433,9 @@
                                         <td>{{ food.subtitle }}</td>
                                         <td>{{ food.sell_price }}</td>
                                         <td>{{ food.cost }}</td>
-                                        <td class="fa-3x">                                            
+                                        <td class="fa-2x">                                            
                                         <span class="fa-layers fa-fw" style="background:MistyRose">
-                                                <i class="fa fa-star text-success"></i>
+                                                <i class="fa fa-star text-warning"></i>
                                                 <span class="fa-layers-text fa-inverse" data-fa-transform="shrink-11.5 rotate--30" style="font-weight:900">{{ food.avg_ratings }}</span>
                                             </span>                                        
                                         </td>
@@ -463,7 +463,7 @@
                                                 href="{% url 'deliver:ajax' %}?action=fooddelete&id={{food.id}} "
                                                 class="btn btn-primary">
                                                 گەڕاندنەوە
-                                                <i class="fa fa-trash-restore fa-1x" aria-hidden="true"></i></i>
+                                                <i class="fa fa-refresh fa-1x" aria-hidden="true"></i></i>
                                                 
                                             </a>{% else %}
                                             <a role="button"

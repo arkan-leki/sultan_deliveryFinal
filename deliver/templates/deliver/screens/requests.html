@@ -75,7 +75,7 @@
                                                     {% if request.status %}
                                                         <a role="button" href="{% url 'deliver:ajax' %}?action=reqdelete&id={{request.id}} " class="btn btn-primary">
                                                         گەڕاندنەوە
-                                                        <i class="fa fa-trash-restore fa-1x" aria-hidden="true"></i></i>
+                                                        <i class="fa fa-refresh fa-1x" aria-hidden="true"></i></i>
                                                     </a>{% else %}
                                                        <form enctype="multipart/form-data" class="form-horizontal" id="simpleForm" method="POST" action="{% url 'deliver:ajax' %}">
                                                         <input name="action" value="add_trasnport" hidden>
