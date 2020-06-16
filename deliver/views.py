@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.models import User
-from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors
+from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors, Customer
 from rest_framework import viewsets
 from . import serializer
 from django_filters.rest_framework import DjangoFilterBackend
@@ -200,6 +200,14 @@ def requestView(request,pk):
         'title': "Requests of Food",
     }
     return render(request, 'deliver/screens/RequestView.html', context)
+
+def customer(request,pk):
+    f = Customer.objects.get(id=pk)
+    context = {
+        'customer': f,
+        'title': "Customer",
+    }
+    return render(request, 'deliver/screens/customer.html', context)
 
 
 

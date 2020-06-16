@@ -43,7 +43,8 @@
                                                 <th>دانە </th>
                                                 <th>تایبەرمەندێتی </th>
                                                 <th>نرخ</th>
-                                                <th>موبایل</th>
+                                                <th>داشکاندن</th>
+                                                <th>کڕیار</th>
                                                 <th>بەروار دانان</th>
                                                 <th>بارودۆخ</th>
                                             </tr>
@@ -58,7 +59,8 @@
                                                 <td><a href="{% url 'deliver:specifies'%}">{{ specify}}</a></td>
                                                 {% endfor %}
                                                 <td>{{ request.total_price }}</td>
-                                                <td>{{ request.phoneid }}</td>
+                                                <td>{{ request.dashkandin }}</td>
+                                                <td><a href="{% url 'deliver:customer' request.customer.id %}">{{ request.customer }}</a></td>
                                                 <td>{{ request.date_added }}</td>
                                                 <td>
                                                 {% if request.status %}

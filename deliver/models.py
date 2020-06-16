@@ -166,13 +166,32 @@ class Rate(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     stars = models.IntegerField(default=0)
 
+class Customer(models.Model):
+    name = models.CharField(max_length=100)
+    password = models.CharField(max_length=100)
+    instrument_purchase = models.CharField(max_length=100)
+    house_no = models.CharField(max_length=100)
+    address_line1 = models.CharField(max_length=100)
+    address_line2 = models.CharField(max_length=100)
+    phone = models.CharField(max_length=100)
+    phoneid = models.CharField(max_length=110, default='Unknown')
+    zip_code = models.CharField(max_length=20)
+    state = models.CharField(max_length=100)
+    country = models.CharField(max_length=100)
+    image = models.ImageField(
+        upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
+
+    def __str__(self):
+        return self.name
+
 class Request(models.Model):
+    customer = models.ForeignKey(Customer, related_name='relcustomer', on_delete=models.CASCADE, default=1)
     name = models.CharField(max_length=110)
     phone = models.CharField(max_length=110)
     address = models.CharField(max_length=110)
     total_price = models.CharField(max_length=11)
+    dashkandin = models.CharField(max_length=11,blank=True)
     request_detail = models.ManyToManyField('RequestDetail')
-    phoneid = models.CharField(max_length=110, default='Unknown')
     date_added = models.DateField(verbose_name='date added', auto_now_add=True)
     last_edit = models.DateTimeField(verbose_name='last edit', auto_now=True)
     status = models.BooleanField(default=False)
@@ -193,7 +212,8 @@ class RequestDetail(models.Model):
     quantity = models.CharField(max_length=11)
     specify = models.ManyToManyField('Specify')
     total_price = models.CharField(max_length=11)
-    phoneid = models.CharField(max_length=110, default='Unknown')
+    dashkandin = models.CharField(max_length=11,blank=True)
+    customer = models.ForeignKey(Customer, related_name='customerRequestD', on_delete=models.CASCADE, default=1)
     date_added = models.DateField(
         verbose_name='date added', auto_now_add=True)
     last_edit = models.DateTimeField(verbose_name='last edit', auto_now=True)
@@ -258,19 +278,3 @@ class Transport(models.Model):
 
     class Meta:
         verbose_name_plural = "باركراو"
-
-class Customer(models.Model):
-    name = models.CharField(max_length=100)
-    email = models.EmailField(max_length=100)
-    password = models.CharField(max_length=100)
-    instrument_purchase = models.CharField(max_length=100)
-    house_no = models.CharField(max_length=100)
-    address_line1 = models.CharField(max_length=100)
-    address_line2 = models.CharField(max_length=100)
-    telephone = models.CharField(max_length=100)
-    zip_code = models.CharField(max_length=20)
-    state = models.CharField(max_length=100)
-    country = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.name

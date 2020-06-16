@@ -63,4 +63,4 @@ class CustomerForm(forms.ModelForm):
 
     class Meta:
         model = Customer
-        fields = ('name', 'email', 'password', 'instrument_purchase', 'house_no', 'address_line1', 'address_line2', 'telephone', 'zip_code', 'state', 'country')
+        fields = ('name', 'password', 'instrument_purchase', 'house_no', 'address_line1', 'address_line2', 'phone', 'zip_code', 'state', 'country')

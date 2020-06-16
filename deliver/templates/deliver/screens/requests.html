@@ -40,9 +40,10 @@
                                             <tr>
                                                 <th>#</th>
                                                 <th>ناو کڕیار</th>
-                                                <th>ژ.موبایل</th>
+                                                <th>خواردنه‌كان</th>
                                                 <th>ناونیشان </th>
                                                 <th>نرخ</th>
+                                                <th>داشکاندن</th>
                                                 <th>موبایل</th>
                                                 <th>بەروار دانان</th>
                                                 <th>بارودۆخ</th>
@@ -53,13 +54,14 @@
                                             {% for request in requests %}
                                              <tr>
                                                 <td>{{ request.id }}</td>
-                                                <td>{{ request.name }}</td>
+                                                <td><a href="{% url 'deliver:customer' request.customer.id %}">{{ request.customer }}</a></td>
                                                 {% for req in request.request_detail.all %}
                                                 <td><a href="{% url 'deliver:requestDetailView'  req.id %}">{{ req }}</a></td>
                                                 {% endfor %}
                                                 <td>{{ request.address }}</td>
                                                 <td>{{ request.total_price }}</td>
-                                                <td>{{ request.phoneid }}</td>
+                                                <td>{{ request.dashkandin }}</td>
+                                                <td>{{ request.customer.phone }}</td>
                                                 <td>{{ request.date_added }}</td>
                                                 <td>
                                                 {% if request.status %}

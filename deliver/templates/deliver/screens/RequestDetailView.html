@@ -35,7 +35,7 @@
                             </div>
                             <div class="card-body">
                                                 <td>{{ request.total_price }}</td>
-                                                <td>{{ request.phoneid }}</td>
+                                                <td><a href="{% url 'deliver:customer' request.customer.id %}">{{ request.customer }}</a></td>
                                                 <td>{{ request.date_added }}</td>
                                                 <td>
                             </div>
