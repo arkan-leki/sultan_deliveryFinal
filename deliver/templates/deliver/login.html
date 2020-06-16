@@ -1,0 +1,419 @@
+<!--
+ * CoreUI - Open Source Bootstrap Admin Template
+ * @version v1.0.0-alpha.6
+ * @link http://coreui.io
+ * Copyright (c) 2017 creativeLabs Łukasz Holeczek
+ * @license MIT
+ -->
+<!DOCTYPE html>
+<html lang="fa"  dir="rtl">
+
+<head>
+    {% load static %}
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="CoreUI - Open Source Bootstrap Admin Template">
+    <meta name="author" content="Łukasz Holeczek">
+    <meta name="keyword" content="Bootstrap,Admin,Template,Open,Source,AngularJS,Angular,Angular2,Angular 2,Angular4,Angular 4,jQuery,CSS,HTML,RWD,Dashboard,React,React.js,Vue,Vue.js">
+    <link rel="shortcut icon" href="{% static 'img/favicon.png' %}">
+    <title>{% block title %}
+    {% endblock title %}</title>
+
+   
+    <!-- Icons -->
+    <link href="{% static 'css/font-awesome.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/simple-line-icons.css' %}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet" />
+
+    <!-- Main styles for this application -->
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    
+</head>
+
+<body class="app flex-row align-items-center">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card-group mb-0">
+                    <div class="card p-4">
+                        <form method="POST" action="{% url 'deliver:ajax' %}">
+                        <input name="action" value="login" hidden>
+                            <div class="card-body">
+                                <h1>چوونەژوورەوە</h1>
+                                <p class="text-muted">چونەناو هەژماری بەکارهێنەر</p>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-addon"><i class="icon-user"></i>
+                                    </span>
+                                    <input name="username" type="text" class="form-control" placeholder="ناوی بەکارهێنەر ">
+                                </div>
+                                <div class="input-group mb-4">
+                                    <span class="input-group-addon"><i class="icon-lock"></i>
+                                    </span>
+                                    <input name="password" type="password" class="form-control" placeholder="تێپەڕەوشە">
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <button type="submit" class="btn btn-primary px-4">چونەناو</button>
+                                    </div>
+                                    <div class="col-6 text-right">
+                                        <button type="button" class="btn btn-link px-0">لەبیرچوونەوەی تێپەڕەوشە </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card text-white bg-primary py-5 d-md-down-none" style="width:44%">
+                        <div class="card-body text-center">
+                            <div>
+                                <h2>خۆتۆمارکردن</h2>
+                                <p>
+                                    لورم ایپسوم یا طرح‌نما (به انگلیسی: Lorem ipsum) به متنی آزمایشی و بی‌معنی در صنعت چاپ، صفحه‌آرایی و طراحی گرافیک گفته می‌شود. طراح گرافیک از این متن به عنوان عنصری از ترکیب بندی برای پر کردن صفحه و ارایه اولیه شکل ظاهری و کلی طرح سفارش گرفته شده استفاده می نماید.<p>
+                                <button type="button" class="btn btn-primary active mt-3">خۆت تۆمار نەکردووە ؟</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap and necessary plugins -->
+    <script src="{% static 'bower_components/jquery/dist/jquery.min.js' %}"></script>
+    <script src="{% static 'bower_components/popper.js/dist/umd/popper.min.js' %}"></script>
+    <script src="{% static 'bower_components/bootstrap/dist/js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'bower_components/pace/pace.min.js' %}"></script>
+
+
+    <!-- Plugins and scripts required by all views -->
+    <script src="{% static 'bower_components/chart.js/dist/Chart.min.js' %}"></script>
+
+
+ <script type='text/javascript'>
+
+  var btnUpload = $("#upload_file"),
+		btnOuter = $(".button_outer");
+	btnUpload.on("change", function(e){
+		var ext = btnUpload.val().split('.').pop().toLowerCase();
+		if($.inArray(ext, ['gif','png','jpg','jpeg']) == -1) {
+			$(".error_msg").text("Not an Image...");
+		} else {
+			$(".error_msg").text("");
+			btnOuter.addClass("file_uploading");
+			setTimeout(function(){
+				btnOuter.addClass("file_uploaded");
+			},3000);
+			var uploadedFile = URL.createObjectURL(e.target.files[0]);
+			setTimeout(function(){
+                $('#inn').hide();
+				$("#uploaded_view").append('<img src="'+uploadedFile+'" />').addClass("show");
+			},3500);
+		}
+	});
+	$(".file_remove").on("click", function(e){
+		$("#uploaded_view").removeClass("show");
+		$("#uploaded_view").find("img").remove();
+		btnOuter.removeClass("file_uploading");
+		btnOuter.removeClass("file_uploaded");
+        
+	});
+
+ var csrftoken = jQuery("[name=csrfmiddlewaretoken]").val();
+    var adifier_data = {
+        "ajaxurl": "https://{{ request.get_host }}/ajax/",
+    };
+
+
+$(function(){
+    //Obtenemos la información de csfrtoken que se almacena por cookies en el cliente
+    var csrftoken = getCookie('csrftoken');
+
+    //Agregamos en la configuración de la funcion $.ajax de Jquery lo siguiente:
+    $.ajaxSetup({
+        contentType: 'multipart/form-data',
+                    beforeSend: function(xhr, settings) {
+                        if (!csrfSafeMethod(settings.type) && sameOrigin(settings.url)) {
+                            // Send the token to same-origin, relative URLs only.
+                            // Send the token only if the method warrants CSRF protection
+                            // Using the CSRFToken value acquired earlier
+                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        }
+                    }
+    });
+
+function sameOrigin(url) {
+    // test that a given url is a same-origin URL
+    // url could be relative or scheme relative or absolute
+    var host = document.location.host; // host + port
+    var protocol = document.location.protocol;
+    var sr_origin = '//' + host;
+    var origin = protocol + sr_origin;
+    // Allow absolute or scheme relative URLs to same origin
+    return (url == origin || url.slice(0, origin.length + 1) == origin + '/') ||
+        (url == sr_origin || url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
+        // or any other URL that isn't scheme relative or absolute i.e relative.
+        !(/^(\/\/|http:|https:).*/.test(url));
+}
+
+// usando jQuery
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+    function csrfSafeMethod(method) {
+        // estos métodos no requieren CSRF
+        return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+    }
+});
+
+
+$(document).ready(function(){
+
+    $("#ajaxForm").submit( function(e) {
+ 
+  // Stop form from submitting normally
+        e.preventDefault();    
+
+        
+    var fd = new FormData(this);
+        var files = $('#upload_file')[0].files[0];
+        fd.append('images',files);
+
+        $.ajax({
+            xhr: function() {
+        var xhr = new window.XMLHttpRequest();
+        xhr.upload.addEventListener("progress", function(evt) {
+            if (evt.lengthComputable) {
+                var percentComplete = evt.loaded / evt.total;
+                //Do something with upload progress here
+                 $('.pace').attr('class', 'pace pace-active');
+                        $('.pace-progress').attr('data-progress-text',percentComplete+'%');
+                        $('.percentComplete').attr('style','transform: translate3d('+percentComplete+'%, 0px, 0px);')
+
+                
+            }
+       }, false);
+
+       xhr.addEventListener("progress", function(evt) {
+           if (evt.lengthComputable) {
+               var percentComplete = evt.loaded / evt.total;
+               //Do something with download progress
+           }
+       }, false);
+
+       return xhr;
+    },
+            url : $(this).attr('action'),
+            type : $(this).attr('method'),
+            data  : fd,
+            contentType: false,
+            processData: false,
+            success: function(response){
+                if(response != 0){
+                   alert(response.message);// Display image element
+                }else{
+                    alert(response.message);
+                }
+                if(response.redirect){
+                    window.location.href = response.redirect;
+                }
+            },
+        });
+    });
+});
+
+$(document).ready(function(){
+
+    $(".ajaxForm").submit( function(e) {
+ 
+  // Stop form from submitting normally
+        e.preventDefault();    
+
+        
+    var fd = new FormData(this);
+        var files = $('#upload_file')[0].files[0];
+        fd.append('images',files);
+
+        $.ajax({
+            xhr: function() {
+        var xhr = new window.XMLHttpRequest();
+        xhr.upload.addEventListener("progress", function(evt) {
+            if (evt.lengthComputable) {
+                var percentComplete = evt.loaded / evt.total;
+                //Do something with upload progress here
+                 $('.pace').attr('class', 'pace pace-active');
+                        $('.pace-progress').attr('data-progress-text',percentComplete+'%');
+                        $('.percentComplete').attr('style','transform: translate3d('+percentComplete+'%, 0px, 0px);')
+
+                
+            }
+       }, false);
+
+       xhr.addEventListener("progress", function(evt) {
+           if (evt.lengthComputable) {
+               var percentComplete = evt.loaded / evt.total;
+               //Do something with download progress
+           }
+       }, false);
+
+       return xhr;
+    },
+            url : $(this).attr('action'),
+            type : $(this).attr('method'),
+            data  : fd,
+            contentType: false,
+            processData: false,
+            success: function(response){
+                if(response != 0){
+                   alert(response.message);// Display image element
+                }else{
+                    alert(response.message);
+                }
+                if(response.redirect){
+                    window.location.href = response.redirect;
+                }
+            },
+        });
+    });
+});
+
+$(document).ready(function(){
+
+    $("#simpleForm").submit( function(e) {
+ 
+  // Stop form from submitting normally
+        e.preventDefault();    
+
+        
+    var fd = new FormData(this);
+
+        $.ajax({
+            xhr: function() {
+        var xhr = new window.XMLHttpRequest();
+        xhr.upload.addEventListener("progress", function(evt) {
+            if (evt.lengthComputable) {
+                var percentComplete = evt.loaded / evt.total;
+                //Do something with upload progress here
+                 $('.pace').attr('class', 'pace pace-active');
+                        $('.pace-progress').attr('data-progress-text',percentComplete+'%');
+                        $('.percentComplete').attr('style','transform: translate3d('+percentComplete+'%, 0px, 0px);')
+
+                
+            }
+       }, false);
+
+       xhr.addEventListener("progress", function(evt) {
+           if (evt.lengthComputable) {
+               var percentComplete = evt.loaded / evt.total;
+               //Do something with download progress
+           }
+       }, false);
+
+       return xhr;
+    },
+            url : $(this).attr('action'),
+            type : $(this).attr('method'),
+            data  : fd,
+            contentType: false,
+            processData: false,
+            success: function(response){
+                if(response != 0){
+                   alert(response.message);// Display image element
+                }else{
+                    alert(response.message);
+                }
+                if(response.redirect){
+                    window.location.href = response.redirect;
+                }
+            },
+        });
+    });
+});
+
+$(document).ready(function(){
+
+    $(".simpleForm").submit( function(e) {
+ 
+  // Stop form from submitting normally
+        e.preventDefault();    
+
+        
+    var fd = new FormData(this);
+
+        $.ajax({
+            xhr: function() {
+        var xhr = new window.XMLHttpRequest();
+        xhr.upload.addEventListener("progress", function(evt) {
+            if (evt.lengthComputable) {
+                var percentComplete = evt.loaded / evt.total;
+                //Do something with upload progress here
+                 $('.pace').attr('class', 'pace pace-active');
+                        $('.pace-progress').attr('data-progress-text',percentComplete+'%');
+                        $('.percentComplete').attr('style','transform: translate3d('+percentComplete+'%, 0px, 0px);')
+
+                
+            }
+       }, false);
+
+       xhr.addEventListener("progress", function(evt) {
+           if (evt.lengthComputable) {
+               var percentComplete = evt.loaded / evt.total;
+               //Do something with download progress
+           }
+       }, false);
+
+       return xhr;
+    },
+            url : $(this).attr('action'),
+            type : $(this).attr('method'),
+            data  : fd,
+            contentType: false,
+            processData: false,
+            success: function(response){
+                if(response != 0){
+                   alert(response.message);// Display image element
+                }else{
+                    alert(response.message);
+                }
+                if(response.redirect){
+                    window.location.href = response.redirect;
+                }
+            },
+        });
+    });
+});
+
+
+// Attach a submit handler to the form
+
+     </script>
+
+    <!-- GenesisUI main scripts -->
+    1
+    <script src="{% static 'js/app.js' %}"></script>
+
+                            </script>
+    <!-- Custom scripts required by this view -->
+    <script src="{% static 'js/views/main.js' %}"></script>
+
+</body>
+
+</html>
+
+
+</body>
+
+</html>

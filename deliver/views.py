@@ -23,14 +23,24 @@ import datetime
 
 # Create your views here.
 
-
+@login_required(login_url='/login/')
 def index(request):
     context = {
         'title': "Dashboard",
     }
     return render(request, 'deliver/screens/home.html', context)
 
+def loginView(request):
+    context = {
+        'title': "Login",
+    }
+    return render(request, 'deliver/login.html', context)
 
+def logout_view(request):
+    logout(request)
+    return redirect('deliver:home')
+
+@login_required(login_url='/accounts/login/')
 def cat(request):
     cats = Cat.objects.all()
     context = {
@@ -302,6 +312,13 @@ def ajax(request):
         }
         return redirect('deliver:requests')
     if request.method == 'POST':
+        if request.POST.get('action') == 'login':
+            username = request.POST.get('username')
+            password = request.POST.get('password')
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('deliver:home')
         if request.POST.get('action') == 'add_cat':
             cat = Cat()
             cat.nameKu = request.POST.get('nameKu')
