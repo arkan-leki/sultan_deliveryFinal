@@ -161,11 +161,6 @@ class Dipricing(models.Model):
     class Meta:
         verbose_name_plural = "disprice"
 
-class Rate(models.Model):
-    food = models.ForeignKey(Food, related_name='rate_food', on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    stars = models.IntegerField(default=0)
-
 class Customer(models.Model):
     name = models.CharField(max_length=100)
     password = models.CharField(max_length=100)
@@ -183,6 +178,11 @@ class Customer(models.Model):
 
     def __str__(self):
         return self.name
+        
+class Rate(models.Model):
+    food = models.ForeignKey(Food, related_name='rate_food', on_delete=models.CASCADE)
+    customer = models.ForeignKey(Customer, related_name='rate_user', on_delete=models.CASCADE)
+    stars = models.IntegerField(default=0)
 
 class Request(models.Model):
     customer = models.ForeignKey(Customer, related_name='relcustomer', on_delete=models.CASCADE, default=1)

@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.models import User
-from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors, Customer
+from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors, Customer, Rate
 from rest_framework import viewsets
 from . import serializer
 from django_filters.rest_framework import DjangoFilterBackend
@@ -572,3 +572,15 @@ class RequestDetailListView(generics.ListAPIView):
 class TransportViewSet(viewsets.ModelViewSet):
     queryset = Transport.objects.all()
     serializer_class = serializer.TransportSerializer
+
+class CustomerViewSet(viewsets.ModelViewSet):
+    queryset = Customer.objects.all()
+    serializer_class = serializer.CustomerSerializer
+
+class RateViewSet(viewsets.ModelViewSet):
+    queryset = Rate.objects.all()
+    serializer_class = serializer.RateSerializer
+
+class MotorViewSet(viewsets.ModelViewSet):
+    queryset = Motors.objects.all()
+    serializer_class = serializer.MotorSerializer
