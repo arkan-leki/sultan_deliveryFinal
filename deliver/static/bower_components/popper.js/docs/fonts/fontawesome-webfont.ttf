@@ -1,0 +1,3925 @@
+bles(); }
+
+  void setCallbacks(const JSStructuredCloneCallbacks* callbacks, void* closure,
+                    OwnTransferablePolicy policy) {
+    callbacks_ = callbacks;
+    closure_ = closure;
+    ownTransferables_ = policy;
+  }
+
+  bool Init(size_t initialCapacity = 0) {
+    return bufList_.Init(0, initialCapacity);
+  }
+
+  JS::StructuredCloneScope scope() const { return scope_; }
+
+  void initScope(JS::StructuredCloneScope scope) {
+    MOZ_ASSERT(Size() == 0, "initScope() of nonempty JSStructuredCloneData");
+    if (scope_ != JS::StructuredCloneScope::Unassigned)
+      MOZ_ASSERT(scope_ == scope,
+                 "Cannot change scope after it has been initialized");
+    scope_ = scope;
+  }
+
+  size_t Size() const { return bufList_.Size(); }
+
+  const Iterator Start() const { return bufList_.Iter(); }
+
+  bool Advance(Iterator& iter, size_t distance) const {
+    return iter.AdvanceAcrossSegments(bufList_, distance);
+  }
+
+  bool ReadBytes(Iterator& iter, char* buffer, size_t size) const {
+    return bufList_.ReadBytes(iter, buffer, size);
+  }
+
+  // Append new data to the end of the buffer.
+  bool AppendBytes(const char* data, size_t size) {
+    MOZ_ASSERT(scope_ != JS::StructuredCloneScope::Unassigned);
+    return bufList_.WriteBytes(data, size);
+  }
+
+  // Update data stored within the existing buffer. There must be at least
+  // 'size' bytes between the position of 'iter' and the end of the buffer.
+  bool UpdateBytes(Iterator& iter, const char* data, size_t size) const {
+    MOZ_ASSERT(scope_ != JS::StructuredCloneScope::Unassigned);
+    while (size > 0) {
+      size_t remaining = iter.RemainingInSegment();
+      size_t nbytes = std::min(remaining, size);
+      memcpy(iter.Data(), data, nbytes);
+      data += nbytes;
+      size -= nbytes;
+      iter.Advance(bufList_, nbytes);
+    }
+    return true;
+  }
+
+  char* AllocateBytes(size_t maxSize, size_t* size) {
+    return bufList_.AllocateBytes(maxSize, size);
+  }
+
+  void Clear() {
+    discardTransferables();
+    bufList_.Clear();
+  }
+
+  // Return a new read-only JSStructuredCloneData that "borrows" the contents
+  // of |this|. Its lifetime should not exceed the donor's. This is only
+  // allowed for DifferentProcess clones, so finalization of the borrowing
+  // clone will do nothing.
+  JSStructuredCloneData Borrow(Iterator& iter, size_t size,
+                               bool* success) const {
+    MOZ_ASSERT(scope_ == JS::StructuredCloneScope::DifferentProcess);
+    return JSStructuredCloneData(
+        bufList_.Borrow<js::SystemAllocPolicy>(iter, size, success), scope_);
+  }
+
+  // Iterate over all contained data, one BufferList segment's worth at a
+  // time, and invoke the given FunctionToApply with the data pointer and
+  // size. The function should return a bool value, and this loop will exit
+  // with false if the function ever returns false.
+  template <typename FunctionToApply>
+  bool ForEachDataChunk(FunctionToApply&& function) const {
+    Iterator iter = bufList_.Iter();
+    while (!iter.Done()) {
+      if (!function(iter.Data(), iter.RemainingInSegment())) return false;
+      iter.Advance(bufList_, iter.RemainingInSegment());
+    }
+    return true;
+  }
+
+  // Append the entire contents of other's bufList_ to our own.
+  bool Append(const JSStructuredCloneData& other) {
+    MOZ_ASSERT(scope_ == other.scope());
+    return other.ForEachDataChunk(
+        [&](const char* data, size_t size) { return AppendBytes(data, size); });
+  }
+
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) {
+    return bufList_.SizeOfExcludingThis(mallocSizeOf);
+  }
+
+  void discardTransferables();
+};
+
+/**
+ * Implements StructuredDeserialize and StructuredDeserializeWithTransfer.
+ *
+ * Note: If `data` contains transferable objects, it can be read only once.
+ */
+JS_PUBLIC_API bool JS_ReadStructuredClone(
+    JSContext* cx, JSStructuredCloneData& data, uint32_t version,
+    JS::StructuredCloneScope scope, JS::MutableHandleValue vp,
+    const JSStructuredCloneCallbacks* optionalCallbacks, void* closure);
+
+/**
+ * Implements StructuredSerialize, StructuredSerializeForStorage, and
+ * StructuredSerializeWithTransfer.
+ *
+ * Note: If the scope is DifferentProcess then the cloneDataPolicy must deny
+ * shared-memory objects, or an error will be signaled if a shared memory object
+ * is seen.
+ */
+JS_PUBLIC_API bool JS_WriteStructuredClone(
+    JSContext* cx, JS::HandleValue v, JSStructuredCloneData* data,
+    JS::StructuredCloneScope scope, JS::CloneDataPolicy cloneDataPolicy,
+    const JSStructuredCloneCallbacks* optionalCallbacks, void* closure,
+    JS::HandleValue transferable);
+
+JS_PUBLIC_API bool JS_StructuredCloneHasTransferables(
+    JSStructuredCloneData& data, bool* hasTransferable);
+
+JS_PUBLIC_API bool JS_StructuredClone(
+    JSContext* cx, JS::HandleValue v, JS::MutableHandleValue vp,
+    const JSStructuredCloneCallbacks* optionalCallbacks, void* closure);
+
+/**
+ * The C-style API calls to read and write structured clones are fragile --
+ * they rely on the caller to properly handle ownership of the clone data, and
+ * the handling of the input data as well as the interpretation of the contents
+ * of the clone buffer are dependent on the callbacks passed in. If you
+ * serialize and deserialize with different callbacks, the results are
+ * questionable.
+ *
+ * JSAutoStructuredCloneBuffer wraps things up in an RAII class for data
+ * management, and uses the same callbacks for both writing and reading
+ * (serializing and deserializing).
+ */
+class JS_PUBLIC_API JSAutoStructuredCloneBuffer {
+  const JS::StructuredCloneScope scope_;
+  JSStructuredCloneData data_;
+  uint32_t version_;
+
+ public:
+  JSAutoStructuredCloneBuffer(JS::StructuredCloneScope scope,
+                              const JSStructuredCloneCallbacks* callbacks,
+                              void* closure)
+      : scope_(scope), data_(scope), version_(JS_STRUCTURED_CLONE_VERSION) {
+    data_.setCallbacks(callbacks, closure,
+                       OwnTransferablePolicy::NoTransferables);
+  }
+
+  JSAutoStructuredCloneBuffer(JSAutoStructuredCloneBuffer&& other);
+  JSAutoStructuredCloneBuffer& operator=(JSAutoStructuredCloneBuffer&& other);
+
+  ~JSAutoStructuredCloneBuffer() { clear(); }
+
+  JSStructuredCloneData& data() { return data_; }
+  bool empty() const { return !data_.Size(); }
+
+  void clear();
+
+  JS::StructuredCloneScope scope() const { return scope_; }
+
+  /**
+   * Adopt some memory. It will be automatically freed by the destructor.
+   * data must have been allocated by the JS engine (e.g., extracted via
+   * JSAutoStructuredCloneBuffer::steal).
+   */
+  void adopt(JSStructuredCloneData&& data,
+             uint32_t version = JS_STRUCTURED_CLONE_VERSION,
+             const JSStructuredCloneCallbacks* callbacks = nullptr,
+             void* closure = nullptr);
+
+  /**
+   * Release the buffer and transfer ownership to the caller.
+   */
+  void steal(JSStructuredCloneData* data, uint32_t* versionp = nullptr,
+             const JSStructuredCloneCallbacks** callbacks = nullptr,
+             void** closure = nullptr);
+
+  /**
+   * Abandon ownership of any transferable objects stored in the buffer,
+   * without freeing the buffer itself. Useful when copying the data out into
+   * an external container, though note that you will need to use adopt() to
+   * properly release that data eventually.
+   */
+  void abandon() {
+    data_.ownTransferables_ = OwnTransferablePolicy::IgnoreTransferablesIfAny;
+  }
+
+  bool read(JSContext* cx, JS::MutableHandleValue vp,
+            const JSStructuredCloneCallbacks* optionalCallbacks = nullptr,
+            void* closure = nullptr);
+
+  bool write(JSContext* cx, JS::HandleValue v,
+             const JSStructuredCloneCallbacks* optionalCallbacks = nullptr,
+             void* closure = nullptr);
+
+  bool write(JSContext* cx, JS::HandleValue v, JS::HandleValue transferable,
+             JS::CloneDataPolicy cloneDataPolicy,
+             const JSStructuredCloneCallbacks* optionalCallbacks = nullptr,
+             void* closure = nullptr);
+
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) {
+    return data_.SizeOfExcludingThis(mallocSizeOf);
+  }
+
+  size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) {
+    return mallocSizeOf(this) + sizeOfExcludingThis(mallocSizeOf);
+  }
+
+ private:
+  // Copy and assignment are not supported.
+  JSAutoStructuredCloneBuffer(const JSAutoStructuredCloneBuffer& other) =
+      delete;
+  JSAutoStructuredCloneBuffer& operator=(
+      const JSAutoStructuredCloneBuffer& other) = delete;
+};
+
+// The range of tag values the application may use for its own custom object
+// types.
+#define JS_SCTAG_USER_MIN ((uint32_t)0xFFFF8000)
+#define JS_SCTAG_USER_MAX ((uint32_t)0xFFFFFFFF)
+
+#define JS_SCERR_RECURSION 0
+#define JS_SCERR_TRANSFERABLE 1
+#define JS_SCERR_DUP_TRANSFERABLE 2
+#define JS_SCERR_UNSUPPORTED_TYPE 3
+#define JS_SCERR_SHMEM_TRANSFERABLE 4
+
+JS_PUBLIC_API bool JS_ReadUint32Pair(JSStructuredCloneReader* r, uint32_t* p1,
+                                     uint32_t* p2);
+
+JS_PUBLIC_API bool JS_ReadBytes(JSStructuredCloneReader* r, void* p,
+                                size_t len);
+
+JS_PUBLIC_API bool JS_ReadTypedArray(JSStructuredCloneReader* r,
+                                     JS::MutableHandleValue vp);
+
+JS_PUBLIC_API bool JS_WriteUint32Pair(JSStructuredCloneWriter* w, uint32_t tag,
+                                      uint32_t data);
+
+JS_PUBLIC_API bool JS_WriteBytes(JSStructuredCloneWriter* w, const void* p,
+                                 size_t len);
+
+JS_PUBLIC_API bool JS_WriteString(JSStructuredCloneWriter* w,
+                                  JS::HandleString str);
+
+JS_PUBLIC_API bool JS_WriteTypedArray(JSStructuredCloneWriter* w,
+                                      JS::HandleValue v);
+
+JS_PUBLIC_API bool JS_ObjectNotWritten(JSStructuredCloneWriter* w,
+                                       JS::HandleObject obj);
+
+JS_PUBLIC_API JS::StructuredCloneScope JS_GetStructuredCloneScope(
+    JSStructuredCloneWriter* w);
+
+#endif /* js_StructuredClone_h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_SweepingAPI_h
+#define js_SweepingAPI_h
+
+#include "js/HeapAPI.h"
+
+namespace JS {
+namespace detail {
+class WeakCacheBase;
+}  // namespace detail
+
+namespace shadow {
+JS_PUBLIC_API void RegisterWeakCache(JS::Zone* zone,
+                                     JS::detail::WeakCacheBase* cachep);
+JS_PUBLIC_API void RegisterWeakCache(JSRuntime* rt,
+                                     JS::detail::WeakCacheBase* cachep);
+}  // namespace shadow
+
+namespace detail {
+class WeakCacheBase : public mozilla::LinkedListElement<WeakCacheBase> {
+  WeakCacheBase() = delete;
+  explicit WeakCacheBase(const WeakCacheBase&) = delete;
+
+ public:
+  explicit WeakCacheBase(Zone* zone) { shadow::RegisterWeakCache(zone, this); }
+  explicit WeakCacheBase(JSRuntime* rt) { shadow::RegisterWeakCache(rt, this); }
+  WeakCacheBase(WeakCacheBase&& other) = default;
+  virtual ~WeakCacheBase() {}
+
+  virtual size_t sweep() = 0;
+  virtual bool needsSweep() = 0;
+
+  virtual bool setNeedsIncrementalBarrier(bool needs) {
+    // Derived classes do not support incremental barriers by default.
+    return false;
+  }
+  virtual bool needsIncrementalBarrier() const {
+    // Derived classes do not support incremental barriers by default.
+    return false;
+  }
+};
+}  // namespace detail
+
+// A WeakCache stores the given Sweepable container and links itself into a
+// list of such caches that are swept during each GC. A WeakCache can be
+// specific to a zone, or across a whole runtime, depending on which
+// constructor is used.
+template <typename T>
+class WeakCache : protected detail::WeakCacheBase,
+                  public js::MutableWrappedPtrOperations<T, WeakCache<T>> {
+  T cache;
+
+ public:
+  using Type = T;
+
+  template <typename... Args>
+  explicit WeakCache(Zone* zone, Args&&... args)
+      : WeakCacheBase(zone), cache(mozilla::Forward<Args>(args)...) {}
+  template <typename... Args>
+  explicit WeakCache(JSRuntime* rt, Args&&... args)
+      : WeakCacheBase(rt), cache(mozilla::Forward<Args>(args)...) {}
+
+  const T& get() const { return cache; }
+  T& get() { return cache; }
+
+  size_t sweep() override {
+    GCPolicy<T>::sweep(&cache);
+    return 0;
+  }
+
+  bool needsSweep() override { return cache.needsSweep(); }
+};
+
+}  // namespace JS
+
+#endif  // js_SweepingAPI_h
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_TraceKind_h
+#define js_TraceKind_h
+
+#include "mozilla/UniquePtr.h"
+
+#include "js/TypeDecls.h"
+
+// Forward declarations of all the types a TraceKind can denote.
+namespace js {
+class BaseShape;
+class LazyScript;
+class ObjectGroup;
+class RegExpShared;
+class Shape;
+class Scope;
+namespace jit {
+class JitCode;
+}  // namespace jit
+}  // namespace js
+
+namespace JS {
+
+// When tracing a thing, the GC needs to know about the layout of the object it
+// is looking at. There are a fixed number of different layouts that the GC
+// knows about. The "trace kind" is a static map which tells which layout a GC
+// thing has.
+//
+// Although this map is public, the details are completely hidden. Not all of
+// the matching C++ types are exposed, and those that are, are opaque.
+//
+// See Value::gcKind() and JSTraceCallback in Tracer.h for more details.
+enum class TraceKind {
+  // These trace kinds have a publicly exposed, although opaque, C++ type.
+  // Note: The order here is determined by our Value packing. Other users
+  //       should sort alphabetically, for consistency.
+  Object = 0x00,
+  String = 0x02,
+  Symbol = 0x03,
+
+  // 0x1 is not used for any GCThing Value tag, so we use it for Script.
+  Script = 0x01,
+
+  // Shape details are exposed through JS_TraceShapeCycleCollectorChildren.
+  Shape = 0x04,
+
+  // ObjectGroup details are exposed through
+  // JS_TraceObjectGroupCycleCollectorChildren.
+  ObjectGroup = 0x05,
+
+  // The kind associated with a nullptr.
+  Null = 0x06,
+
+  // The following kinds do not have an exposed C++ idiom.
+  BaseShape = 0x0F,
+  JitCode = 0x1F,
+  LazyScript = 0x2F,
+  Scope = 0x3F,
+  RegExpShared = 0x4F
+};
+const static uintptr_t OutOfLineTraceKindMask = 0x07;
+
+#define ASSERT_TRACE_KIND(tk)                                             \
+  static_assert(                                                          \
+      (uintptr_t(tk) & OutOfLineTraceKindMask) == OutOfLineTraceKindMask, \
+      "mask bits are set")
+ASSERT_TRACE_KIND(JS::TraceKind::BaseShape);
+ASSERT_TRACE_KIND(JS::TraceKind::JitCode);
+ASSERT_TRACE_KIND(JS::TraceKind::LazyScript);
+ASSERT_TRACE_KIND(JS::TraceKind::Scope);
+ASSERT_TRACE_KIND(JS::TraceKind::RegExpShared);
+#undef ASSERT_TRACE_KIND
+
+// When this header is imported inside SpiderMonkey, the class definitions are
+// available and we can query those definitions to find the correct kind
+// directly from the class hierarchy.
+template <typename T>
+struct MapTypeToTraceKind {
+  static const JS::TraceKind kind = T::TraceKind;
+};
+
+// When this header is used outside SpiderMonkey, the class definitions are not
+// available, so the following table containing all public GC types is used.
+#define JS_FOR_EACH_TRACEKIND(D)                        \
+  /* PrettyName       TypeName           AddToCCKind */ \
+  D(BaseShape, js::BaseShape, true)                     \
+  D(JitCode, js::jit::JitCode, true)                    \
+  D(LazyScript, js::LazyScript, true)                   \
+  D(Scope, js::Scope, true)                             \
+  D(Object, JSObject, true)                             \
+  D(ObjectGroup, js::ObjectGroup, true)                 \
+  D(Script, JSScript, true)                             \
+  D(Shape, js::Shape, true)                             \
+  D(String, JSString, false)                            \
+  D(Symbol, JS::Symbol, false)                          \
+  D(RegExpShared, js::RegExpShared, true)
+
+// Map from all public types to their trace kind.
+#define JS_EXPAND_DEF(name, type, _)                       \
+  template <>                                              \
+  struct MapTypeToTraceKind<type> {                        \
+    static const JS::TraceKind kind = JS::TraceKind::name; \
+  };
+JS_FOR_EACH_TRACEKIND(JS_EXPAND_DEF);
+#undef JS_EXPAND_DEF
+
+// RootKind is closely related to TraceKind. Whereas TraceKind's indices are
+// laid out for convenient embedding as a pointer tag, the indicies of RootKind
+// are designed for use as array keys via EnumeratedArray.
+enum class RootKind : int8_t {
+// These map 1:1 with trace kinds.
+#define EXPAND_ROOT_KIND(name, _0, _1) name,
+  JS_FOR_EACH_TRACEKIND(EXPAND_ROOT_KIND)
+#undef EXPAND_ROOT_KIND
+
+  // These tagged pointers are special-cased for performance.
+  Id,
+  Value,
+
+  // Everything else.
+  Traceable,
+
+  Limit
+};
+
+// Most RootKind correspond directly to a trace kind.
+template <TraceKind traceKind>
+struct MapTraceKindToRootKind {};
+#define JS_EXPAND_DEF(name, _0, _1)                      \
+  template <>                                            \
+  struct MapTraceKindToRootKind<JS::TraceKind::name> {   \
+    static const JS::RootKind kind = JS::RootKind::name; \
+  };
+JS_FOR_EACH_TRACEKIND(JS_EXPAND_DEF)
+#undef JS_EXPAND_DEF
+
+// Specify the RootKind for all types. Value and jsid map to special cases;
+// Cell pointer types we can derive directly from the TraceKind; everything else
+// should go in the Traceable list and use GCPolicy<T>::trace for tracing.
+template <typename T>
+struct MapTypeToRootKind {
+  static const JS::RootKind kind = JS::RootKind::Traceable;
+};
+template <typename T>
+struct MapTypeToRootKind<T*> {
+  static const JS::RootKind kind =
+      JS::MapTraceKindToRootKind<JS::MapTypeToTraceKind<T>::kind>::kind;
+};
+template <>
+struct MapTypeToRootKind<JS::Realm*> {
+  // Not a pointer to a GC cell. Use GCPolicy.
+  static const JS::RootKind kind = JS::RootKind::Traceable;
+};
+template <typename T>
+struct MapTypeToRootKind<mozilla::UniquePtr<T>> {
+  static const JS::RootKind kind = JS::MapTypeToRootKind<T>::kind;
+};
+template <>
+struct MapTypeToRootKind<JS::Value> {
+  static const JS::RootKind kind = JS::RootKind::Value;
+};
+template <>
+struct MapTypeToRootKind<jsid> {
+  static const JS::RootKind kind = JS::RootKind::Id;
+};
+template <>
+struct MapTypeToRootKind<JSFunction*> : public MapTypeToRootKind<JSObject*> {};
+
+// Fortunately, few places in the system need to deal with fully abstract
+// cells. In those places that do, we generally want to move to a layout
+// templated function as soon as possible. This template wraps the upcast
+// for that dispatch.
+//
+// Given a call:
+//
+//    DispatchTraceKindTyped(f, thing, traceKind, ... args)
+//
+// Downcast the |void *thing| to the specific type designated by |traceKind|,
+// and pass it to the functor |f| along with |... args|, forwarded. Pass the
+// type designated by |traceKind| as the functor's template argument. The
+// |thing| parameter is optional; without it, we simply pass through |... args|.
+
+// VS2017+, GCC and Clang require an explicit template declaration in front of
+// the specialization of operator() because it is a dependent template. VS2015,
+// on the other hand, gets very confused if we have a |template| token there.
+// The clang-cl front end defines _MSC_VER, but still requires the explicit
+// template declaration, so we must test for __clang__ here as well.
+#if (defined(_MSC_VER) && _MSC_VER < 1910) && !defined(__clang__)
+#define JS_DEPENDENT_TEMPLATE_HINT
+#else
+#define JS_DEPENDENT_TEMPLATE_HINT template
+#endif
+template <typename F, typename... Args>
+auto DispatchTraceKindTyped(F f, JS::TraceKind traceKind, Args&&... args)
+    -> decltype(f.JS_DEPENDENT_TEMPLATE_HINT operator()<JSObject>(
+        mozilla::Forward<Args>(args)...)) {
+  switch (traceKind) {
+#define JS_EXPAND_DEF(name, type, _)                      \
+  case JS::TraceKind::name:                               \
+    return f.JS_DEPENDENT_TEMPLATE_HINT operator()<type>( \
+        mozilla::Forward<Args>(args)...);
+    JS_FOR_EACH_TRACEKIND(JS_EXPAND_DEF);
+#undef JS_EXPAND_DEF
+    default:
+      MOZ_CRASH("Invalid trace kind in DispatchTraceKindTyped.");
+  }
+}
+#undef JS_DEPENDENT_TEMPLATE_HINT
+
+template <typename F, typename... Args>
+auto DispatchTraceKindTyped(F f, void* thing, JS::TraceKind traceKind,
+                            Args&&... args)
+    -> decltype(f(static_cast<JSObject*>(nullptr),
+                  mozilla::Forward<Args>(args)...)) {
+  switch (traceKind) {
+#define JS_EXPAND_DEF(name, type, _) \
+  case JS::TraceKind::name:          \
+    return f(static_cast<type*>(thing), mozilla::Forward<Args>(args)...);
+    JS_FOR_EACH_TRACEKIND(JS_EXPAND_DEF);
+#undef JS_EXPAND_DEF
+    default:
+      MOZ_CRASH("Invalid trace kind in DispatchTraceKindTyped.");
+  }
+}
+
+}  // namespace JS
+
+#endif  // js_TraceKind_h
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_TracingAPI_h
+#define js_TracingAPI_h
+
+#include "js/AllocPolicy.h"
+#include "js/HashTable.h"
+#include "js/HeapAPI.h"
+#include "js/TraceKind.h"
+
+class JS_PUBLIC_API JSTracer;
+
+namespace JS {
+class JS_PUBLIC_API CallbackTracer;
+template <typename T>
+class Heap;
+template <typename T>
+class TenuredHeap;
+
+/** Returns a static string equivalent of |kind|. */
+JS_FRIEND_API const char* GCTraceKindToAscii(JS::TraceKind kind);
+
+}  // namespace JS
+
+enum WeakMapTraceKind {
+  /**
+   * Do not trace into weak map keys or values during traversal. Users must
+   * handle weak maps manually.
+   */
+  DoNotTraceWeakMaps,
+
+  /**
+   * Do true ephemeron marking with a weak key lookup marking phase. This is
+   * the default for GCMarker.
+   */
+  ExpandWeakMaps,
+
+  /**
+   * Trace through to all values, irrespective of whether the keys are live
+   * or not. Used for non-marking tracers.
+   */
+  TraceWeakMapValues,
+
+  /**
+   * Trace through to all keys and values, irrespective of whether the keys
+   * are live or not. Used for non-marking tracers.
+   */
+  TraceWeakMapKeysValues
+};
+
+class JS_PUBLIC_API JSTracer {
+ public:
+  // Return the runtime set on the tracer.
+  JSRuntime* runtime() const { return runtime_; }
+
+  // Return the weak map tracing behavior currently set on this tracer.
+  WeakMapTraceKind weakMapAction() const { return weakMapAction_; }
+
+  enum class TracerKindTag {
+    // Marking path: a tracer used only for marking liveness of cells, not
+    // for moving them. The kind will transition to WeakMarking after
+    // everything reachable by regular edges has been marked.
+    Marking,
+
+    // Same as Marking, except we have now moved on to the "weak marking
+    // phase", in which every marked obj/script is immediately looked up to
+    // see if it is a weak map key (and therefore might require marking its
+    // weak map value).
+    WeakMarking,
+
+    // A tracer that traverses the graph for the purposes of moving objects
+    // from the nursery to the tenured area.
+    Tenuring,
+
+    // General-purpose traversal that invokes a callback on each cell.
+    // Traversing children is the responsibility of the callback.
+    Callback
+  };
+  bool isMarkingTracer() const {
+    return tag_ == TracerKindTag::Marking || tag_ == TracerKindTag::WeakMarking;
+  }
+  bool isWeakMarkingTracer() const {
+    return tag_ == TracerKindTag::WeakMarking;
+  }
+  bool isTenuringTracer() const { return tag_ == TracerKindTag::Tenuring; }
+  bool isCallbackTracer() const { return tag_ == TracerKindTag::Callback; }
+  inline JS::CallbackTracer* asCallbackTracer();
+  bool traceWeakEdges() const { return traceWeakEdges_; }
+#ifdef DEBUG
+  bool checkEdges() { return checkEdges_; }
+#endif
+
+  // Get the current GC number. Only call this method if |isMarkingTracer()|
+  // is true.
+  uint32_t gcNumberForMarking() const;
+
+ protected:
+  JSTracer(JSRuntime* rt, TracerKindTag tag,
+           WeakMapTraceKind weakTraceKind = TraceWeakMapValues)
+      : runtime_(rt),
+        weakMapAction_(weakTraceKind)
+#ifdef DEBUG
+        ,
+        checkEdges_(true)
+#endif
+        ,
+        tag_(tag),
+        traceWeakEdges_(true) {
+  }
+
+#ifdef DEBUG
+  // Set whether to check edges are valid in debug builds.
+  void setCheckEdges(bool check) { checkEdges_ = check; }
+#endif
+
+ private:
+  JSRuntime* runtime_;
+  WeakMapTraceKind weakMapAction_;
+#ifdef DEBUG
+  bool checkEdges_;
+#endif
+
+ protected:
+  TracerKindTag tag_;
+  bool traceWeakEdges_;
+};
+
+namespace JS {
+
+class AutoTracingName;
+class AutoTracingIndex;
+class AutoTracingCallback;
+
+class JS_PUBLIC_API CallbackTracer : public JSTracer {
+ public:
+  CallbackTracer(JSRuntime* rt,
+                 WeakMapTraceKind weakTraceKind = TraceWeakMapValues)
+      : JSTracer(rt, JSTracer::TracerKindTag::Callback, weakTraceKind),
+        contextName_(nullptr),
+        contextIndex_(InvalidIndex),
+        contextFunctor_(nullptr) {}
+  CallbackTracer(JSContext* cx,
+                 WeakMapTraceKind weakTraceKind = TraceWeakMapValues);
+
+  // Override these methods to receive notification when an edge is visited
+  // with the type contained in the callback. The default implementation
+  // dispatches to the fully-generic onChild implementation, so for cases that
+  // do not care about boxing overhead and do not need the actual edges,
+  // just override the generic onChild.
+  virtual void onObjectEdge(JSObject** objp) { onChild(JS::GCCellPtr(*objp)); }
+  virtual void onStringEdge(JSString** strp) { onChild(JS::GCCellPtr(*strp)); }
+  virtual void onSymbolEdge(JS::Symbol** symp) {
+    onChild(JS::GCCellPtr(*symp));
+  }
+  virtual void onScriptEdge(JSScript** scriptp) {
+    onChild(JS::GCCellPtr(*scriptp));
+  }
+  virtual void onShapeEdge(js::Shape** shapep) {
+    onChild(JS::GCCellPtr(*shapep, JS::TraceKind::Shape));
+  }
+  virtual void onObjectGroupEdge(js::ObjectGroup** groupp) {
+    onChild(JS::GCCellPtr(*groupp, JS::TraceKind::ObjectGroup));
+  }
+  virtual void onBaseShapeEdge(js::BaseShape** basep) {
+    onChild(JS::GCCellPtr(*basep, JS::TraceKind::BaseShape));
+  }
+  virtual void onJitCodeEdge(js::jit::JitCode** codep) {
+    onChild(JS::GCCellPtr(*codep, JS::TraceKind::JitCode));
+  }
+  virtual void onLazyScriptEdge(js::LazyScript** lazyp) {
+    onChild(JS::GCCellPtr(*lazyp, JS::TraceKind::LazyScript));
+  }
+  virtual void onScopeEdge(js::Scope** scopep) {
+    onChild(JS::GCCellPtr(*scopep, JS::TraceKind::Scope));
+  }
+  virtual void onRegExpSharedEdge(js::RegExpShared** sharedp) {
+    onChild(JS::GCCellPtr(*sharedp, JS::TraceKind::RegExpShared));
+  }
+
+  // Override this method to receive notification when a node in the GC
+  // heap graph is visited.
+  virtual void onChild(const JS::GCCellPtr& thing) = 0;
+
+  // Access to the tracing context:
+  // When tracing with a JS::CallbackTracer, we invoke the callback with the
+  // edge location and the type of target. This is useful for operating on
+  // the edge in the abstract or on the target thing, satisfying most common
+  // use cases.  However, some tracers need additional detail about the
+  // specific edge that is being traced in order to be useful. Unfortunately,
+  // the raw pointer to the edge that we provide is not enough information to
+  // infer much of anything useful about that edge.
+  //
+  // In order to better support use cases that care in particular about edges
+  // -- as opposed to the target thing -- tracing implementations are
+  // responsible for providing extra context information about each edge they
+  // trace, as it is traced. This contains, at a minimum, an edge name and,
+  // when tracing an array, the index. Further specialization can be achived
+  // (with some complexity), by associating a functor with the tracer so
+  // that, when requested, the user can generate totally custom edge
+  // descriptions.
+
+  // Returns the current edge's name. It is only valid to call this when
+  // inside the trace callback, however, the edge name will always be set.
+  const char* contextName() const {
+    MOZ_ASSERT(contextName_);
+    return contextName_;
+  }
+
+  // Returns the current edge's index, if marked as part of an array of edges.
+  // This must be called only inside the trace callback. When not tracing an
+  // array, the value will be InvalidIndex.
+  const static size_t InvalidIndex = size_t(-1);
+  size_t contextIndex() const { return contextIndex_; }
+
+  // Build a description of this edge in the heap graph. This call may invoke
+  // the context functor, if set, which may inspect arbitrary areas of the
+  // heap. On the other hand, the description provided by this method may be
+  // substantially more accurate and useful than those provided by only the
+  // contextName and contextIndex.
+  void getTracingEdgeName(char* buffer, size_t bufferSize);
+
+  // The trace implementation may associate a callback with one or more edges
+  // using AutoTracingDetails. This functor is called by getTracingEdgeName
+  // and is responsible for providing a textual representation of the
+  // currently being traced edge. The callback has access to the full heap,
+  // including the currently set tracing context.
+  class ContextFunctor {
+   public:
+    virtual void operator()(CallbackTracer* trc, char* buf, size_t bufsize) = 0;
+  };
+
+#ifdef DEBUG
+  enum class TracerKind {
+    DoNotCare,
+    Moving,
+    GrayBuffering,
+    VerifyTraceProtoAndIface,
+    ClearEdges,
+    UnmarkGray
+  };
+  virtual TracerKind getTracerKind() const { return TracerKind::DoNotCare; }
+#endif
+
+  // In C++, overriding a method hides all methods in the base class with
+  // that name, not just methods with that signature. Thus, the typed edge
+  // methods have to have distinct names to allow us to override them
+  // individually, which is freqently useful if, for example, we only want to
+  // process only one type of edge.
+  void dispatchToOnEdge(JSObject** objp) { onObjectEdge(objp); }
+  void dispatchToOnEdge(JSString** strp) { onStringEdge(strp); }
+  void dispatchToOnEdge(JS::Symbol** symp) { onSymbolEdge(symp); }
+  void dispatchToOnEdge(JSScript** scriptp) { onScriptEdge(scriptp); }
+  void dispatchToOnEdge(js::Shape** shapep) { onShapeEdge(shapep); }
+  void dispatchToOnEdge(js::ObjectGroup** groupp) { onObjectGroupEdge(groupp); }
+  void dispatchToOnEdge(js::BaseShape** basep) { onBaseShapeEdge(basep); }
+  void dispatchToOnEdge(js::jit::JitCode** codep) { onJitCodeEdge(codep); }
+  void dispatchToOnEdge(js::LazyScript** lazyp) { onLazyScriptEdge(lazyp); }
+  void dispatchToOnEdge(js::Scope** scopep) { onScopeEdge(scopep); }
+  void dispatchToOnEdge(js::RegExpShared** sharedp) {
+    onRegExpSharedEdge(sharedp);
+  }
+
+ protected:
+  void setTraceWeakEdges(bool value) { traceWeakEdges_ = value; }
+
+ private:
+  friend class AutoTracingName;
+  const char* contextName_;
+
+  friend class AutoTracingIndex;
+  size_t contextIndex_;
+
+  friend class AutoTracingDetails;
+  ContextFunctor* contextFunctor_;
+};
+
+// Set the name portion of the tracer's context for the current edge.
+class MOZ_RAII AutoTracingName {
+  CallbackTracer* trc_;
+  const char* prior_;
+
+ public:
+  AutoTracingName(CallbackTracer* trc, const char* name)
+      : trc_(trc), prior_(trc->contextName_) {
+    MOZ_ASSERT(name);
+    trc->contextName_ = name;
+  }
+  ~AutoTracingName() {
+    MOZ_ASSERT(trc_->contextName_);
+    trc_->contextName_ = prior_;
+  }
+};
+
+// Set the index portion of the tracer's context for the current range.
+class MOZ_RAII AutoTracingIndex {
+  CallbackTracer* trc_;
+
+ public:
+  explicit AutoTracingIndex(JSTracer* trc, size_t initial = 0) : trc_(nullptr) {
+    if (trc->isCallbackTracer()) {
+      trc_ = trc->asCallbackTracer();
+      MOZ_ASSERT(trc_->contextIndex_ == CallbackTracer::InvalidIndex);
+      trc_->contextIndex_ = initial;
+    }
+  }
+  ~AutoTracingIndex() {
+    if (trc_) {
+      MOZ_ASSERT(trc_->contextIndex_ != CallbackTracer::InvalidIndex);
+      trc_->contextIndex_ = CallbackTracer::InvalidIndex;
+    }
+  }
+
+  void operator++() {
+    if (trc_) {
+      MOZ_ASSERT(trc_->contextIndex_ != CallbackTracer::InvalidIndex);
+      ++trc_->contextIndex_;
+    }
+  }
+};
+
+// Set a context callback for the trace callback to use, if it needs a detailed
+// edge description.
+class MOZ_RAII AutoTracingDetails {
+  CallbackTracer* trc_;
+
+ public:
+  AutoTracingDetails(JSTracer* trc, CallbackTracer::ContextFunctor& func)
+      : trc_(nullptr) {
+    if (trc->isCallbackTracer()) {
+      trc_ = trc->asCallbackTracer();
+      MOZ_ASSERT(trc_->contextFunctor_ == nullptr);
+      trc_->contextFunctor_ = &func;
+    }
+  }
+  ~AutoTracingDetails() {
+    if (trc_) {
+      MOZ_ASSERT(trc_->contextFunctor_);
+      trc_->contextFunctor_ = nullptr;
+    }
+  }
+};
+
+}  // namespace JS
+
+JS::CallbackTracer* JSTracer::asCallbackTracer() {
+  MOZ_ASSERT(isCallbackTracer());
+  return static_cast<JS::CallbackTracer*>(this);
+}
+
+namespace js {
+namespace gc {
+template <typename T>
+JS_PUBLIC_API void TraceExternalEdge(JSTracer* trc, T* thingp,
+                                     const char* name);
+}  // namespace gc
+}  // namespace js
+
+namespace JS {
+
+// The JS::TraceEdge family of functions traces the given GC thing reference.
+// This performs the tracing action configured on the given JSTracer: typically
+// calling the JSTracer::callback or marking the thing as live.
+//
+// The argument to JS::TraceEdge is an in-out param: when the function returns,
+// the garbage collector might have moved the GC thing. In this case, the
+// reference passed to JS::TraceEdge will be updated to the thing's new
+// location. Callers of this method are responsible for updating any state that
+// is dependent on the object's address. For example, if the object's address
+// is used as a key in a hashtable, then the object must be removed and
+// re-inserted with the correct hash.
+//
+// Note that while |edgep| must never be null, it is fine for |*edgep| to be
+// nullptr.
+
+template <typename T>
+inline void TraceEdge(JSTracer* trc, JS::Heap<T>* thingp, const char* name) {
+  MOZ_ASSERT(thingp);
+  if (*thingp) js::gc::TraceExternalEdge(trc, thingp->unsafeGet(), name);
+}
+
+template <typename T>
+inline void TraceEdge(JSTracer* trc, JS::TenuredHeap<T>* thingp,
+                      const char* name) {
+  MOZ_ASSERT(thingp);
+  if (T ptr = thingp->unbarrieredGetPtr()) {
+    js::gc::TraceExternalEdge(trc, &ptr, name);
+    thingp->setPtr(ptr);
+  }
+}
+
+// Edges that are always traced as part of root marking do not require
+// incremental barriers. This function allows for marking non-barriered
+// pointers, but asserts that this happens during root marking.
+//
+// Note that while |edgep| must never be null, it is fine for |*edgep| to be
+// nullptr.
+template <typename T>
+extern JS_PUBLIC_API void UnsafeTraceRoot(JSTracer* trc, T* edgep,
+                                          const char* name);
+
+extern JS_PUBLIC_API void TraceChildren(JSTracer* trc, GCCellPtr thing);
+
+using ZoneSet =
+    js::HashSet<Zone*, js::DefaultHasher<Zone*>, js::SystemAllocPolicy>;
+using CompartmentSet =
+    js::HashSet<JSCompartment*, js::DefaultHasher<JSCompartment*>,
+                js::SystemAllocPolicy>;
+
+/**
+ * Trace every value within |compartments| that is wrapped by a
+ * cross-compartment wrapper from a compartment that is not an element of
+ * |compartments|.
+ */
+extern JS_PUBLIC_API void TraceIncomingCCWs(
+    JSTracer* trc, const JS::CompartmentSet& compartments);
+
+}  // namespace JS
+
+extern JS_PUBLIC_API void JS_GetTraceThingInfo(char* buf, size_t bufsize,
+                                               JSTracer* trc, void* thing,
+                                               JS::TraceKind kind,
+                                               bool includeDetails);
+
+namespace js {
+
+// Trace an edge that is not a GC root and is not wrapped in a barriered
+// wrapper for some reason.
+//
+// This method does not check if |*edgep| is non-null before tracing through
+// it, so callers must check any nullable pointer before calling this method.
+template <typename T>
+extern JS_PUBLIC_API void UnsafeTraceManuallyBarrieredEdge(JSTracer* trc,
+                                                           T* edgep,
+                                                           const char* name);
+
+namespace gc {
+
+// Return true if the given edge is not live and is about to be swept.
+template <typename T>
+extern JS_PUBLIC_API bool EdgeNeedsSweep(JS::Heap<T>* edgep);
+
+// Not part of the public API, but declared here so we can use it in GCPolicy
+// which is.
+template <typename T>
+bool IsAboutToBeFinalizedUnbarriered(T* thingp);
+
+}  // namespace gc
+}  // namespace js
+
+#endif /* js_TracingAPI_h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_TrackedOptimizationInfo_h
+#define js_TrackedOptimizationInfo_h
+
+#include "mozilla/Maybe.h"
+
+namespace JS {
+
+#define TRACKED_STRATEGY_LIST(_)            \
+  _(GetProp_ArgumentsLength)                \
+  _(GetProp_ArgumentsCallee)                \
+  _(GetProp_InferredConstant)               \
+  _(GetProp_Constant)                       \
+  _(GetProp_NotDefined)                     \
+  _(GetProp_StaticName)                     \
+  _(GetProp_SimdGetter)                     \
+  _(GetProp_TypedObject)                    \
+  _(GetProp_DefiniteSlot)                   \
+  _(GetProp_Unboxed)                        \
+  _(GetProp_CommonGetter)                   \
+  _(GetProp_InlineAccess)                   \
+  _(GetProp_InlineProtoAccess)              \
+  _(GetProp_Innerize)                       \
+  _(GetProp_InlineCache)                    \
+  _(GetProp_ModuleNamespace)                \
+                                            \
+  _(SetProp_CommonSetter)                   \
+  _(SetProp_TypedObject)                    \
+  _(SetProp_DefiniteSlot)                   \
+  _(SetProp_Unboxed)                        \
+  _(SetProp_InlineAccess)                   \
+  _(SetProp_InlineCache)                    \
+                                            \
+  _(GetElem_TypedObject)                    \
+  _(GetElem_Dense)                          \
+  _(GetElem_TypedArray)                     \
+  _(GetElem_String)                         \
+  _(GetElem_Arguments)                      \
+  _(GetElem_ArgumentsInlinedConstant)       \
+  _(GetElem_ArgumentsInlinedSwitch)         \
+  _(GetElem_InlineCache)                    \
+                                            \
+  _(SetElem_TypedObject)                    \
+  _(SetElem_TypedArray)                     \
+  _(SetElem_Dense)                          \
+  _(SetElem_Arguments)                      \
+  _(SetElem_InlineCache)                    \
+                                            \
+  _(BinaryArith_Concat)                     \
+  _(BinaryArith_SpecializedTypes)           \
+  _(BinaryArith_SpecializedOnBaselineTypes) \
+  _(BinaryArith_SharedCache)                \
+  _(BinaryArith_Call)                       \
+                                            \
+  _(InlineCache_OptimizedStub)              \
+                                            \
+  _(NewArray_TemplateObject)                \
+  _(NewArray_SharedCache)                   \
+  _(NewArray_Call)                          \
+                                            \
+  _(NewObject_TemplateObject)               \
+  _(NewObject_SharedCache)                  \
+  _(NewObject_Call)                         \
+                                            \
+  _(Compare_SpecializedTypes)               \
+  _(Compare_Bitwise)                        \
+  _(Compare_SpecializedOnBaselineTypes)     \
+  _(Compare_SharedCache)                    \
+  _(Compare_Call)                           \
+                                            \
+  _(Call_Inline)
+
+// Ordering is important below. All outcomes before GenericSuccess will be
+// considered failures, and all outcomes after GenericSuccess will be
+// considered successes.
+#define TRACKED_OUTCOME_LIST(_)                   \
+  _(GenericFailure)                               \
+  _(Disabled)                                     \
+  _(NoTypeInfo)                                   \
+  _(NoAnalysisInfo)                               \
+  _(NoShapeInfo)                                  \
+  _(UnknownObject)                                \
+  _(UnknownProperties)                            \
+  _(Singleton)                                    \
+  _(NotSingleton)                                 \
+  _(NotFixedSlot)                                 \
+  _(InconsistentFixedSlot)                        \
+  _(NotObject)                                    \
+  _(NotStruct)                                    \
+  _(NotUnboxed)                                   \
+  _(NotUndefined)                                 \
+  _(UnboxedConvertedToNative)                     \
+  _(StructNoField)                                \
+  _(InconsistentFieldType)                        \
+  _(InconsistentFieldOffset)                      \
+  _(NeedsTypeBarrier)                             \
+  _(InDictionaryMode)                             \
+  _(NoProtoFound)                                 \
+  _(MultiProtoPaths)                              \
+  _(NonWritableProperty)                          \
+  _(ProtoIndexedProps)                            \
+  _(ArrayBadFlags)                                \
+  _(ArrayDoubleConversion)                        \
+  _(ArrayRange)                                   \
+  _(ArraySeenNegativeIndex)                       \
+  _(TypedObjectHasDetachedBuffer)                 \
+  _(TypedObjectArrayRange)                        \
+  _(AccessNotDense)                               \
+  _(AccessNotSimdObject)                          \
+  _(AccessNotTypedObject)                         \
+  _(AccessNotTypedArray)                          \
+  _(AccessNotString)                              \
+  _(OperandNotString)                             \
+  _(OperandNotNumber)                             \
+  _(OperandNotStringOrNumber)                     \
+  _(OperandNotSimpleArith)                        \
+  _(OperandNotEasilyCoercibleToString)            \
+  _(OutOfBounds)                                  \
+  _(GetElemStringNotCached)                       \
+  _(NonNativeReceiver)                            \
+  _(IndexType)                                    \
+  _(SetElemNonDenseNonTANotCached)                \
+  _(NoSimdJitSupport)                             \
+  _(SimdTypeNotOptimized)                         \
+  _(UnknownSimdProperty)                          \
+  _(NotModuleNamespace)                           \
+  _(UnknownProperty)                              \
+  _(NoTemplateObject)                             \
+  _(TemplateObjectIsUnboxedWithoutInlineElements) \
+  _(TemplateObjectIsPlainObjectWithDynamicSlots)  \
+  _(LengthTooBig)                                 \
+  _(SpeculationOnInputTypesFailed)                \
+  _(RelationalCompare)                            \
+  _(OperandTypeNotBitwiseComparable)              \
+  _(OperandMaybeEmulatesUndefined)                \
+  _(LoosyUndefinedNullCompare)                    \
+  _(LoosyInt32BooleanCompare)                     \
+  _(CallsValueOf)                                 \
+  _(StrictCompare)                                \
+  _(InitHole)                                     \
+                                                  \
+  _(ICOptStub_GenericSuccess)                     \
+                                                  \
+  _(ICGetPropStub_ReadSlot)                       \
+  _(ICGetPropStub_CallGetter)                     \
+  _(ICGetPropStub_ArrayLength)                    \
+  _(ICGetPropStub_UnboxedRead)                    \
+  _(ICGetPropStub_UnboxedReadExpando)             \
+  _(ICGetPropStub_UnboxedArrayLength)             \
+  _(ICGetPropStub_TypedArrayLength)               \
+  _(ICGetPropStub_DOMProxyShadowed)               \
+  _(ICGetPropStub_DOMProxyUnshadowed)             \
+  _(ICGetPropStub_GenericProxy)                   \
+  _(ICGetPropStub_ArgumentsLength)                \
+                                                  \
+  _(ICSetPropStub_Slot)                           \
+  _(ICSetPropStub_GenericProxy)                   \
+  _(ICSetPropStub_DOMProxyShadowed)               \
+  _(ICSetPropStub_DOMProxyUnshadowed)             \
+  _(ICSetPropStub_CallSetter)                     \
+  _(ICSetPropStub_AddSlot)                        \
+  _(ICSetPropStub_SetUnboxed)                     \
+                                                  \
+  _(ICGetElemStub_ReadSlot)                       \
+  _(ICGetElemStub_CallGetter)                     \
+  _(ICGetElemStub_ReadUnboxed)                    \
+  _(ICGetElemStub_Dense)                          \
+  _(ICGetElemStub_DenseHole)                      \
+  _(ICGetElemStub_TypedArray)                     \
+  _(ICGetElemStub_ArgsElementMapped)              \
+  _(ICGetElemStub_ArgsElementUnmapped)            \
+                                                  \
+  _(ICSetElemStub_Dense)                          \
+  _(ICSetElemStub_TypedArray)                     \
+                                                  \
+  _(ICNameStub_ReadSlot)                          \
+  _(ICNameStub_CallGetter)                        \
+  _(ICNameStub_TypeOfNoProperty)                  \
+                                                  \
+  _(CantInlineGeneric)                            \
+  _(CantInlineNoTarget)                           \
+  _(CantInlineNotInterpreted)                     \
+  _(CantInlineNoBaseline)                         \
+  _(CantInlineLazy)                               \
+  _(CantInlineNotConstructor)                     \
+  _(CantInlineClassConstructor)                   \
+  _(CantInlineDisabledIon)                        \
+  _(CantInlineTooManyArgs)                        \
+  _(CantInlineNeedsArgsObj)                       \
+  _(CantInlineDebuggee)                           \
+  _(CantInlineExceededDepth)                      \
+  _(CantInlineExceededTotalBytecodeLength)        \
+  _(CantInlineBigCaller)                          \
+  _(CantInlineBigCallee)                          \
+  _(CantInlineBigCalleeInlinedBytecodeLength)     \
+  _(CantInlineNotHot)                             \
+  _(CantInlineNotInDispatch)                      \
+  _(CantInlineUnreachable)                        \
+  _(CantInlineNativeBadForm)                      \
+  _(CantInlineNativeBadType)                      \
+  _(CantInlineNativeNoTemplateObj)                \
+  _(CantInlineBound)                              \
+  _(CantInlineNativeNoSpecialization)             \
+  _(HasCommonInliningPath)                        \
+                                                  \
+  _(GenericSuccess)                               \
+  _(Inlined)                                      \
+  _(DOM)                                          \
+  _(Monomorphic)                                  \
+  _(Polymorphic)
+
+#define TRACKED_TYPESITE_LIST(_) \
+  _(Receiver)                    \
+  _(Operand)                     \
+  _(Index)                       \
+  _(Value)                       \
+  _(Call_Target)                 \
+  _(Call_This)                   \
+  _(Call_Arg)                    \
+  _(Call_Return)
+
+enum class TrackedStrategy : uint32_t {
+#define STRATEGY_OP(name) name,
+  TRACKED_STRATEGY_LIST(STRATEGY_OP)
+#undef STRATEGY_OPT
+
+      Count
+};
+
+enum class TrackedOutcome : uint32_t {
+#define OUTCOME_OP(name) name,
+  TRACKED_OUTCOME_LIST(OUTCOME_OP)
+#undef OUTCOME_OP
+
+      Count
+};
+
+enum class TrackedTypeSite : uint32_t {
+#define TYPESITE_OP(name) name,
+  TRACKED_TYPESITE_LIST(TYPESITE_OP)
+#undef TYPESITE_OP
+
+      Count
+};
+
+JS_PUBLIC_API const char* TrackedStrategyString(TrackedStrategy strategy);
+
+JS_PUBLIC_API const char* TrackedOutcomeString(TrackedOutcome outcome);
+
+JS_PUBLIC_API const char* TrackedTypeSiteString(TrackedTypeSite site);
+
+struct ForEachTrackedOptimizationAttemptOp {
+  virtual void operator()(TrackedStrategy strategy, TrackedOutcome outcome) = 0;
+};
+
+struct ForEachTrackedOptimizationTypeInfoOp {
+  // Called 0+ times per entry, once for each type in the type set that Ion
+  // saw during MIR construction. readType is always called _before_
+  // operator() on the same entry.
+  //
+  // The keyedBy parameter describes how the type is keyed:
+  //   - "primitive"   for primitive types
+  //   - "constructor" for object types tied to a scripted constructor
+  //                   function.
+  //   - "alloc site"  for object types tied to an allocation site.
+  //   - "prototype"   for object types tied neither to a constructor nor
+  //                   to an allocation site, but to a prototype.
+  //   - "singleton"   for object types which only has a single value.
+  //   - "function"    for object types referring to scripted functions.
+  //   - "native"      for object types referring to native functions.
+  //
+  // The name parameter is the string representation of the type. If the
+  // type is keyed by "constructor", or if the type itself refers to a
+  // scripted function, the name is the function's displayAtom. If the type
+  // is keyed by "native", this is nullptr.
+  //
+  // The location parameter is the filename if the type is keyed by
+  // "constructor", "alloc site", or if the type itself refers to a scripted
+  // function. If the type is keyed by "native", it is the offset of the
+  // native function, suitable for use with addr2line on Linux or atos on OS
+  // X. Otherwise it is nullptr.
+  //
+  // The lineno parameter is the line number if the type is keyed by
+  // "constructor", "alloc site", or if the type itself refers to a scripted
+  // function. Otherwise it is Nothing().
+  //
+  // The location parameter is the only one that may need escaping if being
+  // quoted.
+  virtual void readType(const char* keyedBy, const char* name,
+                        const char* location,
+                        const mozilla::Maybe<unsigned>& lineno) = 0;
+
+  // Called once per entry.
+  virtual void operator()(TrackedTypeSite site, const char* mirType) = 0;
+};
+
+}  // namespace JS
+
+#endif  // js_TrackedOptimizationInfo_h
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+// This file contains public type declarations that are used *frequently*.  If
+// it doesn't occur at least 10 times in Gecko, it probably shouldn't be in
+// here.
+//
+// It includes only:
+// - forward declarations of structs and classes;
+// - typedefs;
+// - enums (maybe).
+// It does *not* contain any struct or class definitions.
+
+#ifndef js_TypeDecls_h
+#define js_TypeDecls_h
+
+#include <stddef.h>
+#include <stdint.h>
+
+#include "js-config.h"
+
+typedef uint8_t jsbytecode;
+
+class JSAtom;
+struct JSCompartment;
+struct JSContext;
+class JSFunction;
+class JSObject;
+struct JSRuntime;
+class JSScript;
+class JSString;
+class JSAddonId;
+struct JSFreeOp;
+
+struct jsid;
+
+namespace JS {
+
+typedef unsigned char Latin1Char;
+
+class Symbol;
+class Value;
+class Realm;
+struct Runtime;
+struct Zone;
+
+template <typename T>
+class Handle;
+template <typename T>
+class MutableHandle;
+template <typename T>
+class Rooted;
+template <typename T>
+class PersistentRooted;
+
+typedef Handle<JSFunction*> HandleFunction;
+typedef Handle<jsid> HandleId;
+typedef Handle<JSObject*> HandleObject;
+typedef Handle<JSScript*> HandleScript;
+typedef Handle<JSString*> HandleString;
+typedef Handle<JS::Symbol*> HandleSymbol;
+typedef Handle<Value> HandleValue;
+
+typedef MutableHandle<JSFunction*> MutableHandleFunction;
+typedef MutableHandle<jsid> MutableHandleId;
+typedef MutableHandle<JSObject*> MutableHandleObject;
+typedef MutableHandle<JSScript*> MutableHandleScript;
+typedef MutableHandle<JSString*> MutableHandleString;
+typedef MutableHandle<JS::Symbol*> MutableHandleSymbol;
+typedef MutableHandle<Value> MutableHandleValue;
+
+typedef Rooted<JSObject*> RootedObject;
+typedef Rooted<JSFunction*> RootedFunction;
+typedef Rooted<JSScript*> RootedScript;
+typedef Rooted<JSString*> RootedString;
+typedef Rooted<JS::Symbol*> RootedSymbol;
+typedef Rooted<jsid> RootedId;
+typedef Rooted<JS::Value> RootedValue;
+
+typedef PersistentRooted<JSFunction*> PersistentRootedFunction;
+typedef PersistentRooted<jsid> PersistentRootedId;
+typedef PersistentRooted<JSObject*> PersistentRootedObject;
+typedef PersistentRooted<JSScript*> PersistentRootedScript;
+typedef PersistentRooted<JSString*> PersistentRootedString;
+typedef PersistentRooted<JS::Symbol*> PersistentRootedSymbol;
+typedef PersistentRooted<Value> PersistentRootedValue;
+
+}  // namespace JS
+
+#endif /* js_TypeDecls_h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_UbiNode_h
+#define js_UbiNode_h
+
+#include "mozilla/Alignment.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
+#include "mozilla/HashFunctions.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/MemoryReporting.h"
+#include "mozilla/Move.h"
+#include "mozilla/RangedPtr.h"
+#include "mozilla/TypeTraits.h"
+#include "mozilla/Variant.h"
+
+#include "jspubtd.h"
+
+#include "js/GCAPI.h"
+#include "js/HashTable.h"
+#include "js/RootingAPI.h"
+#include "js/TracingAPI.h"
+#include "js/TypeDecls.h"
+#include "js/UniquePtr.h"
+#include "js/Value.h"
+#include "js/Vector.h"
+
+// JS::ubi::Node
+//
+// JS::ubi::Node is a pointer-like type designed for internal use by heap
+// analysis tools. A ubi::Node can refer to:
+//
+// - a JS value, like a string, object, or symbol;
+// - an internal SpiderMonkey structure, like a shape or a scope chain object
+// - an instance of some embedding-provided type: in Firefox, an XPCOM
+//   object, or an internal DOM node class instance
+//
+// A ubi::Node instance provides metadata about its referent, and can
+// enumerate its referent's outgoing edges, so you can implement heap analysis
+// algorithms that walk the graph - finding paths between objects, or
+// computing heap dominator trees, say - using ubi::Node, while remaining
+// ignorant of the details of the types you're operating on.
+//
+// Of course, when it comes to presenting the results in a developer-facing
+// tool, you'll need to stop being ignorant of those details, because you have
+// to discuss the ubi::Nodes' referents with the developer. Here, ubi::Node
+// can hand you dynamically checked, properly typed pointers to the original
+// objects via the as<T> method, or generate descriptions of the referent
+// itself.
+//
+// ubi::Node instances are lightweight (two-word) value types. Instances:
+// - compare equal if and only if they refer to the same object;
+// - have hash values that respect their equality relation; and
+// - have serializations that are only equal if the ubi::Nodes are equal.
+//
+// A ubi::Node is only valid for as long as its referent is alive; if its
+// referent goes away, the ubi::Node becomes a dangling pointer. A ubi::Node
+// that refers to a GC-managed object is not automatically a GC root; if the
+// GC frees or relocates its referent, the ubi::Node becomes invalid. A
+// ubi::Node that refers to a reference-counted object does not bump the
+// reference count.
+//
+// ubi::Node values require no supporting data structures, making them
+// feasible for use in memory-constrained devices --- ideally, the memory
+// requirements of the algorithm which uses them will be the limiting factor,
+// not the demands of ubi::Node itself.
+//
+// One can construct a ubi::Node value given a pointer to a type that ubi::Node
+// supports. In the other direction, one can convert a ubi::Node back to a
+// pointer; these downcasts are checked dynamically. In particular, one can
+// convert a 'JSContext*' to a ubi::Node, yielding a node with an outgoing edge
+// for every root registered with the runtime; starting from this, one can walk
+// the entire heap. (Of course, one could also start traversal at any other kind
+// of type to which one has a pointer.)
+//
+//
+// Extending ubi::Node To Handle Your Embedding's Types
+//
+// To add support for a new ubi::Node referent type R, you must define a
+// specialization of the ubi::Concrete template, ubi::Concrete<R>, which
+// inherits from ubi::Base. ubi::Node itself uses the specialization for
+// compile-time information (i.e. the checked conversions between R * and
+// ubi::Node), and the inheritance for run-time dispatching.
+//
+//
+// ubi::Node Exposes Implementation Details
+//
+// In many cases, a JavaScript developer's view of their data differs
+// substantially from its actual implementation. For example, while the
+// ECMAScript specification describes objects as maps from property names to
+// sets of attributes (like ECMAScript's [[Value]]), in practice many objects
+// have only a pointer to a shape, shared with other similar objects, and
+// indexed slots that contain the [[Value]] attributes. As another example, a
+// string produced by concatenating two other strings may sometimes be
+// represented by a "rope", a structure that points to the two original
+// strings.
+//
+// We intend to use ubi::Node to write tools that report memory usage, so it's
+// important that ubi::Node accurately portray how much memory nodes consume.
+// Thus, for example, when data that apparently belongs to multiple nodes is
+// in fact shared in a common structure, ubi::Node's graph uses a separate
+// node for that shared structure, and presents edges to it from the data's
+// apparent owners. For example, ubi::Node exposes SpiderMonkey objects'
+// shapes and base shapes, and exposes rope string and substring structure,
+// because these optimizations become visible when a tool reports how much
+// memory a structure consumes.
+//
+// However, fine granularity is not a goal. When a particular object is the
+// exclusive owner of a separate block of memory, ubi::Node may present the
+// object and its block as a single node, and add their sizes together when
+// reporting the node's size, as there is no meaningful loss of data in this
+// case. Thus, for example, a ubi::Node referring to a JavaScript object, when
+// asked for the object's size in bytes, includes the object's slot and
+// element arrays' sizes in the total. There is no separate ubi::Node value
+// representing the slot and element arrays, since they are owned exclusively
+// by the object.
+//
+//
+// Presenting Analysis Results To JavaScript Developers
+//
+// If an analysis provides its results in terms of ubi::Node values, a user
+// interface presenting those results will generally need to clean them up
+// before they can be understood by JavaScript developers. For example,
+// JavaScript developers should not need to understand shapes, only JavaScript
+// objects. Similarly, they should not need to understand the distinction
+// between DOM nodes and the JavaScript shadow objects that represent them.
+//
+//
+// Rooting Restrictions
+//
+// At present there is no way to root ubi::Node instances, so instances can't be
+// live across any operation that might GC. Analyses using ubi::Node must either
+// run to completion and convert their results to some other rootable type, or
+// save their intermediate state in some rooted structure if they must GC before
+// they complete. (For algorithms like path-finding and dominator tree
+// computation, we implement the algorithm avoiding any operation that could
+// cause a GC --- and use AutoCheckCannotGC to verify this.)
+//
+// If this restriction prevents us from implementing interesting tools, we may
+// teach the GC how to root ubi::Nodes, fix up hash tables that use them as
+// keys, etc.
+//
+//
+// Hostile Graph Structure
+//
+// Analyses consuming ubi::Node graphs must be robust when presented with graphs
+// that are deliberately constructed to exploit their weaknesses. When operating
+// on live graphs, web content has control over the object graph, and less
+// direct control over shape and string structure, and analyses should be
+// prepared to handle extreme cases gracefully. For example, if an analysis were
+// to use the C++ stack in a depth-first traversal, carefully constructed
+// content could cause the analysis to overflow the stack.
+//
+// When ubi::Nodes refer to nodes deserialized from a heap snapshot, analyses
+// must be even more careful: since snapshots often come from potentially
+// compromised e10s content processes, even properties normally guaranteed by
+// the platform (the proper linking of DOM nodes, for example) might be
+// corrupted. While it is the deserializer's responsibility to check the basic
+// structure of the snapshot file, the analyses should be prepared for ubi::Node
+// graphs constructed from snapshots to be even more bizarre.
+
+namespace JS {
+namespace ubi {
+
+class Edge;
+class EdgeRange;
+class StackFrame;
+
+}  // namespace ubi
+}  // namespace JS
+
+namespace JS {
+namespace ubi {
+
+using mozilla::Forward;
+using mozilla::Maybe;
+using mozilla::Move;
+using mozilla::RangedPtr;
+using mozilla::Variant;
+
+template <typename T>
+using Vector = mozilla::Vector<T, 0, js::SystemAllocPolicy>;
+
+/*** ubi::StackFrame **********************************************************/
+
+// Concrete JS::ubi::StackFrame instances backed by a live SavedFrame object
+// store their strings as JSAtom*, while deserialized stack frames from offline
+// heap snapshots store their strings as const char16_t*. In order to provide
+// zero-cost accessors to these strings in a single interface that works with
+// both cases, we use this variant type.
+class JS_PUBLIC_API AtomOrTwoByteChars
+    : public Variant<JSAtom*, const char16_t*> {
+  using Base = Variant<JSAtom*, const char16_t*>;
+
+ public:
+  template <typename T>
+  MOZ_IMPLICIT AtomOrTwoByteChars(T&& rhs) : Base(Forward<T>(rhs)) {}
+
+  template <typename T>
+  AtomOrTwoByteChars& operator=(T&& rhs) {
+    MOZ_ASSERT(this != &rhs, "self-move disallowed");
+    this->~AtomOrTwoByteChars();
+    new (this) AtomOrTwoByteChars(Forward<T>(rhs));
+    return *this;
+  }
+
+  // Return the length of the given AtomOrTwoByteChars string.
+  size_t length();
+
+  // Copy the given AtomOrTwoByteChars string into the destination buffer,
+  // inflating if necessary. Does NOT null terminate. Returns the number of
+  // characters written to destination.
+  size_t copyToBuffer(RangedPtr<char16_t> destination, size_t length);
+};
+
+// The base class implemented by each ConcreteStackFrame<T> type. Subclasses
+// must not add data members to this class.
+class BaseStackFrame {
+  friend class StackFrame;
+
+  BaseStackFrame(const StackFrame&) = delete;
+  BaseStackFrame& operator=(const StackFrame&) = delete;
+
+ protected:
+  void* ptr;
+  explicit BaseStackFrame(void* ptr) : ptr(ptr) {}
+
+ public:
+  // This is a value type that should not have a virtual destructor. Don't add
+  // destructors in subclasses!
+
+  // Get a unique identifier for this StackFrame. The identifier is not valid
+  // across garbage collections.
+  virtual uint64_t identifier() const { return uint64_t(uintptr_t(ptr)); }
+
+  // Get this frame's parent frame.
+  virtual StackFrame parent() const = 0;
+
+  // Get this frame's line number.
+  virtual uint32_t line() const = 0;
+
+  // Get this frame's column number.
+  virtual uint32_t column() const = 0;
+
+  // Get this frame's source name. Never null.
+  virtual AtomOrTwoByteChars source() const = 0;
+
+  // Return this frame's function name if named, otherwise the inferred
+  // display name. Can be null.
+  virtual AtomOrTwoByteChars functionDisplayName() const = 0;
+
+  // Returns true if this frame's function is system JavaScript running with
+  // trusted principals, false otherwise.
+  virtual bool isSystem() const = 0;
+
+  // Return true if this frame's function is a self-hosted JavaScript builtin,
+  // false otherwise.
+  virtual bool isSelfHosted(JSContext* cx) const = 0;
+
+  // Construct a SavedFrame stack for the stack starting with this frame and
+  // containing all of its parents. The SavedFrame objects will be placed into
+  // cx's current compartment.
+  //
+  // Note that the process of
+  //
+  //     SavedFrame
+  //         |
+  //         V
+  //     JS::ubi::StackFrame
+  //         |
+  //         V
+  //     offline heap snapshot
+  //         |
+  //         V
+  //     JS::ubi::StackFrame
+  //         |
+  //         V
+  //     SavedFrame
+  //
+  // is lossy because we cannot serialize and deserialize the SavedFrame's
+  // principals in the offline heap snapshot, so JS::ubi::StackFrame
+  // simplifies the principals check into the boolean isSystem() state. This
+  // is fine because we only expose JS::ubi::Stack to devtools and chrome
+  // code, and not to the web platform.
+  virtual MOZ_MUST_USE bool constructSavedFrameStack(
+      JSContext* cx, MutableHandleObject outSavedFrameStack) const = 0;
+
+  // Trace the concrete implementation of JS::ubi::StackFrame.
+  virtual void trace(JSTracer* trc) = 0;
+};
+
+// A traits template with a specialization for each backing type that implements
+// the ubi::BaseStackFrame interface. Each specialization must be the a subclass
+// of ubi::BaseStackFrame.
+template <typename T>
+class ConcreteStackFrame;
+
+// A JS::ubi::StackFrame represents a frame in a recorded stack. It can be
+// backed either by a live SavedFrame object or by a structure deserialized from
+// an offline heap snapshot.
+//
+// It is a value type that may be memcpy'd hither and thither without worrying
+// about constructors or destructors, similar to POD types.
+//
+// Its lifetime is the same as the lifetime of the graph that is being analyzed
+// by the JS::ubi::Node that the JS::ubi::StackFrame came from. That is, if the
+// graph being analyzed is the live heap graph, the JS::ubi::StackFrame is only
+// valid within the scope of an AutoCheckCannotGC; if the graph being analyzed
+// is an offline heap snapshot, the JS::ubi::StackFrame is valid as long as the
+// offline heap snapshot is alive.
+class StackFrame {
+  // Storage in which we allocate BaseStackFrame subclasses.
+  mozilla::AlignedStorage2<BaseStackFrame> storage;
+
+  BaseStackFrame* base() { return storage.addr(); }
+  const BaseStackFrame* base() const { return storage.addr(); }
+
+  template <typename T>
+  void construct(T* ptr) {
+    static_assert(
+        mozilla::IsBaseOf<BaseStackFrame, ConcreteStackFrame<T>>::value,
+        "ConcreteStackFrame<T> must inherit from BaseStackFrame");
+    static_assert(
+        sizeof(ConcreteStackFrame<T>) == sizeof(*base()),
+        "ubi::ConcreteStackFrame<T> specializations must be the same size as "
+        "ubi::BaseStackFrame");
+    ConcreteStackFrame<T>::construct(base(), ptr);
+  }
+  struct ConstructFunctor;
+
+ public:
+  StackFrame() { construct<void>(nullptr); }
+
+  template <typename T>
+  MOZ_IMPLICIT StackFrame(T* ptr) {
+    construct(ptr);
+  }
+
+  template <typename T>
+  StackFrame& operator=(T* ptr) {
+    construct(ptr);
+    return *this;
+  }
+
+  // Constructors accepting SpiderMonkey's generic-pointer-ish types.
+
+  template <typename T>
+  explicit StackFrame(const JS::Handle<T*>& handle) {
+    construct(handle.get());
+  }
+
+  template <typename T>
+  StackFrame& operator=(const JS::Handle<T*>& handle) {
+    construct(handle.get());
+    return *this;
+  }
+
+  template <typename T>
+  explicit StackFrame(const JS::Rooted<T*>& root) {
+    construct(root.get());
+  }
+
+  template <typename T>
+  StackFrame& operator=(const JS::Rooted<T*>& root) {
+    construct(root.get());
+    return *this;
+  }
+
+  // Because StackFrame is just a vtable pointer and an instance pointer, we
+  // can memcpy everything around instead of making concrete classes define
+  // virtual constructors. See the comment above Node's copy constructor for
+  // more details; that comment applies here as well.
+  StackFrame(const StackFrame& rhs) {
+    memcpy(storage.u.mBytes, rhs.storage.u.mBytes, sizeof(storage.u));
+  }
+
+  StackFrame& operator=(const StackFrame& rhs) {
+    memcpy(storage.u.mBytes, rhs.storage.u.mBytes, sizeof(storage.u));
+    return *this;
+  }
+
+  bool operator==(const StackFrame& rhs) const {
+    return base()->ptr == rhs.base()->ptr;
+  }
+  bool operator!=(const StackFrame& rhs) const { return !(*this == rhs); }
+
+  explicit operator bool() const { return base()->ptr != nullptr; }
+
+  // Copy this StackFrame's source name into the given |destination|
+  // buffer. Copy no more than |length| characters. The result is *not* null
+  // terminated. Returns how many characters were written into the buffer.
+  size_t source(RangedPtr<char16_t> destination, size_t length) const;
+
+  // Copy this StackFrame's function display name into the given |destination|
+  // buffer. Copy no more than |length| characters. The result is *not* null
+  // terminated. Returns how many characters were written into the buffer.
+  size_t functionDisplayName(RangedPtr<char16_t> destination,
+                             size_t length) const;
+
+  // Get the size of the respective strings. 0 is returned for null strings.
+  size_t sourceLength();
+  size_t functionDisplayNameLength();
+
+  // Methods that forward to virtual calls through BaseStackFrame.
+
+  void trace(JSTracer* trc) { base()->trace(trc); }
+  uint64_t identifier() const {
+    auto id = base()->identifier();
+    MOZ_ASSERT(JS::Value::isNumberRepresentable(id));
+    return id;
+  }
+  uint32_t line() const { return base()->line(); }
+  uint32_t column() const { return base()->column(); }
+  AtomOrTwoByteChars source() const { return base()->source(); }
+  AtomOrTwoByteChars functionDisplayName() const {
+    return base()->functionDisplayName();
+  }
+  StackFrame parent() const { return base()->parent(); }
+  bool isSystem() const { return base()->isSystem(); }
+  bool isSelfHosted(JSContext* cx) const { return base()->isSelfHosted(cx); }
+  MOZ_MUST_USE bool constructSavedFrameStack(
+      JSContext* cx, MutableHandleObject outSavedFrameStack) const {
+    return base()->constructSavedFrameStack(cx, outSavedFrameStack);
+  }
+
+  struct HashPolicy {
+    using Lookup = JS::ubi::StackFrame;
+
+    static js::HashNumber hash(const Lookup& lookup) {
+      return mozilla::HashGeneric(lookup.identifier());
+    }
+
+    static bool match(const StackFrame& key, const Lookup& lookup) {
+      return key == lookup;
+    }
+
+    static void rekey(StackFrame& k, const StackFrame& newKey) { k = newKey; }
+  };
+};
+
+// The ubi::StackFrame null pointer. Any attempt to operate on a null
+// ubi::StackFrame crashes.
+template <>
+class ConcreteStackFrame<void> : public BaseStackFrame {
+  explicit ConcreteStackFrame(void* ptr) : BaseStackFrame(ptr) {}
+
+ public:
+  static void construct(void* storage, void*) {
+    new (storage) ConcreteStackFrame(nullptr);
+  }
+
+  uint64_t identifier() const override { return 0; }
+  void trace(JSTracer* trc) override {}
+  MOZ_MUST_USE bool constructSavedFrameStack(
+      JSContext* cx, MutableHandleObject out) const override {
+    out.set(nullptr);
+    return true;
+  }
+
+  uint32_t line() const override { MOZ_CRASH("null JS::ubi::StackFrame"); }
+  uint32_t column() const override { MOZ_CRASH("null JS::ubi::StackFrame"); }
+  AtomOrTwoByteChars source() const override {
+    MOZ_CRASH("null JS::ubi::StackFrame");
+  }
+  AtomOrTwoByteChars functionDisplayName() const override {
+    MOZ_CRASH("null JS::ubi::StackFrame");
+  }
+  StackFrame parent() const override { MOZ_CRASH("null JS::ubi::StackFrame"); }
+  bool isSystem() const override { MOZ_CRASH("null JS::ubi::StackFrame"); }
+  bool isSelfHosted(JSContext* cx) const override {
+    MOZ_CRASH("null JS::ubi::StackFrame");
+  }
+};
+
+MOZ_MUST_USE JS_PUBLIC_API bool ConstructSavedFrameStackSlow(
+    JSContext* cx, JS::ubi::StackFrame& frame,
+    MutableHandleObject outSavedFrameStack);
+
+/*** ubi::Node
+ * ************************************************************************************/
+
+// A concrete node specialization can claim its referent is a member of a
+// particular "coarse type" which is less specific than the actual
+// implementation type but generally more palatable for web developers. For
+// example, JitCode can be considered to have a coarse type of "Script". This is
+// used by some analyses for putting nodes into different buckets. The default,
+// if a concrete specialization does not provide its own mapping to a CoarseType
+// variant, is "Other".
+//
+// NB: the values associated with a particular enum variant must not change or
+// be reused for new variants. Doing so will cause inspecting ubi::Nodes backed
+// by an offline heap snapshot from an older SpiderMonkey/Firefox version to
+// break. Consider this enum append only.
+enum class CoarseType : uint32_t {
+  Other = 0,
+  Object = 1,
+  Script = 2,
+  String = 3,
+
+  FIRST = Other,
+  LAST = String
+};
+
+inline uint32_t CoarseTypeToUint32(CoarseType type) {
+  return static_cast<uint32_t>(type);
+}
+
+inline bool Uint32IsValidCoarseType(uint32_t n) {
+  auto first = static_cast<uint32_t>(CoarseType::FIRST);
+  auto last = static_cast<uint32_t>(CoarseType::LAST);
+  MOZ_ASSERT(first < last);
+  return first <= n && n <= last;
+}
+
+inline CoarseType Uint32ToCoarseType(uint32_t n) {
+  MOZ_ASSERT(Uint32IsValidCoarseType(n));
+  return static_cast<CoarseType>(n);
+}
+
+// The base class implemented by each ubi::Node referent type. Subclasses must
+// not add data members to this class.
+class JS_PUBLIC_API Base {
+  friend class Node;
+
+  // For performance's sake, we'd prefer to avoid a virtual destructor; and
+  // an empty constructor seems consistent with the 'lightweight value type'
+  // visible behavior we're trying to achieve. But if the destructor isn't
+  // virtual, and a subclass overrides it, the subclass's destructor will be
+  // ignored. Is there a way to make the compiler catch that error?
+
+ protected:
+  // Space for the actual pointer. Concrete subclasses should define a
+  // properly typed 'get' member function to access this.
+  void* ptr;
+
+  explicit Base(void* ptr) : ptr(ptr) {}
+
+ public:
+  bool operator==(const Base& rhs) const {
+    // Some compilers will indeed place objects of different types at
+    // the same address, so technically, we should include the vtable
+    // in this comparison. But it seems unlikely to cause problems in
+    // practice.
+    return ptr == rhs.ptr;
+  }
+  bool operator!=(const Base& rhs) const { return !(*this == rhs); }
+
+  // An identifier for this node, guaranteed to be stable and unique for as
+  // long as this ubi::Node's referent is alive and at the same address.
+  //
+  // This is probably suitable for use in serializations, as it is an integral
+  // type. It may also help save memory when constructing HashSets of
+  // ubi::Nodes: since a uint64_t will always be smaller-or-equal-to the size
+  // of a ubi::Node, a HashSet<ubi::Node::Id> may use less space per element
+  // than a HashSet<ubi::Node>.
+  //
+  // (Note that 'unique' only means 'up to equality on ubi::Node'; see the
+  // caveats about multiple objects allocated at the same address for
+  // 'ubi::Node::operator=='.)
+  using Id = uint64_t;
+  virtual Id identifier() const { return Id(uintptr_t(ptr)); }
+
+  // Returns true if this node is pointing to something on the live heap, as
+  // opposed to something from a deserialized core dump. Returns false,
+  // otherwise.
+  virtual bool isLive() const { return true; };
+
+  // Return the coarse-grained type-of-thing that this node represents.
+  virtual CoarseType coarseType() const { return CoarseType::Other; }
+
+  // Return a human-readable name for the referent's type. The result should
+  // be statically allocated. (You can use u"strings" for this.)
+  //
+  // This must always return Concrete<T>::concreteTypeName; we use that
+  // pointer as a tag for this particular referent type.
+  virtual const char16_t* typeName() const = 0;
+
+  // Return the size of this node, in bytes. Include any structures that this
+  // node owns exclusively that are not exposed as their own ubi::Nodes.
+  // |mallocSizeOf| should be a malloc block sizing function; see
+  // |mfbt/MemoryReporting.h|.
+  //
+  // Because we can use |JS::ubi::Node|s backed by a snapshot that was taken
+  // on a 64-bit platform when we are currently on a 32-bit platform, we
+  // cannot rely on |size_t| for node sizes. Instead, |Size| is uint64_t on
+  // all platforms.
+  using Size = uint64_t;
+  virtual Size size(mozilla::MallocSizeOf mallocSizeof) const { return 1; }
+
+  // Return an EdgeRange that initially contains all the referent's outgoing
+  // edges. The caller takes ownership of the EdgeRange.
+  //
+  // If wantNames is true, compute names for edges. Doing so can be expensive
+  // in time and memory.
+  virtual js::UniquePtr<EdgeRange> edges(JSContext* cx,
+                                         bool wantNames) const = 0;
+
+  // Return the Zone to which this node's referent belongs, or nullptr if the
+  // referent is not of a type allocated in SpiderMonkey Zones.
+  virtual JS::Zone* zone() const { return nullptr; }
+
+  // Return the compartment for this node. Some ubi::Node referents are not
+  // associated with JSCompartments, such as JSStrings (which are associated
+  // with Zones). When the referent is not associated with a compartment,
+  // nullptr is returned.
+  virtual JSCompartment* compartment() const { return nullptr; }
+
+  // Return whether this node's referent's allocation stack was captured.
+  virtual bool hasAllocationStack() const { return false; }
+
+  // Get the stack recorded at the time this node's referent was
+  // allocated. This must only be called when hasAllocationStack() is true.
+  virtual StackFrame allocationStack() const {
+    MOZ_CRASH(
+        "Concrete classes that have an allocation stack must override both "
+        "hasAllocationStack and allocationStack.");
+  }
+
+  // Methods for JSObject Referents
+  //
+  // These methods are only semantically valid if the referent is either a
+  // JSObject in the live heap, or represents a previously existing JSObject
+  // from some deserialized heap snapshot.
+
+  // Return the object's [[Class]]'s name.
+  virtual const char* jsObjectClassName() const { return nullptr; }
+
+  // If this object was constructed with `new` and we have the data available,
+  // place the contructor function's display name in the out parameter.
+  // Otherwise, place nullptr in the out parameter. Caller maintains ownership
+  // of the out parameter. True is returned on success, false is returned on
+  // OOM.
+  virtual MOZ_MUST_USE bool jsObjectConstructorName(
+      JSContext* cx, UniqueTwoByteChars& outName) const {
+    outName.reset(nullptr);
+    return true;
+  }
+
+  // Methods for CoarseType::Script referents
+
+  // Return the script's source's filename if available. If unavailable,
+  // return nullptr.
+  virtual const char* scriptFilename() const { return nullptr; }
+
+ private:
+  Base(const Base& rhs) = delete;
+  Base& operator=(const Base& rhs) = delete;
+};
+
+// A traits template with a specialization for each referent type that
+// ubi::Node supports. The specialization must be the concrete subclass of Base
+// that represents a pointer to the referent type. It must include these
+// members:
+//
+//    // The specific char16_t array returned by Concrete<T>::typeName().
+//    static const char16_t concreteTypeName[];
+//
+//    // Construct an instance of this concrete class in |storage| referring
+//    // to |referent|. Implementations typically use a placement 'new'.
+//    //
+//    // In some cases, |referent| will contain dynamic type information that
+//    // identifies it a some more specific subclass of |Referent|. For
+//    // example, when |Referent| is |JSObject|, then |referent->getClass()|
+//    // could tell us that it's actually a JSFunction. Similarly, if
+//    // |Referent| is |nsISupports|, we would like a ubi::Node that knows its
+//    // final implementation type.
+//    //
+//    // So we delegate the actual construction to this specialization, which
+//    // knows Referent's details.
+//    static void construct(void* storage, Referent* referent);
+template <typename Referent>
+class Concrete;
+
+// A container for a Base instance; all members simply forward to the contained
+// instance.  This container allows us to pass ubi::Node instances by value.
+class Node {
+  // Storage in which we allocate Base subclasses.
+  mozilla::AlignedStorage2<Base> storage;
+  Base* base() { return storage.addr(); }
+  const Base* base() const { return storage.addr(); }
+
+  template <typename T>
+  void construct(T* ptr) {
+    static_assert(
+        sizeof(Concrete<T>) == sizeof(*base()),
+        "ubi::Base specializations must be the same size as ubi::Base");
+    static_assert(mozilla::IsBaseOf<Base, Concrete<T>>::value,
+                  "ubi::Concrete<T> must inherit from ubi::Base");
+    Concrete<T>::construct(base(), ptr);
+  }
+  struct ConstructFunctor;
+
+ public:
+  Node() { construct<void>(nullptr); }
+
+  template <typename T>
+  MOZ_IMPLICIT Node(T* ptr) {
+    construct(ptr);
+  }
+  template <typename T>
+  Node& operator=(T* ptr) {
+    construct(ptr);
+    return *this;
+  }
+
+  // We can construct and assign from rooted forms of pointers.
+  template <typename T>
+  MOZ_IMPLICIT Node(const Rooted<T*>& root) {
+    construct(root.get());
+  }
+  template <typename T>
+  Node& operator=(const Rooted<T*>& root) {
+    construct(root.get());
+    return *this;
+  }
+
+  // Constructors accepting SpiderMonkey's other generic-pointer-ish types.
+  // Note that we *do* want an implicit constructor here: JS::Value and
+  // JS::ubi::Node are both essentially tagged references to other sorts of
+  // objects, so letting conversions happen automatically is appropriate.
+  MOZ_IMPLICIT Node(JS::HandleValue value);
+  explicit Node(const JS::GCCellPtr& thing);
+
+  // copy construction and copy assignment just use memcpy, since we know
+  // instances contain nothing but a vtable pointer and a data pointer.
+  //
+  // To be completely correct, concrete classes could provide a virtual
+  // 'construct' member function, which we could invoke on rhs to construct an
+  // instance in our storage. But this is good enough; there's no need to jump
+  // through vtables for copying and assignment that are just going to move
+  // two words around. The compiler knows how to optimize memcpy.
+  Node(const Node& rhs) {
+    memcpy(storage.u.mBytes, rhs.storage.u.mBytes, sizeof(storage.u));
+  }
+
+  Node& operator=(const Node& rhs) {
+    memcpy(storage.u.mBytes, rhs.storage.u.mBytes, sizeof(storage.u));
+    return *this;
+  }
+
+  bool operator==(const Node& rhs) const { return *base() == *rhs.base(); }
+  bool operator!=(const Node& rhs) const { return *base() != *rhs.base(); }
+
+  explicit operator bool() const { return base()->ptr != nullptr; }
+
+  bool isLive() const { return base()->isLive(); }
+
+  // Get the canonical type name for the given type T.
+  template <typename T>
+  static const char16_t* canonicalTypeName() {
+    return Concrete<T>::concreteTypeName;
+  }
+
+  template <typename T>
+  bool is() const {
+    return base()->typeName() == canonicalTypeName<T>();
+  }
+
+  template <typename T>
+  T* as() const {
+    MOZ_ASSERT(isLive());
+    MOZ_ASSERT(is<T>());
+    return static_cast<T*>(base()->ptr);
+  }
+
+  template <typename T>
+  T* asOrNull() const {
+    MOZ_ASSERT(isLive());
+    return is<T>() ? static_cast<T*>(base()->ptr) : nullptr;
+  }
+
+  // If this node refers to something that can be represented as a JavaScript
+  // value that is safe to expose to JavaScript code, return that value.
+  // Otherwise return UndefinedValue(). JSStrings, JS::Symbols, and some (but
+  // not all!) JSObjects can be exposed.
+  JS::Value exposeToJS() const;
+
+  CoarseType coarseType() const { return base()->coarseType(); }
+  const char16_t* typeName() const { return base()->typeName(); }
+  JS::Zone* zone() const { return base()->zone(); }
+  JSCompartment* compartment() const { return base()->compartment(); }
+  const char* jsObjectClassName() const { return base()->jsObjectClassName(); }
+  MOZ_MUST_USE bool jsObjectConstructorName(JSContext* cx,
+                                            UniqueTwoByteChars& outName) const {
+    return base()->jsObjectConstructorName(cx, outName);
+  }
+
+  const char* scriptFilename() const { return base()->scriptFilename(); }
+
+  using Size = Base::Size;
+  Size size(mozilla::MallocSizeOf mallocSizeof) const {
+    auto size = base()->size(mallocSizeof);
+    MOZ_ASSERT(
+        size > 0,
+        "C++ does not have zero-sized types! Choose 1 if you just need a "
+        "conservative default.");
+    return size;
+  }
+
+  js::UniquePtr<EdgeRange> edges(JSContext* cx, bool wantNames = true) const {
+    return base()->edges(cx, wantNames);
+  }
+
+  bool hasAllocationStack() const { return base()->hasAllocationStack(); }
+  StackFrame allocationStack() const { return base()->allocationStack(); }
+
+  using Id = Base::Id;
+  Id identifier() const {
+    auto id = base()->identifier();
+    MOZ_ASSERT(JS::Value::isNumberRepresentable(id));
+    return id;
+  }
+
+  // A hash policy for ubi::Nodes.
+  // This simply uses the stock PointerHasher on the ubi::Node's pointer.
+  // We specialize DefaultHasher below to make this the default.
+  class HashPolicy {
+    typedef js::PointerHasher<void*> PtrHash;
+
+   public:
+    typedef Node Lookup;
+
+    static js::HashNumber hash(const Lookup& l) {
+      return PtrHash::hash(l.base()->ptr);
+    }
+    static bool match(const Node& k, const Lookup& l) { return k == l; }
+    static void rekey(Node& k, const Node& newKey) { k = newKey; }
+  };
+};
+
+using NodeSet =
+    js::HashSet<Node, js::DefaultHasher<Node>, js::SystemAllocPolicy>;
+using NodeSetPtr = mozilla::UniquePtr<NodeSet, JS::DeletePolicy<NodeSet>>;
+
+/*** Edge and EdgeRange *******************************************************/
+
+using EdgeName = UniqueTwoByteChars;
+
+// An outgoing edge to a referent node.
+class Edge {
+ public:
+  Edge() : name(nullptr), referent() {}
+
+  // Construct an initialized Edge, taking ownership of |name|.
+  Edge(char16_t* name, const Node& referent) : name(name), referent(referent) {}
+
+  // Move construction and assignment.
+  Edge(Edge&& rhs) : name(mozilla::Move(rhs.name)), referent(rhs.referent) {}
+
+  Edge& operator=(Edge&& rhs) {
+    MOZ_ASSERT(&rhs != this);
+    this->~Edge();
+    new (this) Edge(mozilla::Move(rhs));
+    return *this;
+  }
+
+  Edge(const Edge&) = delete;
+  Edge& operator=(const Edge&) = delete;
+
+  // This edge's name. This may be nullptr, if Node::edges was called with
+  // false as the wantNames parameter.
+  //
+  // The storage is owned by this Edge, and will be freed when this Edge is
+  // destructed. You may take ownership of the name by `mozilla::Move`ing it
+  // out of the edge; it is just a UniquePtr.
+  //
+  // (In real life we'll want a better representation for names, to avoid
+  // creating tons of strings when the names follow a pattern; and we'll need
+  // to think about lifetimes carefully to ensure traversal stays cheap.)
+  EdgeName name;
+
+  // This edge's referent.
+  Node referent;
+};
+
+// EdgeRange is an abstract base class for iterating over a node's outgoing
+// edges. (This is modeled after js::HashTable<K,V>::Range.)
+//
+// Concrete instances of this class need not be as lightweight as Node itself,
+// since they're usually only instantiated while iterating over a particular
+// object's edges. For example, a dumb implementation for JS Cells might use
+// JS::TraceChildren to to get the outgoing edges, and then store them in an
+// array internal to the EdgeRange.
+class EdgeRange {
+ protected:
+  // The current front edge of this range, or nullptr if this range is empty.
+  Edge* front_;
+
+  EdgeRange() : front_(nullptr) {}
+
+ public:
+  virtual ~EdgeRange() {}
+
+  // True if there are no more edges in this range.
+  bool empty() const { return !front_; }
+
+  // The front edge of this range. This is owned by the EdgeRange, and is
+  // only guaranteed to live until the next call to popFront, or until
+  // the EdgeRange is destructed.
+  const Edge& front() const { return *front_; }
+  Edge& front() { return *front_; }
+
+  // Remove the front edge from this range. This should only be called if
+  // !empty().
+  virtual void popFront() = 0;
+
+ private:
+  EdgeRange(const EdgeRange&) = delete;
+  EdgeRange& operator=(const EdgeRange&) = delete;
+};
+
+typedef mozilla::Vector<Edge, 8, js::SystemAllocPolicy> EdgeVector;
+
+// An EdgeRange concrete class that holds a pre-existing vector of
+// Edges. A PreComputedEdgeRange does not take ownership of its
+// EdgeVector; it is up to the PreComputedEdgeRange's consumer to manage
+// that lifetime.
+class PreComputedEdgeRange : public EdgeRange {
+  EdgeVector& edges;
+  size_t i;
+
+  void settle() { front_ = i < edges.length() ? &edges[i] : nullptr; }
+
+ public:
+  explicit PreComputedEdgeRange(EdgeVector& edges) : edges(edges), i(0) {
+    settle();
+  }
+
+  void popFront() override {
+    MOZ_ASSERT(!empty());
+    i++;
+    settle();
+  }
+};
+
+/*** RootList *****************************************************************/
+
+// RootList is a class that can be pointed to by a |ubi::Node|, creating a
+// fictional root-of-roots which has edges to every GC root in the JS
+// runtime. Having a single root |ubi::Node| is useful for algorithms written
+// with the assumption that there aren't multiple roots (such as computing
+// dominator trees) and you want a single point of entry. It also ensures that
+// the roots themselves get visited by |ubi::BreadthFirst| (they would otherwise
+// only be used as starting points).
+//
+// RootList::init itself causes a minor collection, but once the list of roots
+// has been created, GC must not occur, as the referent ubi::Nodes are not
+// stable across GC. The init calls emplace on |noGC|'s AutoCheckCannotGC, whose
+// lifetime must extend at least as long as the RootList itself.
+//
+// Example usage:
+//
+//    {
+//        mozilla::Maybe<JS::AutoCheckCannotGC> maybeNoGC;
+//        JS::ubi::RootList rootList(cx, maybeNoGC);
+//        if (!rootList.init())
+//            return false;
+//
+//        // The AutoCheckCannotGC is guaranteed to exist if init returned true.
+//        MOZ_ASSERT(maybeNoGC.isSome());
+//
+//        JS::ubi::Node root(&rootList);
+//
+//        ...
+//    }
+class MOZ_STACK_CLASS JS_PUBLIC_API RootList {
+  Maybe<AutoCheckCannotGC>& noGC;
+
+ public:
+  JSContext* cx;
+  EdgeVector edges;
+  bool wantNames;
+
+  RootList(JSContext* cx, Maybe<AutoCheckCannotGC>& noGC,
+           bool wantNames = false);
+
+  // Find all GC roots.
+  MOZ_MUST_USE bool init();
+  // Find only GC roots in the provided set of |JSCompartment|s.
+  MOZ_MUST_USE bool init(CompartmentSet& debuggees);
+  // Find only GC roots in the given Debugger object's set of debuggee
+  // compartments.
+  MOZ_MUST_USE bool init(HandleObject debuggees);
+
+  // Returns true if the RootList has been initialized successfully, false
+  // otherwise.
+  bool initialized() { return noGC.isSome(); }
+
+  // Explicitly add the given Node as a root in this RootList. If wantNames is
+  // true, you must pass an edgeName. The RootList does not take ownership of
+  // edgeName.
+  MOZ_MUST_USE bool addRoot(Node node, const char16_t* edgeName = nullptr);
+};
+
+/*** Concrete classes for ubi::Node referent types ****************************/
+
+template <>
+class JS_PUBLIC_API Concrete<RootList> : public Base {
+ protected:
+  explicit Concrete(RootList* ptr) : Base(ptr) {}
+  RootList& get() const { return *static_cast<RootList*>(ptr); }
+
+ public:
+  static void construct(void* storage, RootList* ptr) {
+    new (storage) Concrete(ptr);
+  }
+
+  js::UniquePtr<EdgeRange> edges(JSContext* cx, bool wantNames) const override;
+
+  const char16_t* typeName() const override { return concreteTypeName; }
+  static const char16_t concreteTypeName[];
+};
+
+// A reusable ubi::Concrete specialization base class for types supported by
+// JS::TraceChildren.
+template <typename Referent>
+class JS_PUBLIC_API TracerConcrete : public Base {
+  js::UniquePtr<EdgeRange> edges(JSContext* cx, bool wantNames) const override;
+  JS::Zone* zone() const override;
+
+ protected:
+  explicit TracerConcrete(Referent* ptr) : Base(ptr) {}
+  Referent& get() const { return *static_cast<Referent*>(ptr); }
+};
+
+// For JS::TraceChildren-based types that have a 'compartment' method.
+template <typename Referent>
+class JS_PUBLIC_API TracerConcreteWithCompartment
+    : public TracerConcrete<Referent> {
+  typedef TracerConcrete<Referent> TracerBase;
+  JSCompartment* compartment() const override;
+
+ protected:
+  explicit TracerConcreteWithCompartment(Referent* ptr) : TracerBase(ptr) {}
+};
+
+// Define specializations for some commonly-used public JSAPI types.
+// These can use the generic templates above.
+template <>
+class JS_PUBLIC_API Concrete<JS::Symbol> : TracerConcrete<JS::Symbol> {
+ protected:
+  explicit Concrete(JS::Symbol* ptr) : TracerConcrete(ptr) {}
+
+ public:
+  static void construct(void* storage, JS::Symbol* ptr) {
+    new (storage) Concrete(ptr);
+  }
+
+  Size size(mozilla::MallocSizeOf mallocSizeOf) const override;
+
+  const char16_t* typeName() const override { return concreteTypeName; }
+  static const char16_t concreteTypeName[];
+};
+
+template <>
+class JS_PUBLIC_API Concrete<JSScript>
+    : TracerConcreteWithCompartment<JSScript> {
+ protected:
+  explicit Concrete(JSScript* ptr)
+      : TracerConcreteWithCompartment<JSScript>(ptr) {}
+
+ public:
+  static void construct(void* storage, JSScript* ptr) {
+    new (storage) Concrete(ptr);
+  }
+
+  CoarseType coarseType() const final { return CoarseType::Script; }
+  Size size(mozilla::MallocSizeOf mallocSizeOf) const override;
+  const char* scriptFilename() const final;
+
+  const char16_t* typeName() const override { return concreteTypeName; }
+  static const char16_t concreteTypeName[];
+};
+
+// The JSObject specialization.
+template <>
+class JS_PUBLIC_API Concrete<JSObject>
+    : public TracerConcreteWithCompartment<JSObject> {
+ protected:
+  explicit Concrete(JSObject* ptr) : TracerConcreteWithCompartment(ptr) {}
+
+ public:
+  static void construct(void* storage, JSObject* ptr) {
+    new (storage) Concrete(ptr);
+  }
+
+  const char* jsObjectClassName() const override;
+  MOZ_MUST_USE bool jsObjectConstructorName(
+      JSContext* cx, UniqueTwoByteChars& outName) const override;
+  Size size(mozilla::MallocSizeOf mallocSizeOf) const override;
+
+  bool hasAllocationStack() const override;
+  StackFrame allocationStack() const override;
+
+  CoarseType coarseType() const final { return CoarseType::Object; }
+
+  const char16_t* typeName() const override { return concreteTypeName; }
+  static const char16_t concreteTypeName[];
+};
+
+// For JSString, we extend the generic template with a 'size' implementation.
+template <>
+class JS_PUBLIC_API Concrete<JSString> : TracerConcrete<JSString> {
+ protected:
+  explicit Concrete(JSString* ptr) : TracerConcrete<JSString>(ptr) {}
+
+ public:
+  static void construct(void* storage, JSString* ptr) {
+    new (storage) Concrete(ptr);
+  }
+
+  Size size(mozilla::MallocSizeOf mallocSizeOf) const override;
+
+  CoarseType coarseType() const final { return CoarseType::String; }
+
+  const char16_t* typeName() const override { return concreteTypeName; }
+  static const char16_t concreteTypeName[];
+};
+
+// The ubi::Node null pointer. Any attempt to operate on a null ubi::Node
+// asserts.
+template <>
+class JS_PUBLIC_API Concrete<void> : public Base {
+  const char16_t* typeName() const override;
+  Size size(mozilla::MallocSizeOf mallocSizeOf) const override;
+  js::UniquePtr<EdgeRange> edges(JSContext* cx, bool wantNames) const override;
+  JS::Zone* zone() const override;
+  JSCompartment* compartment() const override;
+  CoarseType coarseType() const final;
+
+  explicit Concrete(void* ptr) : Base(ptr) {}
+
+ public:
+  static void construct(void* storage, void* ptr) {
+    new (storage) Concrete(ptr);
+  }
+};
+
+}  // namespace ubi
+}  // namespace JS
+
+namespace js {
+
+// Make ubi::Node::HashPolicy the default hash policy for ubi::Node.
+template <>
+struct DefaultHasher<JS::ubi::Node> : JS::ubi::Node::HashPolicy {};
+template <>
+struct DefaultHasher<JS::ubi::StackFrame> : JS::ubi::StackFrame::HashPolicy {};
+
+}  // namespace js
+
+#endif  // js_UbiNode_h
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_UbiNodeBreadthFirst_h
+#define js_UbiNodeBreadthFirst_h
+
+#include "js/UbiNode.h"
+#include "js/Utility.h"
+#include "js/Vector.h"
+
+namespace JS {
+namespace ubi {
+
+// A breadth-first traversal template for graphs of ubi::Nodes.
+//
+// No GC may occur while an instance of this template is live.
+//
+// The provided Handler type should have two members:
+//
+//   typename NodeData;
+//
+//      The value type of |BreadthFirst<Handler>::visited|, the HashMap of
+//      ubi::Nodes that have been visited so far. Since the algorithm needs a
+//      hash table like this for its own use anyway, it is simple to let
+//      Handler store its own metadata about each node in the same table.
+//
+//      For example, if you want to find a shortest path to each node from any
+//      traversal starting point, your |NodeData| type could record the first
+//      edge to reach each node, and the node from which it originates. Then,
+//      when the traversal is complete, you can walk backwards from any node
+//      to some starting point, and the path recorded will be a shortest path.
+//
+//      This type must have a default constructor. If this type owns any other
+//      resources, move constructors and assignment operators are probably a
+//      good idea, too.
+//
+//   bool operator() (BreadthFirst& traversal,
+//                    Node origin, const Edge& edge,
+//                    Handler::NodeData* referentData, bool first);
+//
+//      The visitor function, called to report that we have traversed
+//      |edge| from |origin|. This is called once for each edge we traverse.
+//      As this is a breadth-first search, any prior calls to the visitor
+//      function were for origin nodes not further from the start nodes than
+//      |origin|.
+//
+//      |traversal| is this traversal object, passed along for convenience.
+//
+//      |referentData| is a pointer to the value of the entry in
+//      |traversal.visited| for |edge.referent|; the visitor function can
+//      store whatever metadata it likes about |edge.referent| there.
+//
+//      |first| is true if this is the first time we have visited an edge
+//      leading to |edge.referent|. This could be stored in NodeData, but
+//      the algorithm knows whether it has just created the entry in
+//      |traversal.visited|, so it passes it along for convenience.
+//
+//      The visitor function may call |traversal.abandonReferent()| if it
+//      doesn't want to traverse the outgoing edges of |edge.referent|. You can
+//      use this to limit the traversal to a given portion of the graph: it will
+//      never visit nodes reachable only through nodes that you have abandoned.
+//      Note that |abandonReferent| must be called the first time the given node
+//      is reached; that is, |first| must be true.
+//
+//      The visitor function may call |traversal.stop()| if it doesn't want
+//      to visit any more nodes at all.
+//
+//      The visitor function may consult |traversal.visited| for information
+//      about other nodes, but it should not add or remove entries.
+//
+//      The visitor function should return true on success, or false if an
+//      error occurs. A false return value terminates the traversal
+//      immediately, and causes BreadthFirst<Handler>::traverse to return
+//      false.
+template <typename Handler>
+struct BreadthFirst {
+  // Construct a breadth-first traversal object that reports the nodes it
+  // reaches to |handler|. The traversal asserts that no GC happens in its
+  // runtime during its lifetime.
+  //
+  // We do nothing with noGC, other than require it to exist, with a lifetime
+  // that encloses our own.
+  BreadthFirst(JSContext* cx, Handler& handler, const JS::AutoRequireNoGC& noGC)
+      : wantNames(true),
+        cx(cx),
+        visited(),
+        handler(handler),
+        pending(),
+        traversalBegun(false),
+        stopRequested(false),
+        abandonRequested(false) {}
+
+  // Initialize this traversal object. Return false on OOM.
+  bool init() { return visited.init(); }
+
+  // Add |node| as a starting point for the traversal. You may add
+  // as many starting points as you like. Return false on OOM.
+  bool addStart(Node node) { return pending.append(node); }
+
+  // Add |node| as a starting point for the traversal (see addStart) and also
+  // add it to the |visited| set. Return false on OOM.
+  bool addStartVisited(Node node) {
+    typename NodeMap::AddPtr ptr = visited.lookupForAdd(node);
+    if (!ptr && !visited.add(ptr, node, typename Handler::NodeData()))
+      return false;
+    return addStart(node);
+  }
+
+  // True if the handler wants us to compute edge names; doing so can be
+  // expensive in time and memory. True by default.
+  bool wantNames;
+
+  // Traverse the graph in breadth-first order, starting at the given
+  // start nodes, applying |handler::operator()| for each edge traversed
+  // as described above.
+  //
+  // This should be called only once per instance of this class.
+  //
+  // Return false on OOM or error return from |handler::operator()|.
+  bool traverse() {
+    MOZ_ASSERT(!traversalBegun);
+    traversalBegun = true;
+
+    // While there are pending nodes, visit them.
+    while (!pending.empty()) {
+      Node origin = pending.front();
+      pending.popFront();
+
+      // Get a range containing all origin's outgoing edges.
+      auto range = origin.edges(cx, wantNames);
+      if (!range) return false;
+
+      // Traverse each edge.
+      for (; !range->empty(); range->popFront()) {
+        MOZ_ASSERT(!stopRequested);
+
+        Edge& edge = range->front();
+        typename NodeMap::AddPtr a = visited.lookupForAdd(edge.referent);
+        bool first = !a;
+
+        if (first) {
+          // This is the first time we've reached |edge.referent|.
+          // Mark it as visited.
+          if (!visited.add(a, edge.referent, typename Handler::NodeData()))
+            return false;
+        }
+
+        MOZ_ASSERT(a);
+
+        // Report this edge to the visitor function.
+        if (!handler(*this, origin, edge, &a->value(), first)) return false;
+
+        if (stopRequested) return true;
+
+        // Arrange to traverse this edge's referent's outgoing edges
+        // later --- unless |handler| asked us not to.
+        if (abandonRequested) {
+          // Skip the enqueue; reset flag for future iterations.
+          abandonRequested = false;
+        } else if (first) {
+          if (!pending.append(edge.referent)) return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  // Stop traversal, and return true from |traverse| without visiting any
+  // more nodes. Only |handler::operator()| should call this function; it
+  // may do so to stop the traversal early, without returning false and
+  // then making |traverse|'s caller disambiguate that result from a real
+  // error.
+  void stop() { stopRequested = true; }
+
+  // Request that the current edge's referent's outgoing edges not be
+  // traversed. This must be called the first time that referent is reached.
+  // Other edges *to* that referent will still be traversed.
+  void abandonReferent() { abandonRequested = true; }
+
+  // The context with which we were constructed.
+  JSContext* cx;
+
+  // A map associating each node N that we have reached with a
+  // Handler::NodeData, for |handler|'s use. This is public, so that
+  // |handler| can access it to see the traversal thus far.
+  using NodeMap = js::HashMap<Node, typename Handler::NodeData,
+                              js::DefaultHasher<Node>, js::SystemAllocPolicy>;
+  NodeMap visited;
+
+ private:
+  // Our handler object.
+  Handler& handler;
+
+  // A queue template. Appending and popping the front are constant time.
+  // Wasted space is never more than some recent actual population plus the
+  // current population.
+  template <typename T>
+  class Queue {
+    js::Vector<T, 0, js::SystemAllocPolicy> head, tail;
+    size_t frontIndex;
+
+   public:
+    Queue() : head(), tail(), frontIndex(0) {}
+    bool empty() { return frontIndex >= head.length(); }
+    T& front() {
+      MOZ_ASSERT(!empty());
+      return head[frontIndex];
+    }
+    void popFront() {
+      MOZ_ASSERT(!empty());
+      frontIndex++;
+      if (frontIndex >= head.length()) {
+        head.clearAndFree();
+        head.swap(tail);
+        frontIndex = 0;
+      }
+    }
+    bool append(const T& elt) {
+      return frontIndex == 0 ? head.append(elt) : tail.append(elt);
+    }
+  };
+
+  // A queue of nodes that we have reached, but whose outgoing edges we
+  // have not yet traversed. Nodes reachable in fewer edges are enqueued
+  // earlier.
+  Queue<Node> pending;
+
+  // True if our traverse function has been called.
+  bool traversalBegun;
+
+  // True if we've been asked to stop the traversal.
+  bool stopRequested;
+
+  // True if we've been asked to abandon the current edge's referent.
+  bool abandonRequested;
+};
+
+}  // namespace ubi
+}  // namespace JS
+
+#endif  // js_UbiNodeBreadthFirst_h
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_UbiNodeCensus_h
+#define js_UbiNodeCensus_h
+
+#include "mozilla/Attributes.h"
+#include "mozilla/Move.h"
+
+#include <algorithm>
+
+#include "jsapi.h"
+
+#include "js/UbiNode.h"
+#include "js/UbiNodeBreadthFirst.h"
+
+// A census is a ubi::Node traversal that assigns each node to one or more
+// buckets, and returns a report with the size of each bucket.
+//
+// We summarize the results of a census with counts broken down according to
+// criteria selected by the API consumer code that is requesting the census. For
+// example, the following breakdown might give an interesting overview of the
+// heap:
+//
+//   - all nodes
+//     - objects
+//       - objects with a specific [[Class]] *
+//     - strings
+//     - scripts
+//     - all other Node types
+//       - nodes with a specific ubi::Node::typeName *
+//
+// Obviously, the parts of this tree marked with * represent many separate
+// counts, depending on how many distinct [[Class]] values and ubi::Node type
+// names we encounter.
+//
+// The supported types of breakdowns are documented in
+// js/src/doc/Debugger/Debugger.Memory.md.
+//
+// When we parse the 'breakdown' argument to takeCensus, we build a tree of
+// CountType nodes. For example, for the breakdown shown in the
+// Debugger.Memory.prototype.takeCensus, documentation:
+//
+//    {
+//      by: "coarseType",
+//      objects: { by: "objectClass" },
+//      other:    { by: "internalType" }
+//    }
+//
+// we would build the following tree of CountType subclasses:
+//
+//    ByCoarseType
+//      objects: ByObjectClass
+//        each class: SimpleCount
+//      scripts: SimpleCount
+//      strings: SimpleCount
+//      other: ByUbinodeType
+//        each type: SimpleCount
+//
+// The interior nodes are all breakdown types that categorize nodes according to
+// one characteristic or another; and the leaf nodes are all SimpleType.
+//
+// Each CountType has its own concrete C++ type that holds the counts it
+// produces. SimpleCount::Count just holds totals. ByObjectClass::Count has a
+// hash table whose keys are object class names and whose values are counts of
+// some other type (in the example above, SimpleCount).
+//
+// To keep actual count nodes small, they have no vtable. Instead, each count
+// points to its CountType, which knows how to carry out all the operations we
+// need on a Count. A CountType can produce new count nodes; process nodes as we
+// visit them; build a JS object reporting the results; and destruct count
+// nodes.
+
+namespace JS {
+namespace ubi {
+
+struct Census;
+
+class CountBase;
+
+struct CountDeleter {
+  JS_PUBLIC_API void operator()(CountBase*);
+};
+
+using CountBasePtr = js::UniquePtr<CountBase, CountDeleter>;
+
+// Abstract base class for CountType nodes.
+struct CountType {
+  explicit CountType() {}
+  virtual ~CountType() {}
+
+  // Destruct a count tree node that this type instance constructed.
+  virtual void destructCount(CountBase& count) = 0;
+
+  // Return a fresh node for the count tree that categorizes nodes according
+  // to this type. Return a nullptr on OOM.
+  virtual CountBasePtr makeCount() = 0;
+
+  // Trace |count| and all its children, for garbage collection.
+  virtual void traceCount(CountBase& count, JSTracer* trc) = 0;
+
+  // Implement the 'count' method for counts returned by this CountType
+  // instance's 'newCount' method.
+  virtual MOZ_MUST_USE bool count(CountBase& count,
+                                  mozilla::MallocSizeOf mallocSizeOf,
+                                  const Node& node) = 0;
+
+  // Implement the 'report' method for counts returned by this CountType
+  // instance's 'newCount' method.
+  virtual MOZ_MUST_USE bool report(JSContext* cx, CountBase& count,
+                                   MutableHandleValue report) = 0;
+};
+
+using CountTypePtr = js::UniquePtr<CountType>;
+
+// An abstract base class for count tree nodes.
+class CountBase {
+  // In lieu of a vtable, each CountBase points to its type, which
+  // carries not only the implementations of the CountBase methods, but also
+  // additional parameters for the type's behavior, as specified in the
+  // breakdown argument passed to takeCensus.
+  CountType& type;
+
+ protected:
+  ~CountBase() {}
+
+ public:
+  explicit CountBase(CountType& type)
+      : type(type), total_(0), smallestNodeIdCounted_(SIZE_MAX) {}
+
+  // Categorize and count |node| as appropriate for this count's type.
+  MOZ_MUST_USE bool count(mozilla::MallocSizeOf mallocSizeOf,
+                          const Node& node) {
+    total_++;
+
+    auto id = node.identifier();
+    if (id < smallestNodeIdCounted_) {
+      smallestNodeIdCounted_ = id;
+    }
+
+#ifdef DEBUG
+    size_t oldTotal = total_;
+#endif
+
+    bool ret = type.count(*this, mallocSizeOf, node);
+
+    MOZ_ASSERT(total_ == oldTotal,
+               "CountType::count should not increment total_, CountBase::count "
+               "handles that");
+
+    return ret;
+  }
+
+  // Construct a JavaScript object reporting the counts recorded in this
+  // count, and store it in |report|. Return true on success, or false on
+  // failure.
+  MOZ_MUST_USE bool report(JSContext* cx, MutableHandleValue report) {
+    return type.report(cx, *this, report);
+  }
+
+  // Down-cast this CountBase to its true type, based on its 'type' member,
+  // and run its destructor.
+  void destruct() { return type.destructCount(*this); }
+
+  // Trace this count for garbage collection.
+  void trace(JSTracer* trc) { type.traceCount(*this, trc); }
+
+  size_t total_;
+
+  // The smallest JS::ubi::Node::identifier() passed to this instance's
+  // count() method. This provides a stable way to sort sets.
+  Node::Id smallestNodeIdCounted_;
+};
+
+class RootedCount : JS::CustomAutoRooter {
+  CountBasePtr count;
+
+  void trace(JSTracer* trc) override { count->trace(trc); }
+
+ public:
+  RootedCount(JSContext* cx, CountBasePtr&& count)
+      : CustomAutoRooter(cx), count(Move(count)) {}
+  CountBase* operator->() const { return count.get(); }
+  explicit operator bool() const { return count.get(); }
+  operator CountBasePtr&() { return count; }
+};
+
+// Common data for a census traversal, shared across all CountType nodes.
+struct Census {
+  JSContext* const cx;
+  // If the targetZones set is non-empty, then only consider nodes whose zone
+  // is an element of the set. If the targetZones set is empty, then nodes in
+  // all zones are considered.
+  JS::ZoneSet targetZones;
+  Zone* atomsZone;
+
+  explicit Census(JSContext* cx) : cx(cx), atomsZone(nullptr) {}
+
+  MOZ_MUST_USE JS_PUBLIC_API bool init();
+};
+
+// A BreadthFirst handler type that conducts a census, using a CountBase to
+// categorize and count each node.
+class CensusHandler {
+  Census& census;
+  CountBasePtr& rootCount;
+  mozilla::MallocSizeOf mallocSizeOf;
+
+ public:
+  CensusHandler(Census& census, CountBasePtr& rootCount,
+                mozilla::MallocSizeOf mallocSizeOf)
+      : census(census), rootCount(rootCount), mallocSizeOf(mallocSizeOf) {}
+
+  MOZ_MUST_USE bool report(JSContext* cx, MutableHandleValue report) {
+    return rootCount->report(cx, report);
+  }
+
+  // This class needs to retain no per-node data.
+  class NodeData {};
+
+  MOZ_MUST_USE JS_PUBLIC_API bool operator()(
+      BreadthFirst<CensusHandler>& traversal, Node origin, const Edge& edge,
+      NodeData* referentData, bool first);
+};
+
+using CensusTraversal = BreadthFirst<CensusHandler>;
+
+// Examine the census options supplied by the API consumer, and (among other
+// things) use that to build a CountType tree.
+MOZ_MUST_USE JS_PUBLIC_API bool ParseCensusOptions(JSContext* cx,
+                                                   Census& census,
+                                                   HandleObject options,
+                                                   CountTypePtr& outResult);
+
+// Parse the breakdown language (as described in
+// js/src/doc/Debugger/Debugger.Memory.md) into a CountTypePtr. A null pointer
+// is returned on error and is reported to the cx.
+JS_PUBLIC_API CountTypePtr ParseBreakdown(JSContext* cx,
+                                          HandleValue breakdownValue);
+
+}  // namespace ubi
+}  // namespace JS
+
+#endif  // js_UbiNodeCensus_h
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_UbiNodeDominatorTree_h
+#define js_UbiNodeDominatorTree_h
+
+#include "mozilla/Attributes.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/Move.h"
+#include "mozilla/UniquePtr.h"
+
+#include "js/AllocPolicy.h"
+#include "js/UbiNode.h"
+#include "js/UbiNodePostOrder.h"
+#include "js/Utility.h"
+#include "js/Vector.h"
+
+namespace JS {
+namespace ubi {
+
+/**
+ * In a directed graph with a root node `R`, a node `A` is said to "dominate" a
+ * node `B` iff every path from `R` to `B` contains `A`. A node `A` is said to
+ * be the "immediate dominator" of a node `B` iff it dominates `B`, is not `B`
+ * itself, and does not dominate any other nodes which also dominate `B` in
+ * turn.
+ *
+ * If we take every node from a graph `G` and create a new graph `T` with edges
+ * to each node from its immediate dominator, then `T` is a tree (each node has
+ * only one immediate dominator, or none if it is the root). This tree is called
+ * a "dominator tree".
+ *
+ * This class represents a dominator tree constructed from a `JS::ubi::Node`
+ * heap graph. The domination relationship and dominator trees are useful tools
+ * for analyzing heap graphs because they tell you:
+ *
+ *   - Exactly what could be reclaimed by the GC if some node `A` became
+ *     unreachable: those nodes which are dominated by `A`,
+ *
+ *   - The "retained size" of a node in the heap graph, in contrast to its
+ *     "shallow size". The "shallow size" is the space taken by a node itself,
+ *     not counting anything it references. The "retained size" of a node is its
+ *     shallow size plus the size of all the things that would be collected if
+ *     the original node wasn't (directly or indirectly) referencing them. In
+ *     other words, the retained size is the shallow size of a node plus the
+ *     shallow sizes of every other node it dominates. For example, the root
+ *     node in a binary tree might have a small shallow size that does not take
+ *     up much space itself, but it dominates the rest of the binary tree and
+ *     its retained size is therefore significant (assuming no external
+ *     references into the tree).
+ *
+ * The simple, engineered algorithm presented in "A Simple, Fast Dominance
+ * Algorithm" by Cooper el al[0] is used to find dominators and construct the
+ * dominator tree. This algorithm runs in O(n^2) time, but is faster in practice
+ * than alternative algorithms with better theoretical running times, such as
+ * Lengauer-Tarjan which runs in O(e * log(n)). The big caveat to that statement
+ * is that Cooper et al found it is faster in practice *on control flow graphs*
+ * and I'm not convinced that this property also holds on *heap* graphs. That
+ * said, the implementation of this algorithm is *much* simpler than
+ * Lengauer-Tarjan and has been found to be fast enough at least for the time
+ * being.
+ *
+ * [0]: http://www.cs.rice.edu/~keith/EMBED/dom.pdf
+ */
+class JS_PUBLIC_API DominatorTree {
+ private:
+  // Types.
+
+  using PredecessorSets = js::HashMap<Node, NodeSetPtr, js::DefaultHasher<Node>,
+                                      js::SystemAllocPolicy>;
+  using NodeToIndexMap = js::HashMap<Node, uint32_t, js::DefaultHasher<Node>,
+                                     js::SystemAllocPolicy>;
+  class DominatedSets;
+
+ public:
+  class DominatedSetRange;
+
+  /**
+   * A pointer to an immediately dominated node.
+   *
+   * Don't use this type directly; it is no safer than regular pointers. This
+   * is only for use indirectly with range-based for loops and
+   * `DominatedSetRange`.
+   *
+   * @see JS::ubi::DominatorTree::getDominatedSet
+   */
+  class DominatedNodePtr {
+    friend class DominatedSetRange;
+
+    const JS::ubi::Vector<Node>& postOrder;
+    const uint32_t* ptr;
+
+    DominatedNodePtr(const JS::ubi::Vector<Node>& postOrder,
+                     const uint32_t* ptr)
+        : postOrder(postOrder), ptr(ptr) {}
+
+   public:
+    bool operator!=(const DominatedNodePtr& rhs) const {
+      return ptr != rhs.ptr;
+    }
+    void operator++() { ptr++; }
+    const Node& operator*() const { return postOrder[*ptr]; }
+  };
+
+  /**
+   * A range of immediately dominated `JS::ubi::Node`s for use with
+   * range-based for loops.
+   *
+   * @see JS::ubi::DominatorTree::getDominatedSet
+   */
+  class DominatedSetRange {
+    friend class DominatedSets;
+
+    const JS::ubi::Vector<Node>& postOrder;
+    const uint32_t* beginPtr;
+    const uint32_t* endPtr;
+
+    DominatedSetRange(JS::ubi::Vector<Node>& postOrder, const uint32_t* begin,
+                      const uint32_t* end)
+        : postOrder(postOrder), beginPtr(begin), endPtr(end) {
+      MOZ_ASSERT(begin <= end);
+    }
+
+   public:
+    DominatedNodePtr begin() const {
+      MOZ_ASSERT(beginPtr <= endPtr);
+      return DominatedNodePtr(postOrder, beginPtr);
+    }
+
+    DominatedNodePtr end() const { return DominatedNodePtr(postOrder, endPtr); }
+
+    size_t length() const {
+      MOZ_ASSERT(beginPtr <= endPtr);
+      return endPtr - beginPtr;
+    }
+
+    /**
+     * Safely skip ahead `n` dominators in the range, in O(1) time.
+     *
+     * Example usage:
+     *
+     *     mozilla::Maybe<DominatedSetRange> range =
+     *         myDominatorTree.getDominatedSet(myNode);
+     *     if (range.isNothing()) {
+     *         // Handle unknown nodes however you see fit...
+     *         return false;
+     *     }
+     *
+     *     // Don't care about the first ten, for whatever reason.
+     *     range->skip(10);
+     *     for (const JS::ubi::Node& dominatedNode : *range) {
+     *         // ...
+     *     }
+     */
+    void skip(size_t n) {
+      beginPtr += n;
+      if (beginPtr > endPtr) beginPtr = endPtr;
+    }
+  };
+
+ private:
+  /**
+   * The set of all dominated sets in a dominator tree.
+   *
+   * Internally stores the sets in a contiguous array, with a side table of
+   * indices into that contiguous array to denote the start index of each
+   * individual set.
+   */
+  class DominatedSets {
+    JS::ubi::Vector<uint32_t> dominated;
+    JS::ubi::Vector<uint32_t> indices;
+
+    DominatedSets(JS::ubi::Vector<uint32_t>&& dominated,
+                  JS::ubi::Vector<uint32_t>&& indices)
+        : dominated(mozilla::Move(dominated)),
+          indices(mozilla::Move(indices)) {}
+
+   public:
+    // DominatedSets is not copy-able.
+    DominatedSets(const DominatedSets& rhs) = delete;
+    DominatedSets& operator=(const DominatedSets& rhs) = delete;
+
+    // DominatedSets is move-able.
+    DominatedSets(DominatedSets&& rhs)
+        : dominated(mozilla::Move(rhs.dominated)),
+          indices(mozilla::Move(rhs.indices)) {
+      MOZ_ASSERT(this != &rhs, "self-move not allowed");
+    }
+    DominatedSets& operator=(DominatedSets&& rhs) {
+      this->~DominatedSets();
+      new (this) DominatedSets(mozilla::Move(rhs));
+      return *this;
+    }
+
+    /**
+     * Create the DominatedSets given the mapping of a node index to its
+     * immediate dominator. Returns `Some` on success, `Nothing` on OOM
+     * failure.
+     */
+    static mozilla::Maybe<DominatedSets> Create(
+        const JS::ubi::Vector<uint32_t>& doms) {
+      auto length = doms.length();
+      MOZ_ASSERT(length < UINT32_MAX);
+
+      // Create a vector `dominated` holding a flattened set of buckets of
+      // immediately dominated children nodes, with a lookup table
+      // `indices` mapping from each node to the beginning of its bucket.
+      //
+      // This has three phases:
+      //
+      // 1. Iterate over the full set of nodes and count up the size of
+      //    each bucket. These bucket sizes are temporarily stored in the
+      //    `indices` vector.
+      //
+      // 2. Convert the `indices` vector to store the cumulative sum of
+      //    the sizes of all buckets before each index, resulting in a
+      //    mapping from node index to one past the end of that node's
+      //    bucket.
+      //
+      // 3. Iterate over the full set of nodes again, filling in bucket
+      //    entries from the end of the bucket's range to its
+      //    beginning. This decrements each index as a bucket entry is
+      //    filled in. After having filled in all of a bucket's entries,
+      //    the index points to the start of the bucket.
+
+      JS::ubi::Vector<uint32_t> dominated;
+      JS::ubi::Vector<uint32_t> indices;
+      if (!dominated.growBy(length) || !indices.growBy(length))
+        return mozilla::Nothing();
+
+      // 1
+      memset(indices.begin(), 0, length * sizeof(uint32_t));
+      for (uint32_t i = 0; i < length; i++) indices[doms[i]]++;
+
+      // 2
+      uint32_t sumOfSizes = 0;
+      for (uint32_t i = 0; i < length; i++) {
+        sumOfSizes += indices[i];
+        MOZ_ASSERT(sumOfSizes <= length);
+        indices[i] = sumOfSizes;
+      }
+
+      // 3
+      for (uint32_t i = 0; i < length; i++) {
+        auto idxOfDom = doms[i];
+        indices[idxOfDom]--;
+        dominated[indices[idxOfDom]] = i;
+      }
+
+#ifdef DEBUG
+      // Assert that our buckets are non-overlapping and don't run off the
+      // end of the vector.
+      uint32_t lastIndex = 0;
+      for (uint32_t i = 0; i < length; i++) {
+        MOZ_ASSERT(indices[i] >= lastIndex);
+        MOZ_ASSERT(indices[i] < length);
+        lastIndex = indices[i];
+      }
+#endif
+
+      return mozilla::Some(
+          DominatedSets(mozilla::Move(dominated), mozilla::Move(indices)));
+    }
+
+    /**
+     * Get the set of nodes immediately dominated by the node at
+     * `postOrder[nodeIndex]`.
+     */
+    DominatedSetRange dominatedSet(JS::ubi::Vector<Node>& postOrder,
+                                   uint32_t nodeIndex) const {
+      MOZ_ASSERT(postOrder.length() == indices.length());
+      MOZ_ASSERT(nodeIndex < indices.length());
+      auto end = nodeIndex == indices.length() - 1
+                     ? dominated.end()
+                     : &dominated[indices[nodeIndex + 1]];
+      return DominatedSetRange(postOrder, &dominated[indices[nodeIndex]], end);
+    }
+  };
+
+ private:
+  // Data members.
+  JS::ubi::Vector<Node> postOrder;
+  NodeToIndexMap nodeToPostOrderIndex;
+  JS::ubi::Vector<uint32_t> doms;
+  DominatedSets dominatedSets;
+  mozilla::Maybe<JS::ubi::Vector<JS::ubi::Node::Size>> retainedSizes;
+
+ private:
+  // We use `UNDEFINED` as a sentinel value in the `doms` vector to signal
+  // that we haven't found any dominators for the node at the corresponding
+  // index in `postOrder` yet.
+  static const uint32_t UNDEFINED = UINT32_MAX;
+
+  DominatorTree(JS::ubi::Vector<Node>&& postOrder,
+                NodeToIndexMap&& nodeToPostOrderIndex,
+                JS::ubi::Vector<uint32_t>&& doms, DominatedSets&& dominatedSets)
+      : postOrder(mozilla::Move(postOrder)),
+        nodeToPostOrderIndex(mozilla::Move(nodeToPostOrderIndex)),
+        doms(mozilla::Move(doms)),
+        dominatedSets(mozilla::Move(dominatedSets)),
+        retainedSizes(mozilla::Nothing()) {}
+
+  static uint32_t intersect(JS::ubi::Vector<uint32_t>& doms, uint32_t finger1,
+                            uint32_t finger2) {
+    while (finger1 != finger2) {
+      if (finger1 < finger2)
+        finger1 = doms[finger1];
+      else if (finger2 < finger1)
+        finger2 = doms[finger2];
+    }
+    return finger1;
+  }
+
+  // Do the post order traversal of the heap graph and populate our
+  // predecessor sets.
+  static MOZ_MUST_USE bool doTraversal(JSContext* cx, AutoCheckCannotGC& noGC,
+                                       const Node& root,
+                                       JS::ubi::Vector<Node>& postOrder,
+                                       PredecessorSets& predecessorSets) {
+    uint32_t nodeCount = 0;
+    auto onNode = [&](const Node& node) {
+      nodeCount++;
+      if (MOZ_UNLIKELY(nodeCount == UINT32_MAX)) return false;
+      return postOrder.append(node);
+    };
+
+    auto onEdge = [&](const Node& origin, const Edge& edge) {
+      auto p = predecessorSets.lookupForAdd(edge.referent);
+      if (!p) {
+        mozilla::UniquePtr<NodeSet, DeletePolicy<NodeSet>> set(
+            js_new<NodeSet>());
+        if (!set || !set->init() ||
+            !predecessorSets.add(p, edge.referent, mozilla::Move(set))) {
+          return false;
+        }
+      }
+      MOZ_ASSERT(p && p->value());
+      return p->value()->put(origin);
+    };
+
+    PostOrder traversal(cx, noGC);
+    return traversal.init() && traversal.addStart(root) &&
+           traversal.traverse(onNode, onEdge);
+  }
+
+  // Populates the given `map` with an entry for each node to its index in
+  // `postOrder`.
+  static MOZ_MUST_USE bool mapNodesToTheirIndices(
+      JS::ubi::Vector<Node>& postOrder, NodeToIndexMap& map) {
+    MOZ_ASSERT(!map.initialized());
+    MOZ_ASSERT(postOrder.length() < UINT32_MAX);
+    uint32_t length = postOrder.length();
+    if (!map.init(length)) return false;
+    for (uint32_t i = 0; i < length; i++) map.putNewInfallible(postOrder[i], i);
+    return true;
+  }
+
+  // Convert the Node -> NodeSet predecessorSets to a index -> Vector<index>
+  // form.
+  static MOZ_MUST_USE bool convertPredecessorSetsToVectors(
+      const Node& root, JS::ubi::Vector<Node>& postOrder,
+      PredecessorSets& predecessorSets, NodeToIndexMap& nodeToPostOrderIndex,
+      JS::ubi::Vector<JS::ubi::Vector<uint32_t>>& predecessorVectors) {
+    MOZ_ASSERT(postOrder.length() < UINT32_MAX);
+    uint32_t length = postOrder.length();
+
+    MOZ_ASSERT(predecessorVectors.length() == 0);
+    if (!predecessorVectors.growBy(length)) return false;
+
+    for (uint32_t i = 0; i < length - 1; i++) {
+      auto& node = postOrder[i];
+      MOZ_ASSERT(node != root,
+                 "Only the last node should be root, since this was a post "
+                 "order traversal.");
+
+      auto ptr = predecessorSets.lookup(node);
+      MOZ_ASSERT(ptr,
+                 "Because this isn't the root, it had better have "
+                 "predecessors, or else how "
+                 "did we even find it.");
+
+      auto& predecessors = ptr->value();
+      if (!predecessorVectors[i].reserve(predecessors->count())) return false;
+      for (auto range = predecessors->all(); !range.empty(); range.popFront()) {
+        auto ptr = nodeToPostOrderIndex.lookup(range.front());
+        MOZ_ASSERT(ptr);
+        predecessorVectors[i].infallibleAppend(ptr->value());
+      }
+    }
+    predecessorSets.finish();
+    return true;
+  }
+
+  // Initialize `doms` such that the immediate dominator of the `root` is the
+  // `root` itself and all others are `UNDEFINED`.
+  static MOZ_MUST_USE bool initializeDominators(JS::ubi::Vector<uint32_t>& doms,
+                                                uint32_t length) {
+    MOZ_ASSERT(doms.length() == 0);
+    if (!doms.growByUninitialized(length)) return false;
+    doms[length - 1] = length - 1;
+    for (uint32_t i = 0; i < length - 1; i++) doms[i] = UNDEFINED;
+    return true;
+  }
+
+  void assertSanity() const {
+    MOZ_ASSERT(postOrder.length() == doms.length());
+    MOZ_ASSERT(postOrder.length() == nodeToPostOrderIndex.count());
+    MOZ_ASSERT_IF(retainedSizes.isSome(),
+                  postOrder.length() == retainedSizes->length());
+  }
+
+  MOZ_MUST_USE bool computeRetainedSizes(mozilla::MallocSizeOf mallocSizeOf) {
+    MOZ_ASSERT(retainedSizes.isNothing());
+    auto length = postOrder.length();
+
+    retainedSizes.emplace();
+    if (!retainedSizes->growBy(length)) {
+      retainedSizes = mozilla::Nothing();
+      return false;
+    }
+
+    // Iterate in forward order so that we know all of a node's children in
+    // the dominator tree have already had their retained size
+    // computed. Then we can simply say that the retained size of a node is
+    // its shallow size (JS::ubi::Node::size) plus the retained sizes of its
+    // immediate children in the tree.
+
+    for (uint32_t i = 0; i < length; i++) {
+      auto size = postOrder[i].size(mallocSizeOf);
+
+      for (const auto& dominated : dominatedSets.dominatedSet(postOrder, i)) {
+        // The root node dominates itself, but shouldn't contribute to
+        // its own retained size.
+        if (dominated == postOrder[length - 1]) {
+          MOZ_ASSERT(i == length - 1);
+          continue;
+        }
+
+        auto ptr = nodeToPostOrderIndex.lookup(dominated);
+        MOZ_ASSERT(ptr);
+        auto idxOfDominated = ptr->value();
+        MOZ_ASSERT(idxOfDominated < i);
+        size += retainedSizes.ref()[idxOfDominated];
+      }
+
+      retainedSizes.ref()[i] = size;
+    }
+
+    return true;
+  }
+
+ public:
+  // DominatorTree is not copy-able.
+  DominatorTree(const DominatorTree&) = delete;
+  DominatorTree& operator=(const DominatorTree&) = delete;
+
+  // DominatorTree is move-able.
+  DominatorTree(DominatorTree&& rhs)
+      : postOrder(mozilla::Move(rhs.postOrder)),
+        nodeToPostOrderIndex(mozilla::Move(rhs.nodeToPostOrderIndex)),
+        doms(mozilla::Move(rhs.doms)),
+        dominatedSets(mozilla::Move(rhs.dominatedSets)),
+        retainedSizes(mozilla::Move(rhs.retainedSizes)) {
+    MOZ_ASSERT(this != &rhs, "self-move is not allowed");
+  }
+  DominatorTree& operator=(DominatorTree&& rhs) {
+    this->~DominatorTree();
+    new (this) DominatorTree(mozilla::Move(rhs));
+    return *this;
+  }
+
+  /**
+   * Construct a `DominatorTree` of the heap graph visible from `root`. The
+   * `root` is also used as the root of the resulting dominator tree.
+   *
+   * The resulting `DominatorTree` instance must not outlive the
+   * `JS::ubi::Node` graph it was constructed from.
+   *
+   *   - For `JS::ubi::Node` graphs backed by the live heap graph, this means
+   *     that the `DominatorTree`'s lifetime _must_ be contained within the
+   *     scope of the provided `AutoCheckCannotGC` reference because a GC will
+   *     invalidate the nodes.
+   *
+   *   - For `JS::ubi::Node` graphs backed by some other offline structure
+   *     provided by the embedder, the resulting `DominatorTree`'s lifetime is
+   *     bounded by that offline structure's lifetime.
+   *
+   * In practice, this means that within SpiderMonkey we must treat
+   * `DominatorTree` as if it were backed by the live heap graph and trust
+   * that embedders with knowledge of the graph's implementation will do the
+   * Right Thing.
+   *
+   * Returns `mozilla::Nothing()` on OOM failure. It is the caller's
+   * responsibility to handle and report the OOM.
+   */
+  static mozilla::Maybe<DominatorTree> Create(JSContext* cx,
+                                              AutoCheckCannotGC& noGC,
+                                              const Node& root) {
+    JS::ubi::Vector<Node> postOrder;
+    PredecessorSets predecessorSets;
+    if (!predecessorSets.init() ||
+        !doTraversal(cx, noGC, root, postOrder, predecessorSets))
+      return mozilla::Nothing();
+
+    MOZ_ASSERT(postOrder.length() < UINT32_MAX);
+    uint32_t length = postOrder.length();
+    MOZ_ASSERT(postOrder[length - 1] == root);
+
+    // From here on out we wish to avoid hash table lookups, and we use
+    // indices into `postOrder` instead of actual nodes wherever
+    // possible. This greatly improves the performance of this
+    // implementation, but we have to pay a little bit of upfront cost to
+    // convert our data structures to play along first.
+
+    NodeToIndexMap nodeToPostOrderIndex;
+    if (!mapNodesToTheirIndices(postOrder, nodeToPostOrderIndex))
+      return mozilla::Nothing();
+
+    JS::ubi::Vector<JS::ubi::Vector<uint32_t>> predecessorVectors;
+    if (!convertPredecessorSetsToVectors(root, postOrder, predecessorSets,
+                                         nodeToPostOrderIndex,
+                                         predecessorVectors))
+      return mozilla::Nothing();
+
+    JS::ubi::Vector<uint32_t> doms;
+    if (!initializeDominators(doms, length)) return mozilla::Nothing();
+
+    bool changed = true;
+    while (changed) {
+      changed = false;
+
+      // Iterate over the non-root nodes in reverse post order.
+      for (uint32_t indexPlusOne = length - 1; indexPlusOne > 0;
+           indexPlusOne--) {
+        MOZ_ASSERT(postOrder[indexPlusOne - 1] != root);
+
+        // Take the intersection of every predecessor's dominator set;
+        // that is the current best guess at the immediate dominator for
+        // this node.
+
+        uint32_t newIDomIdx = UNDEFINED;
+
+        auto& predecessors = predecessorVectors[indexPlusOne - 1];
+        auto range = predecessors.all();
+        for (; !range.empty(); range.popFront()) {
+          auto idx = range.front();
+          if (doms[idx] != UNDEFINED) {
+            newIDomIdx = idx;
+            break;
+          }
+        }
+
+        MOZ_ASSERT(newIDomIdx != UNDEFINED,
+                   "Because the root is initialized to dominate itself and is "
+                   "the first "
+                   "node in every path, there must exist a predecessor to this "
+                   "node that "
+                   "also has a dominator.");
+
+        for (; !range.empty(); range.popFront()) {
+          auto idx = range.front();
+          if (doms[idx] != UNDEFINED)
+            newIDomIdx = intersect(doms, newIDomIdx, idx);
+        }
+
+        // If the immediate dominator changed, we will have to do
+        // another pass of the outer while loop to continue the forward
+        // dataflow.
+        if (newIDomIdx != doms[indexPlusOne - 1]) {
+          doms[indexPlusOne - 1] = newIDomIdx;
+          changed = true;
+        }
+      }
+    }
+
+    auto maybeDominatedSets = DominatedSets::Create(doms);
+    if (maybeDominatedSets.isNothing()) return mozilla::Nothing();
+
+    return mozilla::Some(DominatorTree(
+        mozilla::Move(postOrder), mozilla::Move(nodeToPostOrderIndex),
+        mozilla::Move(doms), mozilla::Move(*maybeDominatedSets)));
+  }
+
+  /**
+   * Get the root node for this dominator tree.
+   */
+  const Node& root() const { return postOrder[postOrder.length() - 1]; }
+
+  /**
+   * Return the immediate dominator of the given `node`. If `node` was not
+   * reachable from the `root` that this dominator tree was constructed from,
+   * then return the null `JS::ubi::Node`.
+   */
+  Node getImmediateDominator(const Node& node) const {
+    assertSanity();
+    auto ptr = nodeToPostOrderIndex.lookup(node);
+    if (!ptr) return Node();
+
+    auto idx = ptr->value();
+    MOZ_ASSERT(idx < postOrder.length());
+    return postOrder[doms[idx]];
+  }
+
+  /**
+   * Get the set of nodes immediately dominated by the given `node`. If `node`
+   * is not a member of this dominator tree, return `Nothing`.
+   *
+   * Example usage:
+   *
+   *     mozilla::Maybe<DominatedSetRange> range =
+   *         myDominatorTree.getDominatedSet(myNode);
+   *     if (range.isNothing()) {
+   *         // Handle unknown node however you see fit...
+   *         return false;
+   *     }
+   *
+   *     for (const JS::ubi::Node& dominatedNode : *range) {
+   *         // Do something with each immediately dominated node...
+   *     }
+   */
+  mozilla::Maybe<DominatedSetRange> getDominatedSet(const Node& node) {
+    assertSanity();
+    auto ptr = nodeToPostOrderIndex.lookup(node);
+    if (!ptr) return mozilla::Nothing();
+
+    auto idx = ptr->value();
+    MOZ_ASSERT(idx < postOrder.length());
+    return mozilla::Some(dominatedSets.dominatedSet(postOrder, idx));
+  }
+
+  /**
+   * Get the retained size of the given `node`. The size is placed in
+   * `outSize`, or 0 if `node` is not a member of the dominator tree. Returns
+   * false on OOM failure, leaving `outSize` unchanged.
+   */
+  MOZ_MUST_USE bool getRetainedSize(const Node& node,
+                                    mozilla::MallocSizeOf mallocSizeOf,
+                                    Node::Size& outSize) {
+    assertSanity();
+    auto ptr = nodeToPostOrderIndex.lookup(node);
+    if (!ptr) {
+      outSize = 0;
+      return true;
+    }
+
+    if (retainedSizes.isNothing() && !computeRetainedSizes(mallocSizeOf))
+      return false;
+
+    auto idx = ptr->value();
+    MOZ_ASSERT(idx < postOrder.length());
+    outSize = retainedSizes.ref()[idx];
+    return true;
+  }
+};
+
+}  // namespace ubi
+}  // namespace JS
+
+#endif  // js_UbiNodeDominatorTree_h
+                                                                                                                                                                                                                                                                                                                                                                                                                                       /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_UbiNodePostOrder_h
+#define js_UbiNodePostOrder_h
+
+#include "mozilla/Attributes.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/Move.h"
+
+#include "js/AllocPolicy.h"
+#include "js/UbiNode.h"
+#include "js/Utility.h"
+#include "js/Vector.h"
+
+namespace JS {
+namespace ubi {
+
+/**
+ * A post-order depth-first traversal of `ubi::Node` graphs.
+ *
+ * No GC may occur while an instance of `PostOrder` is live.
+ *
+ * The `NodeVisitor` type provided to `PostOrder::traverse` must have the
+ * following member:
+ *
+ *   bool operator()(Node& node)
+ *
+ *     The node visitor method. This method is called once for each `node`
+ *     reachable from the start set in post-order.
+ *
+ *     This visitor function should return true on success, or false if an error
+ *     occurs. A false return value terminates the traversal immediately, and
+ *     causes `PostOrder::traverse` to return false.
+ *
+ * The `EdgeVisitor` type provided to `PostOrder::traverse` must have the
+ * following member:
+ *
+ *   bool operator()(Node& origin, Edge& edge)
+ *
+ *     The edge visitor method. This method is called once for each outgoing
+ *     `edge` from `origin` that is reachable from the start set.
+ *
+ *     NB: UNLIKE NODES, THERE IS NO GUARANTEED ORDER IN WHICH EDGES AND THEIR
+ *     ORIGINS ARE VISITED!
+ *
+ *     This visitor function should return true on success, or false if an error
+ *     occurs. A false return value terminates the traversal immediately, and
+ *     causes `PostOrder::traverse` to return false.
+ */
+struct PostOrder {
+ private:
+  struct OriginAndEdges {
+    Node origin;
+    EdgeVector edges;
+
+    OriginAndEdges(const Node& node, EdgeVector&& edges)
+        : origin(node), edges(mozilla::Move(edges)) {}
+
+    OriginAndEdges(const OriginAndEdges& rhs) = delete;
+    OriginAndEdges& operator=(const OriginAndEdges& rhs) = delete;
+
+    OriginAndEdges(OriginAndEdges&& rhs)
+        : origin(rhs.origin), edges(mozilla::Move(rhs.edges)) {
+      MOZ_ASSERT(&rhs != this, "self-move disallowed");
+    }
+
+    OriginAndEdges& operator=(OriginAndEdges&& rhs) {
+      this->~OriginAndEdges();
+      new (this) OriginAndEdges(mozilla::Move(rhs));
+      return *this;
+    }
+  };
+
+  using Stack = js::Vector<OriginAndEdges, 256, js::SystemAllocPolicy>;
+  using Set = js::HashSet<Node, js::DefaultHasher<Node>, js::SystemAllocPolicy>;
+
+  JSContext* cx;
+  Set seen;
+  Stack stack;
+#ifdef DEBUG
+  bool traversed;
+#endif
+
+ private:
+  MOZ_MUST_USE bool fillEdgesFromRange(EdgeVector& edges,
+                                       js::UniquePtr<EdgeRange>& range) {
+    MOZ_ASSERT(range);
+    for (; !range->empty(); range->popFront()) {
+      if (!edges.append(mozilla::Move(range->front()))) return false;
+    }
+    return true;
+  }
+
+  MOZ_MUST_USE bool pushForTraversing(const Node& node) {
+    EdgeVector edges;
+    auto range = node.edges(cx, /* wantNames */ false);
+    return range && fillEdgesFromRange(edges, range) &&
+           stack.append(OriginAndEdges(node, mozilla::Move(edges)));
+  }
+
+ public:
+  // Construct a post-order traversal object.
+  //
+  // The traversal asserts that no GC happens in its runtime during its
+  // lifetime via the `AutoCheckCannotGC&` parameter. We do nothing with it,
+  // other than require it to exist with a lifetime that encloses our own.
+  PostOrder(JSContext* cx, AutoCheckCannotGC&)
+      : cx(cx),
+        seen(),
+        stack()
+#ifdef DEBUG
+        ,
+        traversed(false)
+#endif
+  {
+  }
+
+  // Initialize this traversal object. Return false on OOM.
+  MOZ_MUST_USE bool init() { return seen.init(); }
+
+  // Add `node` as a starting point for the traversal. You may add
+  // as many starting points as you like. Returns false on OOM.
+  MOZ_MUST_USE bool addStart(const Node& node) {
+    if (!seen.put(node)) return false;
+    return pushForTraversing(node);
+  }
+
+  // Traverse the graph in post-order, starting with the set of nodes passed
+  // to `addStart` and applying `onNode::operator()` for each node in the
+  // graph and `onEdge::operator()` for each edge in the graph, as described
+  // above.
+  //
+  // This should be called only once per instance of this class.
+  //
+  // Return false on OOM or error return from `onNode::operator()` or
+  // `onEdge::operator()`.
+  template <typename NodeVisitor, typename EdgeVisitor>
+  MOZ_MUST_USE bool traverse(NodeVisitor onNode, EdgeVisitor onEdge) {
+#ifdef DEBUG
+    MOZ_ASSERT(!traversed, "Can only traverse() once!");
+    traversed = true;
+#endif
+
+    while (!stack.empty()) {
+      auto& origin = stack.back().origin;
+      auto& edges = stack.back().edges;
+
+      if (edges.empty()) {
+        if (!onNode(origin)) return false;
+        stack.popBack();
+        continue;
+      }
+
+      Edge edge = mozilla::Move(edges.back());
+      edges.popBack();
+
+      if (!onEdge(origin, edge)) return false;
+
+      auto ptr = seen.lookupForAdd(edge.referent);
+      // We've already seen this node, don't follow its edges.
+      if (ptr) continue;
+
+      // Mark the referent as seen and follow its edges.
+      if (!seen.add(ptr, edge.referent) || !pushForTraversing(edge.referent)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+};
+
+}  // namespace ubi
+}  // namespace JS
+
+#endif  // js_UbiNodePostOrder_h
+                                                                                                                                                                                                                                                                              

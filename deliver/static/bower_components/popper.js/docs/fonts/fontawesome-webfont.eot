@@ -1,0 +1,4093 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_ProfilingStack_h
+#define js_ProfilingStack_h
+
+#include <algorithm>
+#include <stdint.h>
+
+#include "jstypes.h"
+
+#include "js/TypeDecls.h"
+#include "js/Utility.h"
+
+class JSTracer;
+class PseudoStack;
+
+// This file defines the classes PseudoStack and ProfileEntry.
+// The PseudoStack manages an array of ProfileEntries.
+// Usage:
+//
+//  PseudoStack* pseudoStack = ...;
+//
+//  // For CPP stack frames:
+//  pseudoStack->pushCppFrame(...);
+//  // Execute some code. When finished, pop the entry:
+//  pseudoStack->pop();
+//
+//  // For JS stack frames:
+//  pseudoStack->pushJSFrame(...);
+//  // Execute some code. When finished, pop the entry:
+//  pseudoStack->pop();
+//
+//
+// Concurrency considerations
+//
+// A thread's pseudo stack (and the entries inside it) is only modified by
+// that thread. However, the pseudo stack can be *read* by a different thread,
+// the sampler thread: Whenever the profiler wants to sample a given thread A,
+// the following happens:
+//  (1) Thread A is suspended.
+//  (2) The sampler thread (thread S) reads the PseudoStack of thread A,
+//      including all ProfileEntries that are currently in that stack
+//      (pseudoStack->entries[0..pseudoStack->stackSize()]).
+//  (3) Thread A is resumed.
+//
+// Thread suspension is achieved using platform-specific APIs; refer to each
+// platform's Sampler::SuspendAndSampleAndResumeThread implementation in
+// platform-*.cpp for details.
+//
+// When the thread is suspended, the values in pseudoStack->stackPointer and in
+// the entry range pseudoStack->entries[0..pseudoStack->stackPointer] need to
+// be in a consistent state, so that thread S does not read partially-
+// constructed profile entries. More specifically, we have two requirements:
+//  (1) When adding a new entry at the top of the stack, its ProfileEntry data
+//      needs to be put in place *before* the stackPointer is incremented, and
+//      the compiler + CPU need to know that this order matters.
+//  (2) When popping an entry from the stack and then preparing the
+//      ProfileEntry data for the next frame that is about to be pushed, the
+//      decrement of the stackPointer in pop() needs to happen *before* the
+//      ProfileEntry for the new frame is being popuplated, and the compiler +
+//      CPU need to know that this order matters.
+//
+// We can express the relevance of these orderings in multiple ways.
+// Option A is to make stackPointer an atomic with SequentiallyConsistent
+// memory ordering. This would ensure that no writes in thread A would be
+// reordered across any writes to stackPointer, which satisfies requirements
+// (1) and (2) at the same time. Option A is the simplest.
+// Option B is to use ReleaseAcquire memory ordering both for writes to
+// stackPointer *and* for writes to ProfileEntry fields. Release-stores ensure
+// that all writes that happened *before this write in program order* are not
+// reordered to happen after this write. ReleaseAcquire ordering places no
+// requirements on the ordering of writes that happen *after* this write in
+// program order.
+// Using release-stores for writes to stackPointer expresses requirement (1),
+// and using release-stores for writes to the ProfileEntry fields expresses
+// requirement (2).
+//
+// Option B is more complicated than option A, but has much better performance
+// on x86/64: In a microbenchmark run on a Macbook Pro from 2017, switching
+// from option A to option B reduced the overhead of pushing+popping a
+// ProfileEntry by 10 nanoseconds.
+// On x86/64, release-stores require no explicit hardware barriers or lock
+// instructions.
+// On ARM/64, option B may be slower than option A, because the compiler will
+// generate hardware barriers for every single release-store instead of just
+// for the writes to stackPointer. However, the actual performance impact of
+// this has not yet been measured on ARM, so we're currently using option B
+// everywhere. This is something that we may want to change in the future once
+// we've done measurements.
+
+namespace js {
+
+// A call stack can be specified to the JS engine such that all JS entry/exits
+// to functions push/pop an entry to/from the specified stack.
+//
+// For more detailed information, see vm/GeckoProfiler.h.
+//
+class ProfileEntry {
+  // A ProfileEntry represents either a C++ profile entry or a JS one.
+
+  // WARNING WARNING WARNING
+  //
+  // All the fields below are Atomic<...,ReleaseAcquire>. This is needed so
+  // that writes to these fields are release-writes, which ensures that
+  // earlier writes in this thread don't get reordered after the writes to
+  // these fields. In particular, the decrement of the stack pointer in
+  // PseudoStack::pop() is a write that *must* happen before the values in
+  // this ProfileEntry are changed. Otherwise, the sampler thread might see
+  // an inconsistent state where the stack pointer still points to a
+  // ProfileEntry which has already been popped off the stack and whose
+  // fields have now been partially repopulated with new values.
+  // See the "Concurrency considerations" paragraph at the top of this file
+  // for more details.
+
+  // Descriptive label for this entry. Must be a static string! Can be an
+  // empty string, but not a null pointer.
+  mozilla::Atomic<const char*, mozilla::ReleaseAcquire> label_;
+
+  // An additional descriptive string of this entry which is combined with
+  // |label_| in profiler output. Need not be (and usually isn't) static. Can
+  // be null.
+  mozilla::Atomic<const char*, mozilla::ReleaseAcquire> dynamicString_;
+
+  // Stack pointer for non-JS entries, the script pointer otherwise.
+  mozilla::Atomic<void*, mozilla::ReleaseAcquire> spOrScript;
+
+  // Line number for non-JS entries, the bytecode offset otherwise.
+  mozilla::Atomic<int32_t, mozilla::ReleaseAcquire> lineOrPcOffset;
+
+  // Bits 0...1 hold the Kind. Bits 2...3 are unused. Bits 4...12 hold the
+  // Category.
+  mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> kindAndCategory_;
+
+  static int32_t pcToOffset(JSScript* aScript, jsbytecode* aPc);
+
+ public:
+  enum class Kind : uint32_t {
+    // A normal C++ frame.
+    CPP_NORMAL = 0,
+
+    // A special C++ frame indicating the start of a run of JS pseudostack
+    // entries. CPP_MARKER_FOR_JS frames are ignored, except for the sp
+    // field.
+    CPP_MARKER_FOR_JS = 1,
+
+    // A normal JS frame.
+    JS_NORMAL = 2,
+
+    // An interpreter JS frame that has OSR-ed into baseline. JS_NORMAL
+    // frames can be converted to JS_OSR and back. JS_OSR frames are
+    // ignored.
+    JS_OSR = 3,
+
+    KIND_MASK = 0x3,
+  };
+
+  // Keep these in sync with devtools/client/performance/modules/categories.js
+  enum class Category : uint32_t {
+    OTHER = 1u << 4,
+    CSS = 1u << 5,
+    JS = 1u << 6,
+    GC = 1u << 7,
+    CC = 1u << 8,
+    NETWORK = 1u << 9,
+    GRAPHICS = 1u << 10,
+    STORAGE = 1u << 11,
+    EVENTS = 1u << 12,
+
+    FIRST = OTHER,
+    LAST = EVENTS,
+
+    CATEGORY_MASK = ~uint32_t(Kind::KIND_MASK),
+  };
+
+  static_assert((uint32_t(Category::FIRST) & uint32_t(Kind::KIND_MASK)) == 0,
+                "Category overlaps with Kind");
+
+  bool isCpp() const {
+    Kind k = kind();
+    return k == Kind::CPP_NORMAL || k == Kind::CPP_MARKER_FOR_JS;
+  }
+
+  bool isJs() const {
+    Kind k = kind();
+    return k == Kind::JS_NORMAL || k == Kind::JS_OSR;
+  }
+
+  void setLabel(const char* aLabel) { label_ = aLabel; }
+  const char* label() const { return label_; }
+
+  const char* dynamicString() const { return dynamicString_; }
+
+  void initCppFrame(const char* aLabel, const char* aDynamicString, void* sp,
+                    uint32_t aLine, Kind aKind, Category aCategory) {
+    label_ = aLabel;
+    dynamicString_ = aDynamicString;
+    spOrScript = sp;
+    lineOrPcOffset = static_cast<int32_t>(aLine);
+    kindAndCategory_ = uint32_t(aKind) | uint32_t(aCategory);
+    MOZ_ASSERT(isCpp());
+  }
+
+  void initJsFrame(const char* aLabel, const char* aDynamicString,
+                   JSScript* aScript, jsbytecode* aPc) {
+    label_ = aLabel;
+    dynamicString_ = aDynamicString;
+    spOrScript = aScript;
+    lineOrPcOffset = pcToOffset(aScript, aPc);
+    kindAndCategory_ = uint32_t(Kind::JS_NORMAL) | uint32_t(Category::JS);
+    MOZ_ASSERT(isJs());
+  }
+
+  void setKind(Kind aKind) {
+    kindAndCategory_ = uint32_t(aKind) | uint32_t(category());
+  }
+
+  Kind kind() const {
+    return Kind(kindAndCategory_ & uint32_t(Kind::KIND_MASK));
+  }
+
+  Category category() const {
+    return Category(kindAndCategory_ & uint32_t(Category::CATEGORY_MASK));
+  }
+
+  void* stackAddress() const {
+    MOZ_ASSERT(!isJs());
+    return spOrScript;
+  }
+
+  JS_PUBLIC_API JSScript* script() const;
+
+  uint32_t line() const {
+    MOZ_ASSERT(!isJs());
+    return static_cast<uint32_t>(lineOrPcOffset);
+  }
+
+  // Note that the pointer returned might be invalid.
+  JSScript* rawScript() const {
+    MOZ_ASSERT(isJs());
+    void* script = spOrScript;
+    return static_cast<JSScript*>(script);
+  }
+
+  // We can't know the layout of JSScript, so look in vm/GeckoProfiler.cpp.
+  JS_FRIEND_API jsbytecode* pc() const;
+  void setPC(jsbytecode* pc);
+
+  void trace(JSTracer* trc);
+
+  // The offset of a pc into a script's code can actually be 0, so to
+  // signify a nullptr pc, use a -1 index. This is checked against in
+  // pc() and setPC() to set/get the right pc.
+  static const int32_t NullPCOffset = -1;
+};
+
+JS_FRIEND_API void SetContextProfilingStack(JSContext* cx,
+                                            PseudoStack* pseudoStack);
+
+// GetContextProfilingStack also exists, but it's defined in RootingAPI.h.
+
+JS_FRIEND_API void EnableContextProfilingStack(JSContext* cx, bool enabled);
+
+JS_FRIEND_API void RegisterContextProfilingEventMarker(JSContext* cx,
+                                                       void (*fn)(const char*));
+
+}  // namespace js
+
+// Each thread has its own PseudoStack. That thread modifies the PseudoStack,
+// pushing and popping elements as necessary.
+//
+// The PseudoStack is also read periodically by the profiler's sampler thread.
+// This happens only when the thread that owns the PseudoStack is suspended. So
+// there are no genuine parallel accesses.
+//
+// However, it is possible for pushing/popping to be interrupted by a periodic
+// sample. Because of this, we need pushing/popping to be effectively atomic.
+//
+// - When pushing a new entry, we increment the stack pointer -- making the new
+//   entry visible to the sampler thread -- only after the new entry has been
+//   fully written. The stack pointer is Atomic<uint32_t,ReleaseAcquire>, so
+//   the increment is a release-store, which ensures that this store is not
+//   reordered before the writes of the entry.
+//
+// - When popping an old entry, the only operation is the decrementing of the
+//   stack pointer, which is obviously atomic.
+//
+class PseudoStack final {
+ public:
+  PseudoStack() : stackPointer(0) {}
+
+  ~PseudoStack() {
+    // The label macros keep a reference to the PseudoStack to avoid a TLS
+    // access. If these are somehow not all cleared we will get a
+    // use-after-free so better to crash now.
+    MOZ_RELEASE_ASSERT(stackPointer == 0);
+  }
+
+  void pushCppFrame(const char* label, const char* dynamicString, void* sp,
+                    uint32_t line, js::ProfileEntry::Kind kind,
+                    js::ProfileEntry::Category category) {
+    if (stackPointer < MaxEntries) {
+      entries[stackPointer].initCppFrame(label, dynamicString, sp, line, kind,
+                                         category);
+    }
+
+    // This must happen at the end! The compiler will not reorder this
+    // update because stackPointer is Atomic<..., ReleaseAcquire>, so any
+    // the writes above will not be reordered below the stackPointer store.
+    // Do the read and the write as two separate statements, in order to
+    // make it clear that we don't need an atomic increment, which would be
+    // more expensive on x86 than the separate operations done here.
+    // This thread is the only one that ever changes the value of
+    // stackPointer.
+    uint32_t oldStackPointer = stackPointer;
+    stackPointer = oldStackPointer + 1;
+  }
+
+  void pushJsFrame(const char* label, const char* dynamicString,
+                   JSScript* script, jsbytecode* pc) {
+    if (stackPointer < MaxEntries) {
+      entries[stackPointer].initJsFrame(label, dynamicString, script, pc);
+    }
+
+    // This must happen at the end! The compiler will not reorder this
+    // update because stackPointer is Atomic<..., ReleaseAcquire>, which
+    // makes this assignment a release-store, so the writes above will not
+    // be reordered to occur after the stackPointer store.
+    // Do the read and the write as two separate statements, in order to
+    // make it clear that we don't need an atomic increment, which would be
+    // more expensive on x86 than the separate operations done here.
+    // This thread is the only one that ever changes the value of
+    // stackPointer.
+    uint32_t oldStackPointer = stackPointer;
+    stackPointer = oldStackPointer + 1;
+  }
+
+  void pop() {
+    MOZ_ASSERT(stackPointer > 0);
+    // Do the read and the write as two separate statements, in order to
+    // make it clear that we don't need an atomic decrement, which would be
+    // more expensive on x86 than the separate operations done here.
+    // This thread is the only one that ever changes the value of
+    // stackPointer.
+    uint32_t oldStackPointer = stackPointer;
+    stackPointer = oldStackPointer - 1;
+  }
+
+  uint32_t stackSize() const {
+    return std::min(uint32_t(stackPointer), uint32_t(MaxEntries));
+  }
+
+ private:
+  // No copying.
+  PseudoStack(const PseudoStack&) = delete;
+  void operator=(const PseudoStack&) = delete;
+
+ public:
+  static const uint32_t MaxEntries = 1024;
+
+  // The stack entries.
+  js::ProfileEntry entries[MaxEntries];
+
+  // This may exceed MaxEntries, so instead use the stackSize() method to
+  // determine the number of valid samples in entries. When this is less
+  // than MaxEntries, it refers to the first free entry past the top of the
+  // in-use stack (i.e. entries[stackPointer - 1] is the top stack entry).
+  //
+  // WARNING WARNING WARNING
+  //
+  // This is an atomic variable that uses ReleaseAcquire memory ordering.
+  // See the "Concurrency considerations" paragraph at the top of this file
+  // for more details.
+  mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> stackPointer;
+};
+
+namespace js {
+
+class AutoGeckoProfilerEntry;
+class GeckoProfilerEntryMarker;
+class GeckoProfilerBaselineOSRMarker;
+
+class GeckoProfilerThread {
+  friend class AutoGeckoProfilerEntry;
+  friend class GeckoProfilerEntryMarker;
+  friend class GeckoProfilerBaselineOSRMarker;
+
+  PseudoStack* pseudoStack_;
+
+ public:
+  GeckoProfilerThread();
+
+  uint32_t stackPointer() {
+    MOZ_ASSERT(installed());
+    return pseudoStack_->stackPointer;
+  }
+  ProfileEntry* stack() { return pseudoStack_->entries; }
+  PseudoStack* getPseudoStack() { return pseudoStack_; }
+
+  /* management of whether instrumentation is on or off */
+  bool installed() { return pseudoStack_ != nullptr; }
+
+  void setProfilingStack(PseudoStack* pseudoStack);
+  void trace(JSTracer* trc);
+
+  /*
+   * Functions which are the actual instrumentation to track run information
+   *
+   *   - enter: a function has started to execute
+   *   - updatePC: updates the pc information about where a function
+   *               is currently executing
+   *   - exit: this function has ceased execution, and no further
+   *           entries/exits will be made
+   */
+  bool enter(JSContext* cx, JSScript* script, JSFunction* maybeFun);
+  void exit(JSScript* script, JSFunction* maybeFun);
+  inline void updatePC(JSContext* cx, JSScript* script, jsbytecode* pc);
+};
+
+}  // namespace js
+
+#endif /* js_ProfilingStack_h */
+                                                                                                                                                                                                                                                                                                                                                                      /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_ProtoKey_h
+#define js_ProtoKey_h
+
+/* A higher-order macro for enumerating all JSProtoKey values. */
+/*
+ * Consumers define macros as follows:
+ * macro(name, init, clasp)
+ *   name:    The canonical name of the class.
+ *   init:    Initialization function. These are |extern "C";|, and clients
+ *            should use |extern "C" {}| as appropriate when using this macro.
+ *   clasp:   The JSClass for this object, or "dummy" if it doesn't exist.
+ *
+ *
+ * Consumers wishing to iterate over all the JSProtoKey values, can use
+ * JS_FOR_EACH_PROTOTYPE. However, there are certain values that don't
+ * correspond to real constructors, like Null or constructors that are disabled
+ * via preprocessor directives. We still need to include these in the JSProtoKey
+ * list in order to maintain binary XDR compatibility, but we need to provide a
+ * tool to handle them differently. JS_FOR_PROTOTYPES fills this niche.
+ *
+ * Consumers pass two macros to JS_FOR_PROTOTYPES - |real| and |imaginary|. The
+ * former is invoked for entries that have real client-exposed constructors, and
+ * the latter is called for the rest. Consumers that don't care about this
+ * distinction can simply pass the same macro to both, which is exactly what
+ * JS_FOR_EACH_PROTOTYPE does.
+ */
+
+#define CLASP(NAME) (&NAME##Class)
+#define OCLASP(NAME) (&NAME##Object::class_)
+#define TYPED_ARRAY_CLASP(TYPE) (&TypedArrayObject::classes[Scalar::TYPE])
+#define ERROR_CLASP(TYPE) (&ErrorObject::classes[TYPE])
+
+#ifdef EXPOSE_INTL_API
+#define IF_INTL(REAL, IMAGINARY) REAL
+#else
+#define IF_INTL(REAL, IMAGINARY) IMAGINARY
+#endif
+
+#ifdef ENABLE_BINARYDATA
+#define IF_BDATA(real, imaginary) real
+#else
+#define IF_BDATA(real, imaginary) imaginary
+#endif
+
+#ifdef ENABLE_SIMD
+#define IF_SIMD(real, imaginary) real
+#else
+#define IF_SIMD(real, imaginary) imaginary
+#endif
+
+#ifdef ENABLE_SHARED_ARRAY_BUFFER
+#define IF_SAB(real, imaginary) real
+#else
+#define IF_SAB(real, imaginary) imaginary
+#endif
+
+#define JS_FOR_PROTOTYPES_(REAL, IMAGINARY, REAL_IF_INTL, REAL_IF_BDATA,      \
+                           REAL_IF_SAB, REAL_IF_SIMD)                         \
+  IMAGINARY(Null, InitNullClass, dummy)                                       \
+  REAL(Object, InitViaClassSpec, OCLASP(Plain))                               \
+  REAL(Function, InitViaClassSpec, &JSFunction::class_)                       \
+  REAL(Array, InitViaClassSpec, OCLASP(Array))                                \
+  REAL(Boolean, InitBooleanClass, OCLASP(Boolean))                            \
+  REAL(JSON, InitJSONClass, CLASP(JSON))                                      \
+  REAL(Date, InitViaClassSpec, OCLASP(Date))                                  \
+  REAL(Math, InitMathClass, CLASP(Math))                                      \
+  REAL(Number, InitNumberClass, OCLASP(Number))                               \
+  REAL(String, InitStringClass, OCLASP(String))                               \
+  REAL(RegExp, InitViaClassSpec, OCLASP(RegExp))                              \
+  REAL(Error, InitViaClassSpec, ERROR_CLASP(JSEXN_ERR))                       \
+  REAL(InternalError, InitViaClassSpec, ERROR_CLASP(JSEXN_INTERNALERR))       \
+  REAL(EvalError, InitViaClassSpec, ERROR_CLASP(JSEXN_EVALERR))               \
+  REAL(RangeError, InitViaClassSpec, ERROR_CLASP(JSEXN_RANGEERR))             \
+  REAL(ReferenceError, InitViaClassSpec, ERROR_CLASP(JSEXN_REFERENCEERR))     \
+  REAL(SyntaxError, InitViaClassSpec, ERROR_CLASP(JSEXN_SYNTAXERR))           \
+  REAL(TypeError, InitViaClassSpec, ERROR_CLASP(JSEXN_TYPEERR))               \
+  REAL(URIError, InitViaClassSpec, ERROR_CLASP(JSEXN_URIERR))                 \
+  REAL(DebuggeeWouldRun, InitViaClassSpec,                                    \
+       ERROR_CLASP(JSEXN_DEBUGGEEWOULDRUN))                                   \
+  REAL(CompileError, InitViaClassSpec, ERROR_CLASP(JSEXN_WASMCOMPILEERROR))   \
+  REAL(LinkError, InitViaClassSpec, ERROR_CLASP(JSEXN_WASMLINKERROR))         \
+  REAL(RuntimeError, InitViaClassSpec, ERROR_CLASP(JSEXN_WASMRUNTIMEERROR))   \
+  IMAGINARY(Iterator, dummy, dummy)                                           \
+  REAL(ArrayBuffer, InitViaClassSpec, OCLASP(ArrayBuffer))                    \
+  REAL(Int8Array, InitViaClassSpec, TYPED_ARRAY_CLASP(Int8))                  \
+  REAL(Uint8Array, InitViaClassSpec, TYPED_ARRAY_CLASP(Uint8))                \
+  REAL(Int16Array, InitViaClassSpec, TYPED_ARRAY_CLASP(Int16))                \
+  REAL(Uint16Array, InitViaClassSpec, TYPED_ARRAY_CLASP(Uint16))              \
+  REAL(Int32Array, InitViaClassSpec, TYPED_ARRAY_CLASP(Int32))                \
+  REAL(Uint32Array, InitViaClassSpec, TYPED_ARRAY_CLASP(Uint32))              \
+  REAL(Float32Array, InitViaClassSpec, TYPED_ARRAY_CLASP(Float32))            \
+  REAL(Float64Array, InitViaClassSpec, TYPED_ARRAY_CLASP(Float64))            \
+  REAL(Uint8ClampedArray, InitViaClassSpec, TYPED_ARRAY_CLASP(Uint8Clamped))  \
+  REAL(Proxy, InitProxyClass, js::ProxyClassPtr)                              \
+  REAL(WeakMap, InitWeakMapClass, OCLASP(WeakMap))                            \
+  REAL(Map, InitViaClassSpec, OCLASP(Map))                                    \
+  REAL(Set, InitViaClassSpec, OCLASP(Set))                                    \
+  REAL(DataView, InitViaClassSpec, OCLASP(DataView))                          \
+  REAL(Symbol, InitSymbolClass, OCLASP(Symbol))                               \
+  REAL_IF_SAB(SharedArrayBuffer, InitViaClassSpec, OCLASP(SharedArrayBuffer)) \
+  REAL_IF_INTL(Intl, InitIntlClass, CLASP(Intl))                              \
+  REAL_IF_BDATA(TypedObject, InitTypedObjectModuleObject,                     \
+                OCLASP(TypedObjectModule))                                    \
+  REAL(Reflect, InitReflect, nullptr)                                         \
+  REAL_IF_SIMD(SIMD, InitSimdClass, OCLASP(Simd))                             \
+  REAL(WeakSet, InitWeakSetClass, OCLASP(WeakSet))                            \
+  REAL(TypedArray, InitViaClassSpec,                                          \
+       &js::TypedArrayObject::sharedTypedArrayPrototypeClass)                 \
+  REAL_IF_SAB(Atomics, InitAtomicsClass, OCLASP(Atomics))                     \
+  REAL(SavedFrame, InitViaClassSpec, &js::SavedFrame::class_)                 \
+  REAL(Promise, InitViaClassSpec, OCLASP(Promise))                            \
+  REAL(ReadableStream, InitViaClassSpec, &js::ReadableStream::class_)         \
+  REAL(ReadableStreamDefaultReader, InitViaClassSpec,                         \
+       &js::ReadableStreamDefaultReader::class_)                              \
+  REAL(ReadableStreamBYOBReader, InitViaClassSpec,                            \
+       &js::ReadableStreamBYOBReader::class_)                                 \
+  REAL(ReadableStreamDefaultController, InitViaClassSpec,                     \
+       &js::ReadableStreamDefaultController::class_)                          \
+  REAL(ReadableByteStreamController, InitViaClassSpec,                        \
+       &js::ReadableByteStreamController::class_)                             \
+  REAL(ReadableStreamBYOBRequest, InitViaClassSpec,                           \
+       &js::ReadableStreamBYOBRequest::class_)                                \
+  IMAGINARY(WritableStream, dummy, dummy)                                     \
+  IMAGINARY(WritableStreamDefaultWriter, dummy, dummy)                        \
+  IMAGINARY(WritableStreamDefaultController, dummy, dummy)                    \
+  REAL(ByteLengthQueuingStrategy, InitViaClassSpec,                           \
+       &js::ByteLengthQueuingStrategy::class_)                                \
+  REAL(CountQueuingStrategy, InitViaClassSpec,                                \
+       &js::CountQueuingStrategy::class_)                                     \
+  REAL(WebAssembly, InitWebAssemblyClass, CLASP(WebAssembly))                 \
+  IMAGINARY(WasmModule, dummy, dummy)                                         \
+  IMAGINARY(WasmInstance, dummy, dummy)                                       \
+  IMAGINARY(WasmMemory, dummy, dummy)                                         \
+  IMAGINARY(WasmTable, dummy, dummy)                                          \
+  IMAGINARY(WasmGlobal, dummy, dummy)
+
+#define JS_FOR_PROTOTYPES(REAL, IMAGINARY)                               \
+  JS_FOR_PROTOTYPES_(REAL, IMAGINARY, IF_INTL(REAL, IMAGINARY),          \
+                     IF_BDATA(REAL, IMAGINARY), IF_SAB(REAL, IMAGINARY), \
+                     IF_SIMD(REAL, IMAGINARY))
+
+#define JS_FOR_EACH_PROTOTYPE(MACRO) JS_FOR_PROTOTYPES(MACRO, MACRO)
+
+#endif /* js_ProtoKey_h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_Proxy_h
+#define js_Proxy_h
+
+#include "mozilla/Maybe.h"
+
+#include "jsfriendapi.h"
+
+#include "js/CallNonGenericMethod.h"
+#include "js/Class.h"
+
+namespace js {
+
+using JS::AutoIdVector;
+using JS::CallArgs;
+using JS::Handle;
+using JS::HandleId;
+using JS::HandleObject;
+using JS::HandleValue;
+using JS::IsAcceptableThis;
+using JS::MutableHandle;
+using JS::MutableHandleObject;
+using JS::MutableHandleValue;
+using JS::NativeImpl;
+using JS::ObjectOpResult;
+using JS::PrivateValue;
+using JS::PropertyDescriptor;
+using JS::Value;
+
+class RegExpShared;
+
+class JS_FRIEND_API Wrapper;
+
+/*
+ * A proxy is a JSObject with highly customizable behavior. ES6 specifies a
+ * single kind of proxy, but the customization mechanisms we use to implement
+ * ES6 Proxy objects are also useful wherever an object with weird behavior is
+ * wanted. Proxies are used to implement:
+ *
+ * -   the scope objects used by the Debugger's frame.eval() method
+ *     (see js::GetDebugScopeForFunction)
+ *
+ * -   the khuey hack, whereby a whole compartment can be blown away
+ *     even if other compartments hold references to objects in it
+ *     (see js::NukeCrossCompartmentWrappers)
+ *
+ * -   XPConnect security wrappers, which protect chrome from malicious content
+ *     (js/xpconnect/wrappers)
+ *
+ * -   DOM objects with special property behavior, like named getters
+ *     (dom/bindings/Codegen.py generates these proxies from WebIDL)
+ *
+ * -   semi-transparent use of objects that live in other processes
+ *     (CPOWs, implemented in js/ipc)
+ *
+ * ### Proxies and internal methods
+ *
+ * ES2016 specifies 13 internal methods. The runtime semantics of just
+ * about everything a script can do to an object is specified in terms
+ * of these internal methods. For example:
+ *
+ *     JS code                      ES6 internal method that gets called
+ *     ---------------------------  --------------------------------
+ *     obj.prop                     obj.[[Get]](obj, "prop")
+ *     "prop" in obj                obj.[[HasProperty]]("prop")
+ *     new obj()                    obj.[[Construct]](<empty argument List>)
+ *
+ * With regard to the implementation of these internal methods, there are three
+ * very different kinds of object in SpiderMonkey.
+ *
+ * 1.  Native objects' internal methods are implemented in vm/NativeObject.cpp,
+ *     with duplicate (but functionally identical) implementations scattered
+ *     through the ICs and JITs.
+ *
+ * 2.  Certain non-native objects have internal methods that are implemented as
+ *     magical js::ObjectOps hooks. We're trying to get rid of these.
+ *
+ * 3.  All other objects are proxies. A proxy's internal methods are
+ *     implemented in C++, as the virtual methods of a C++ object stored on the
+ *     proxy, known as its handler.
+ *
+ * This means that just about anything you do to a proxy will end up going
+ * through a C++ virtual method call. Possibly several. There's no reason the
+ * JITs and ICs can't specialize for particular proxies, based on the handler;
+ * but currently we don't do much of this, so the virtual method overhead
+ * typically is actually incurred.
+ *
+ * ### The proxy handler hierarchy
+ *
+ * A major use case for proxies is to forward each internal method call to
+ * another object, known as its target. The target can be an arbitrary JS
+ * object. Not every proxy has the notion of a target, however.
+ *
+ * To minimize code duplication, a set of abstract proxy handler classes is
+ * provided, from which other handlers may inherit. These abstract classes are
+ * organized in the following hierarchy:
+ *
+ *     BaseProxyHandler
+ *     |
+ *     Wrapper                   // has a target, can be unwrapped to reveal
+ *     |                         // target (see js::CheckedUnwrap)
+ *     |
+ *     CrossCompartmentWrapper   // target is in another compartment;
+ *                               // implements membrane between compartments
+ *
+ * Example: Some DOM objects (including all the arraylike DOM objects) are
+ * implemented as proxies. Since these objects don't need to forward operations
+ * to any underlying JS object, DOMJSProxyHandler directly subclasses
+ * BaseProxyHandler.
+ *
+ * Gecko's security wrappers are examples of cross-compartment wrappers.
+ *
+ * ### Proxy prototype chains
+ *
+ * In addition to the normal methods, there are two models for proxy prototype
+ * chains.
+ *
+ * 1.  Proxies can use the standard prototype mechanism used throughout the
+ *     engine. To do so, simply pass a prototype to NewProxyObject() at
+ *     creation time. All prototype accesses will then "just work" to treat the
+ *     proxy as a "normal" object.
+ *
+ * 2.  A proxy can implement more complicated prototype semantics (if, for
+ *     example, it wants to delegate the prototype lookup to a wrapped object)
+ *     by passing Proxy::LazyProto as the prototype at create time. This
+ *     guarantees that the getPrototype() handler method will be called every
+ *     time the object's prototype chain is accessed.
+ *
+ *     This system is implemented with two methods: {get,set}Prototype. The
+ *     default implementation of setPrototype throws a TypeError. Since it is
+ *     not possible to create an object without a sense of prototype chain,
+ *     handlers must implement getPrototype if opting in to the dynamic
+ *     prototype system.
+ */
+
+/*
+ * BaseProxyHandler is the most generic kind of proxy handler. It does not make
+ * any assumptions about the target. Consequently, it does not provide any
+ * default implementation for most methods. As a convenience, a few high-level
+ * methods, like get() and set(), are given default implementations that work by
+ * calling the low-level methods, like getOwnPropertyDescriptor().
+ *
+ * Important: If you add a method here, you should probably also add a
+ * Proxy::foo entry point with an AutoEnterPolicy. If you don't, you need an
+ * explicit override for the method in SecurityWrapper. See bug 945826 comment
+ * 0.
+ */
+class JS_FRIEND_API BaseProxyHandler {
+  /*
+   * Sometimes it's desirable to designate groups of proxy handlers as
+   * "similar". For this, we use the notion of a "family": A consumer-provided
+   * opaque pointer that designates the larger group to which this proxy
+   * belongs.
+   *
+   * If it will never be important to differentiate this proxy from others as
+   * part of a distinct group, nullptr may be used instead.
+   */
+  const void* mFamily;
+
+  /*
+   * Proxy handlers can use mHasPrototype to request the following special
+   * treatment from the JS engine:
+   *
+   *   - When mHasPrototype is true, the engine never calls these methods:
+   *     getPropertyDescriptor, has, set, enumerate, iterate.  Instead, for
+   *     these operations, it calls the "own" methods like
+   *     getOwnPropertyDescriptor, hasOwn, defineProperty,
+   *     getOwnEnumerablePropertyKeys, etc., and consults the prototype chain
+   *     if needed.
+   *
+   *   - When mHasPrototype is true, the engine calls handler->get() only if
+   *     handler->hasOwn() says an own property exists on the proxy. If not,
+   *     it consults the prototype chain.
+   *
+   * This is useful because it frees the ProxyHandler from having to implement
+   * any behavior having to do with the prototype chain.
+   */
+  bool mHasPrototype;
+
+  /*
+   * All proxies indicate whether they have any sort of interesting security
+   * policy that might prevent the caller from doing something it wants to
+   * the object. In the case of wrappers, this distinction is used to
+   * determine whether the caller may strip off the wrapper if it so desires.
+   */
+  bool mHasSecurityPolicy;
+
+ public:
+  explicit constexpr BaseProxyHandler(const void* aFamily,
+                                      bool aHasPrototype = false,
+                                      bool aHasSecurityPolicy = false)
+      : mFamily(aFamily),
+        mHasPrototype(aHasPrototype),
+        mHasSecurityPolicy(aHasSecurityPolicy) {}
+
+  bool hasPrototype() const { return mHasPrototype; }
+
+  bool hasSecurityPolicy() const { return mHasSecurityPolicy; }
+
+  inline const void* family() const { return mFamily; }
+  static size_t offsetOfFamily() { return offsetof(BaseProxyHandler, mFamily); }
+
+  virtual bool finalizeInBackground(const Value& priv) const {
+    /*
+     * Called on creation of a proxy to determine whether its finalize
+     * method can be finalized on the background thread.
+     */
+    return true;
+  }
+
+  virtual bool canNurseryAllocate() const {
+    /*
+     * Nursery allocation is allowed if and only if it is safe to not
+     * run |finalize| when the ProxyObject dies.
+     */
+    return false;
+  }
+
+  /* Policy enforcement methods.
+   *
+   * enter() allows the policy to specify whether the caller may perform |act|
+   * on the proxy's |id| property. In the case when |act| is CALL, |id| is
+   * generally JSID_VOID.  The |mayThrow| parameter indicates whether a
+   * handler that wants to throw custom exceptions when denying should do so
+   * or not.
+   *
+   * The |act| parameter to enter() specifies the action being performed.
+   * If |bp| is false, the method suggests that the caller throw (though it
+   * may still decide to squelch the error).
+   *
+   * We make these OR-able so that assertEnteredPolicy can pass a union of them.
+   * For example, get{,Own}PropertyDescriptor is invoked by calls to ::get()
+   * ::set(), in addition to being invoked on its own, so there are several
+   * valid Actions that could have been entered.
+   */
+  typedef uint32_t Action;
+  enum {
+    NONE = 0x00,
+    GET = 0x01,
+    SET = 0x02,
+    CALL = 0x04,
+    ENUMERATE = 0x08,
+    GET_PROPERTY_DESCRIPTOR = 0x10
+  };
+
+  virtual bool enter(JSContext* cx, HandleObject wrapper, HandleId id,
+                     Action act, bool mayThrow, bool* bp) const;
+
+  /* Standard internal methods. */
+  virtual bool getOwnPropertyDescriptor(
+      JSContext* cx, HandleObject proxy, HandleId id,
+      MutableHandle<PropertyDescriptor> desc) const = 0;
+  virtual bool defineProperty(JSContext* cx, HandleObject proxy, HandleId id,
+                              Handle<PropertyDescriptor> desc,
+                              ObjectOpResult& result) const = 0;
+  virtual bool ownPropertyKeys(JSContext* cx, HandleObject proxy,
+                               AutoIdVector& props) const = 0;
+  virtual bool delete_(JSContext* cx, HandleObject proxy, HandleId id,
+                       ObjectOpResult& result) const = 0;
+
+  /*
+   * These methods are standard, but the engine does not normally call them.
+   * They're opt-in. See "Proxy prototype chains" above.
+   *
+   * getPrototype() crashes if called. setPrototype() throws a TypeError.
+   */
+  virtual bool getPrototype(JSContext* cx, HandleObject proxy,
+                            MutableHandleObject protop) const;
+  virtual bool setPrototype(JSContext* cx, HandleObject proxy,
+                            HandleObject proto, ObjectOpResult& result) const;
+
+  /* Non-standard but conceptual kin to {g,s}etPrototype, so these live here. */
+  virtual bool getPrototypeIfOrdinary(JSContext* cx, HandleObject proxy,
+                                      bool* isOrdinary,
+                                      MutableHandleObject protop) const = 0;
+  virtual bool setImmutablePrototype(JSContext* cx, HandleObject proxy,
+                                     bool* succeeded) const;
+
+  virtual bool preventExtensions(JSContext* cx, HandleObject proxy,
+                                 ObjectOpResult& result) const = 0;
+  virtual bool isExtensible(JSContext* cx, HandleObject proxy,
+                            bool* extensible) const = 0;
+
+  /*
+   * These standard internal methods are implemented, as a convenience, so
+   * that ProxyHandler subclasses don't have to provide every single method.
+   *
+   * The base-class implementations work by calling getPropertyDescriptor().
+   * They do not follow any standard. When in doubt, override them.
+   */
+  virtual bool has(JSContext* cx, HandleObject proxy, HandleId id,
+                   bool* bp) const;
+  virtual bool get(JSContext* cx, HandleObject proxy, HandleValue receiver,
+                   HandleId id, MutableHandleValue vp) const;
+  virtual bool set(JSContext* cx, HandleObject proxy, HandleId id,
+                   HandleValue v, HandleValue receiver,
+                   ObjectOpResult& result) const;
+
+  /*
+   * [[Call]] and [[Construct]] are standard internal methods but according
+   * to the spec, they are not present on every object.
+   *
+   * SpiderMonkey never calls a proxy's call()/construct() internal method
+   * unless isCallable()/isConstructor() returns true for that proxy.
+   *
+   * BaseProxyHandler::isCallable()/isConstructor() always return false, and
+   * BaseProxyHandler::call()/construct() crash if called. So if you're
+   * creating a kind of that is never callable, you don't have to override
+   * anything, but otherwise you probably want to override all four.
+   */
+  virtual bool call(JSContext* cx, HandleObject proxy,
+                    const CallArgs& args) const;
+  virtual bool construct(JSContext* cx, HandleObject proxy,
+                         const CallArgs& args) const;
+
+  /* SpiderMonkey extensions. */
+  virtual JSObject* enumerate(JSContext* cx, HandleObject proxy) const;
+  virtual bool getPropertyDescriptor(
+      JSContext* cx, HandleObject proxy, HandleId id,
+      MutableHandle<PropertyDescriptor> desc) const;
+  virtual bool hasOwn(JSContext* cx, HandleObject proxy, HandleId id,
+                      bool* bp) const;
+  virtual bool getOwnEnumerablePropertyKeys(JSContext* cx, HandleObject proxy,
+                                            AutoIdVector& props) const;
+  virtual bool nativeCall(JSContext* cx, IsAcceptableThis test, NativeImpl impl,
+                          const CallArgs& args) const;
+  virtual bool hasInstance(JSContext* cx, HandleObject proxy,
+                           MutableHandleValue v, bool* bp) const;
+  virtual bool getBuiltinClass(JSContext* cx, HandleObject proxy,
+                               ESClass* cls) const;
+  virtual bool isArray(JSContext* cx, HandleObject proxy,
+                       JS::IsArrayAnswer* answer) const;
+  virtual const char* className(JSContext* cx, HandleObject proxy) const;
+  virtual JSString* fun_toString(JSContext* cx, HandleObject proxy,
+                                 bool isToSource) const;
+  virtual RegExpShared* regexp_toShared(JSContext* cx,
+                                        HandleObject proxy) const;
+  virtual bool boxedValue_unbox(JSContext* cx, HandleObject proxy,
+                                MutableHandleValue vp) const;
+  virtual void trace(JSTracer* trc, JSObject* proxy) const;
+  virtual void finalize(JSFreeOp* fop, JSObject* proxy) const;
+  virtual size_t objectMoved(JSObject* proxy, JSObject* old) const;
+
+  // Allow proxies, wrappers in particular, to specify callability at runtime.
+  // Note: These do not take const JSObject*, but they do in spirit.
+  //       We are not prepared to do this, as there's little const correctness
+  //       in the external APIs that handle proxies.
+  virtual bool isCallable(JSObject* obj) const;
+  virtual bool isConstructor(JSObject* obj) const;
+
+  virtual bool getElements(JSContext* cx, HandleObject proxy, uint32_t begin,
+                           uint32_t end, ElementAdder* adder) const;
+
+  /* See comment for weakmapKeyDelegateOp in js/Class.h. */
+  virtual JSObject* weakmapKeyDelegate(JSObject* proxy) const;
+  virtual bool isScripted() const { return false; }
+};
+
+extern JS_FRIEND_DATA const js::Class* const ProxyClassPtr;
+
+inline bool IsProxy(const JSObject* obj) {
+  return GetObjectClass(obj)->isProxy();
+}
+
+namespace detail {
+
+// Proxy slot layout
+// -----------------
+//
+// Every proxy has a ProxyValueArray that contains the following Values:
+//
+// - The private slot.
+// - The reserved slots. The number of slots is determined by the proxy's Class.
+//
+// Proxy objects store a pointer to the reserved slots (ProxyReservedSlots*).
+// The ProxyValueArray and the private slot can be accessed using
+// ProxyValueArray::fromReservedSlots or ProxyDataLayout::values.
+//
+// Storing a pointer to ProxyReservedSlots instead of ProxyValueArray has a
+// number of advantages. In particular, it means js::GetReservedSlot and
+// js::SetReservedSlot can be used with both proxies and native objects. This
+// works because the ProxyReservedSlots* pointer is stored where native objects
+// store their dynamic slots pointer.
+
+struct ProxyReservedSlots {
+  Value slots[1];
+
+  static inline int offsetOfPrivateSlot();
+
+  static inline int offsetOfSlot(size_t slot) {
+    return offsetof(ProxyReservedSlots, slots[0]) + slot * sizeof(Value);
+  }
+
+  void init(size_t nreserved) {
+    for (size_t i = 0; i < nreserved; i++) slots[i] = JS::UndefinedValue();
+  }
+
+  ProxyReservedSlots(const ProxyReservedSlots&) = delete;
+  void operator=(const ProxyReservedSlots&) = delete;
+};
+
+struct ProxyValueArray {
+  Value privateSlot;
+  ProxyReservedSlots reservedSlots;
+
+  void init(size_t nreserved) {
+    privateSlot = JS::UndefinedValue();
+    reservedSlots.init(nreserved);
+  }
+
+  static size_t sizeOf(size_t nreserved) {
+    return offsetOfReservedSlots() + nreserved * sizeof(Value);
+  }
+  static MOZ_ALWAYS_INLINE ProxyValueArray* fromReservedSlots(
+      ProxyReservedSlots* slots) {
+    uintptr_t p = reinterpret_cast<uintptr_t>(slots);
+    return reinterpret_cast<ProxyValueArray*>(p - offsetOfReservedSlots());
+  }
+  static size_t offsetOfReservedSlots() {
+    return offsetof(ProxyValueArray, reservedSlots);
+  }
+
+  ProxyValueArray(const ProxyValueArray&) = delete;
+  void operator=(const ProxyValueArray&) = delete;
+};
+
+/* static */ inline int ProxyReservedSlots::offsetOfPrivateSlot() {
+  return -int(ProxyValueArray::offsetOfReservedSlots()) +
+         offsetof(ProxyValueArray, privateSlot);
+}
+
+// All proxies share the same data layout. Following the object's shape and
+// type, the proxy has a ProxyDataLayout structure with a pointer to an array
+// of values and the proxy's handler. This is designed both so that proxies can
+// be easily swapped with other objects (via RemapWrapper) and to mimic the
+// layout of other objects (proxies and other objects have the same size) so
+// that common code can access either type of object.
+//
+// See GetReservedOrProxyPrivateSlot below.
+struct ProxyDataLayout {
+  ProxyReservedSlots* reservedSlots;
+  const BaseProxyHandler* handler;
+
+  MOZ_ALWAYS_INLINE ProxyValueArray* values() const {
+    return ProxyValueArray::fromReservedSlots(reservedSlots);
+  }
+};
+
+const uint32_t ProxyDataOffset = 2 * sizeof(void*);
+
+inline ProxyDataLayout* GetProxyDataLayout(JSObject* obj) {
+  MOZ_ASSERT(IsProxy(obj));
+  return reinterpret_cast<ProxyDataLayout*>(reinterpret_cast<uint8_t*>(obj) +
+                                            ProxyDataOffset);
+}
+
+inline const ProxyDataLayout* GetProxyDataLayout(const JSObject* obj) {
+  MOZ_ASSERT(IsProxy(obj));
+  return reinterpret_cast<const ProxyDataLayout*>(
+      reinterpret_cast<const uint8_t*>(obj) + ProxyDataOffset);
+}
+}  // namespace detail
+
+inline const BaseProxyHandler* GetProxyHandler(const JSObject* obj) {
+  return detail::GetProxyDataLayout(obj)->handler;
+}
+
+inline const Value& GetProxyPrivate(const JSObject* obj) {
+  return detail::GetProxyDataLayout(obj)->values()->privateSlot;
+}
+
+inline JSObject* GetProxyTargetObject(JSObject* obj) {
+  return GetProxyPrivate(obj).toObjectOrNull();
+}
+
+inline const Value& GetProxyReservedSlot(const JSObject* obj, size_t n) {
+  MOZ_ASSERT(n < JSCLASS_RESERVED_SLOTS(GetObjectClass(obj)));
+  return detail::GetProxyDataLayout(obj)->reservedSlots->slots[n];
+}
+
+inline void SetProxyHandler(JSObject* obj, const BaseProxyHandler* handler) {
+  detail::GetProxyDataLayout(obj)->handler = handler;
+}
+
+JS_FRIEND_API void SetValueInProxy(Value* slot, const Value& value);
+
+inline void SetProxyReservedSlot(JSObject* obj, size_t n, const Value& extra) {
+  MOZ_ASSERT(n < JSCLASS_RESERVED_SLOTS(GetObjectClass(obj)));
+  MOZ_ASSERT_IF(gc::detail::ObjectIsMarkedBlack(obj),
+                JS::ValueIsNotGray(extra));
+
+  Value* vp = &detail::GetProxyDataLayout(obj)->reservedSlots->slots[n];
+
+  // Trigger a barrier before writing the slot.
+  if (vp->isGCThing() || extra.isGCThing())
+    SetValueInProxy(vp, extra);
+  else
+    *vp = extra;
+}
+
+inline void SetProxyPrivate(JSObject* obj, const Value& value) {
+  MOZ_ASSERT_IF(gc::detail::ObjectIsMarkedBlack(obj),
+                JS::ValueIsNotGray(value));
+
+  Value* vp = &detail::GetProxyDataLayout(obj)->values()->privateSlot;
+
+  // Trigger a barrier before writing the slot.
+  if (vp->isGCThing() || value.isGCThing())
+    SetValueInProxy(vp, value);
+  else
+    *vp = value;
+}
+
+inline bool IsScriptedProxy(const JSObject* obj) {
+  return IsProxy(obj) && GetProxyHandler(obj)->isScripted();
+}
+
+class MOZ_STACK_CLASS ProxyOptions {
+ protected:
+  /* protected constructor for subclass */
+  explicit ProxyOptions(bool singletonArg, bool lazyProtoArg = false)
+      : singleton_(singletonArg),
+        lazyProto_(lazyProtoArg),
+        clasp_(ProxyClassPtr) {}
+
+ public:
+  ProxyOptions()
+      : singleton_(false), lazyProto_(false), clasp_(ProxyClassPtr) {}
+
+  bool singleton() const { return singleton_; }
+  ProxyOptions& setSingleton(bool flag) {
+    singleton_ = flag;
+    return *this;
+  }
+
+  bool lazyProto() const { return lazyProto_; }
+  ProxyOptions& setLazyProto(bool flag) {
+    lazyProto_ = flag;
+    return *this;
+  }
+
+  const Class* clasp() const { return clasp_; }
+  ProxyOptions& setClass(const Class* claspArg) {
+    clasp_ = claspArg;
+    return *this;
+  }
+
+ private:
+  bool singleton_;
+  bool lazyProto_;
+  const Class* clasp_;
+};
+
+JS_FRIEND_API JSObject* NewProxyObject(
+    JSContext* cx, const BaseProxyHandler* handler, HandleValue priv,
+    JSObject* proto, const ProxyOptions& options = ProxyOptions());
+
+JSObject* RenewProxyObject(JSContext* cx, JSObject* obj,
+                           BaseProxyHandler* handler, const Value& priv);
+
+class JS_FRIEND_API AutoEnterPolicy {
+ public:
+  typedef BaseProxyHandler::Action Action;
+  AutoEnterPolicy(JSContext* cx, const BaseProxyHandler* handler,
+                  HandleObject wrapper, HandleId id, Action act, bool mayThrow)
+#ifdef JS_DEBUG
+      : context(nullptr)
+#endif
+  {
+    allow = handler->hasSecurityPolicy()
+                ? handler->enter(cx, wrapper, id, act, mayThrow, &rv)
+                : true;
+    recordEnter(cx, wrapper, id, act);
+    // We want to throw an exception if all of the following are true:
+    // * The policy disallowed access.
+    // * The policy set rv to false, indicating that we should throw.
+    // * The caller did not instruct us to ignore exceptions.
+    // * The policy did not throw itself.
+    if (!allow && !rv && mayThrow) reportErrorIfExceptionIsNotPending(cx, id);
+  }
+
+  virtual ~AutoEnterPolicy() { recordLeave(); }
+  inline bool allowed() { return allow; }
+  inline bool returnValue() {
+    MOZ_ASSERT(!allowed());
+    return rv;
+  }
+
+ protected:
+  // no-op constructor for subclass
+  AutoEnterPolicy()
+#ifdef JS_DEBUG
+      : context(nullptr),
+        enteredAction(BaseProxyHandler::NONE)
+#endif
+  {
+  }
+  void reportErrorIfExceptionIsNotPending(JSContext* cx, jsid id);
+  bool allow;
+  bool rv;
+
+#ifdef JS_DEBUG
+  JSContext* context;
+  mozilla::Maybe<HandleObject> enteredProxy;
+  mozilla::Maybe<HandleId> enteredId;
+  Action enteredAction;
+
+  // NB: We explicitly don't track the entered action here, because sometimes
+  // set() methods do an implicit get() during their implementation, leading
+  // to spurious assertions.
+  AutoEnterPolicy* prev;
+  void recordEnter(JSContext* cx, HandleObject proxy, HandleId id, Action act);
+  void recordLeave();
+
+  friend JS_FRIEND_API void assertEnteredPolicy(JSContext* cx, JSObject* proxy,
+                                                jsid id, Action act);
+#else
+  inline void recordEnter(JSContext* cx, JSObject* proxy, jsid id, Action act) {
+  }
+  inline void recordLeave() {}
+#endif
+
+ private:
+  // This operator needs to be deleted explicitly, otherwise Visual C++ will
+  // create it automatically when it is part of the export JS API. In that
+  // case, compile would fail because HandleId is not allowed to be assigned
+  // and consequently instantiation of assign operator of mozilla::Maybe
+  // would fail. See bug 1325351 comment 16. Copy constructor is removed at
+  // the same time for consistency.
+  AutoEnterPolicy(const AutoEnterPolicy&) = delete;
+  AutoEnterPolicy& operator=(const AutoEnterPolicy&) = delete;
+};
+
+#ifdef JS_DEBUG
+class JS_FRIEND_API AutoWaivePolicy : public AutoEnterPolicy {
+ public:
+  AutoWaivePolicy(JSContext* cx, HandleObject proxy, HandleId id,
+                  BaseProxyHandler::Action act) {
+    allow = true;
+    recordEnter(cx, proxy, id, act);
+  }
+};
+#else
+class JS_FRIEND_API AutoWaivePolicy {
+ public:
+  AutoWaivePolicy(JSContext* cx, HandleObject proxy, HandleId id,
+                  BaseProxyHandler::Action act) {}
+};
+#endif
+
+#ifdef JS_DEBUG
+extern JS_FRIEND_API void assertEnteredPolicy(JSContext* cx, JSObject* obj,
+                                              jsid id,
+                                              BaseProxyHandler::Action act);
+#else
+inline void assertEnteredPolicy(JSContext* cx, JSObject* obj, jsid id,
+                                BaseProxyHandler::Action act) {}
+#endif
+
+extern JS_FRIEND_API JSObject* InitProxyClass(JSContext* cx,
+                                              JS::HandleObject obj);
+
+extern JS_FRIEND_DATA const js::ClassOps ProxyClassOps;
+extern JS_FRIEND_DATA const js::ClassExtension ProxyClassExtension;
+extern JS_FRIEND_DATA const js::ObjectOps ProxyObjectOps;
+
+template <unsigned Flags>
+constexpr unsigned CheckProxyFlags() {
+  // For now assert each Proxy Class has at least 1 reserved slot. This is
+  // not a hard requirement, but helps catch Classes that need an explicit
+  // JSCLASS_HAS_RESERVED_SLOTS since bug 1360523.
+  static_assert(((Flags >> JSCLASS_RESERVED_SLOTS_SHIFT) &
+                 JSCLASS_RESERVED_SLOTS_MASK) > 0,
+                "Proxy Classes must have at least 1 reserved slot");
+
+  // ProxyValueArray must fit inline in the object, so assert the number of
+  // slots does not exceed MAX_FIXED_SLOTS.
+  static_assert(
+      (offsetof(js::detail::ProxyValueArray, reservedSlots) / sizeof(Value)) +
+              ((Flags >> JSCLASS_RESERVED_SLOTS_SHIFT) &
+               JSCLASS_RESERVED_SLOTS_MASK) <=
+          shadow::Object::MAX_FIXED_SLOTS,
+      "ProxyValueArray size must not exceed max JSObject size");
+
+  // Proxies must not have the JSCLASS_SKIP_NURSERY_FINALIZE flag set: they
+  // always have finalizers, and whether they can be nursery allocated is
+  // controlled by the canNurseryAllocate() method on the proxy handler.
+  static_assert(!(Flags & JSCLASS_SKIP_NURSERY_FINALIZE),
+                "Proxies must not use JSCLASS_SKIP_NURSERY_FINALIZE; use "
+                "the canNurseryAllocate() proxy handler method instead.");
+  return Flags;
+}
+
+#define PROXY_CLASS_DEF(name, flags)                                       \
+  {                                                                        \
+    name,                                                                  \
+        js::Class::NON_NATIVE | JSCLASS_IS_PROXY |                         \
+            JSCLASS_DELAY_METADATA_BUILDER | js::CheckProxyFlags<flags>(), \
+        &js::ProxyClassOps, JS_NULL_CLASS_SPEC, &js::ProxyClassExtension,  \
+        &js::ProxyObjectOps                                                \
+  }
+
+} /* namespace js */
+
+#endif /* js_Proxy_h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/*
+ * Various #defines required to build SpiderMonkey.  Embedders should add this
+ * file to the start of the command line via -include or a similar mechanism,
+ * or SpiderMonkey public headers may not work correctly.
+ */
+
+#ifndef js_RequiredDefines_h
+#define js_RequiredDefines_h
+
+/*
+ * The c99 defining the limit macros (UINT32_MAX for example), says:
+ *
+ *   C++ implementations should define these macros only when
+ *   __STDC_LIMIT_MACROS is defined before <stdint.h> is included.
+ *
+ * The same also occurs with __STDC_CONSTANT_MACROS for the constant macros
+ * (INT8_C for example) used to specify a literal constant of the proper type,
+ * and with __STDC_FORMAT_MACROS for the format macros (PRId32 for example) used
+ * with the fprintf function family.
+ */
+#define __STDC_LIMIT_MACROS
+#define __STDC_CONSTANT_MACROS
+#define __STDC_FORMAT_MACROS
+
+/* Also define a char16_t type if not provided by the compiler. */
+#include "mozilla/Char16.h"
+
+#endif /* js_RequiredDefines_h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_SliceBudget_h
+#define js_SliceBudget_h
+
+#include <stdint.h>
+
+#include "jstypes.h"
+
+namespace js {
+
+struct JS_PUBLIC_API TimeBudget {
+  int64_t budget;
+
+  explicit TimeBudget(int64_t milliseconds) { budget = milliseconds; }
+};
+
+struct JS_PUBLIC_API WorkBudget {
+  int64_t budget;
+
+  explicit WorkBudget(int64_t work) { budget = work; }
+};
+
+/*
+ * This class records how much work has been done in a given collection slice,
+ * so that we can return before pausing for too long. Some slices are allowed
+ * to run for unlimited time, and others are bounded. To reduce the number of
+ * gettimeofday calls, we only check the time every 1000 operations.
+ */
+class JS_PUBLIC_API SliceBudget {
+  static const int64_t unlimitedDeadline = INT64_MAX;
+  static const intptr_t unlimitedStartCounter = INTPTR_MAX;
+
+  bool checkOverBudget();
+
+  SliceBudget();
+
+ public:
+  // Memory of the originally requested budget. If isUnlimited, neither of
+  // these are in use. If deadline==0, then workBudget is valid. Otherwise
+  // timeBudget is valid.
+  TimeBudget timeBudget;
+  WorkBudget workBudget;
+
+  int64_t deadline; /* in microseconds */
+  intptr_t counter;
+
+  static const intptr_t CounterReset = 1000;
+
+  static const int64_t UnlimitedTimeBudget = -1;
+  static const int64_t UnlimitedWorkBudget = -1;
+
+  /* Use to create an unlimited budget. */
+  static SliceBudget unlimited() { return SliceBudget(); }
+
+  /* Instantiate as SliceBudget(TimeBudget(n)). */
+  explicit SliceBudget(TimeBudget time);
+
+  /* Instantiate as SliceBudget(WorkBudget(n)). */
+  explicit SliceBudget(WorkBudget work);
+
+  void makeUnlimited() {
+    deadline = unlimitedDeadline;
+    counter = unlimitedStartCounter;
+  }
+
+  void step(intptr_t amt = 1) { counter -= amt; }
+
+  bool isOverBudget() {
+    if (counter > 0) return false;
+    return checkOverBudget();
+  }
+
+  bool isWorkBudget() const { return deadline == 0; }
+  bool isTimeBudget() const { return deadline > 0 && !isUnlimited(); }
+  bool isUnlimited() const { return deadline == unlimitedDeadline; }
+
+  int describe(char* buffer, size_t maxlen) const;
+};
+
+}  // namespace js
+
+#endif /* js_SliceBudget_h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/*
+ * `Result` is used as the return type of many SpiderMonkey functions that
+ * can either succeed or fail. See "/mfbt/Result.h".
+ *
+ *
+ * ## Which return type to use
+ *
+ * `Result` is for return values. Obviously, if you're writing a function that
+ * can't fail, don't use Result. Otherwise:
+ *
+ *     JS::Result<>  - function can fail, doesn't return anything on success
+ *         (defaults to `JS::Result<JS::Ok, JS::Error&>`)
+ *     JS::Result<JS::OOM&> - like JS::Result<>, but fails only on OOM
+ *
+ *     JS::Result<Data>  - function can fail, returns Data on success
+ *     JS::Result<Data, JS::OOM&>  - returns Data, fails only on OOM
+ *
+ *     mozilla::GenericErrorResult<JS::Error&> - always fails
+ *
+ * That last type is like a Result with no success type. It's used for
+ * functions like `js::ReportNotFunction` that always return an error
+ * result. `GenericErrorResult<E>` implicitly converts to `Result<V, E>`,
+ * regardless of V.
+ *
+ *
+ * ## Checking Results when your return type is Result
+ *
+ * When you call a function that returns a `Result`, use the `MOZ_TRY` macro to
+ * check for errors:
+ *
+ *     MOZ_TRY(DefenestrateObject(cx, obj));
+ *
+ * If `DefenestrateObject` returns a success result, `MOZ_TRY` is done, and
+ * control flows to the next statement. If `DefenestrateObject` returns an
+ * error result, `MOZ_TRY` will immediately return it, propagating the error to
+ * your caller. It's kind of like exceptions, but more explicit -- you can see
+ * in the code exactly where errors can happen.
+ *
+ * You can do a tail call instead of using `MOZ_TRY`:
+ *
+ *     return DefenestrateObject(cx, obj);
+ *
+ * Indicate success with `return Ok();`.
+ *
+ * If the function returns a value on success, use `MOZ_TRY_VAR` to get it:
+ *
+ *     RootedValue thrug(cx);
+ *     MOZ_TRY_VAR(thrug, GetObjectThrug(cx, obj));
+ *
+ * This behaves the same as `MOZ_TRY` on error. On success, the success
+ * value of `GetObjectThrug(cx, obj)` is assigned to the variable `thrug`.
+ *
+ *
+ * ## Checking Results when your return type is not Result
+ *
+ * This header defines alternatives to MOZ_TRY and MOZ_TRY_VAR for when you
+ * need to call a `Result` function from a function that uses false or nullptr
+ * to indicate errors:
+ *
+ *     JS_TRY_OR_RETURN_FALSE(cx, DefenestrateObject(cx, obj));
+ *     JS_TRY_VAR_OR_RETURN_FALSE(cx, v, GetObjectThrug(cx, obj));
+ *
+ *     JS_TRY_OR_RETURN_NULL(cx, DefenestrateObject(cx, obj));
+ *     JS_TRY_VAR_OR_RETURN_NULL(cx, v, GetObjectThrug(cx, obj));
+ *
+ * When TRY is not what you want, because you need to do some cleanup or
+ * recovery on error, use this idiom:
+ *
+ *     if (!cx->resultToBool(expr_that_is_a_Result)) {
+ *         ... your recovery code here ...
+ *     }
+ *
+ * In place of a tail call, you can use one of these methods:
+ *
+ *     return cx->resultToBool(expr);  // false on error
+ *     return cx->resultToPtr(expr);  // null on error
+ *
+ * Once we are using `Result` everywhere, including in public APIs, all of
+ * these will go away.
+ *
+ *
+ * ## GC safety
+ *
+ * When a function returns a `JS::Result<JSObject*>`, it is the program's
+ * responsibility to check for errors and root the object before continuing:
+ *
+ *     RootedObject wrapper(cx);
+ *     MOZ_TRY_VAR(wrapper, Enwrapify(cx, thing));
+ *
+ * This is ideal. On error, there is no object to root; on success, the
+ * assignment to wrapper roots it. GC safety is ensured.
+ *
+ * `Result` has methods .isOk(), .isErr(), .unwrap(), and .unwrapErr(), but if
+ * you're actually using them, it's possible to create a GC hazard. The static
+ * analysis will catch it if so, but that's hardly convenient. So try to stick
+ * to the idioms shown above.
+ *
+ *
+ * ## Future directions
+ *
+ * At present, JS::Error and JS::OOM are empty structs. The plan is to make them
+ * GC things that contain the actual error information (including the exception
+ * value and a saved stack).
+ *
+ * The long-term plan is to remove JS_IsExceptionPending and
+ * JS_GetPendingException in favor of JS::Error. Exception state will no longer
+ * exist.
+ */
+
+#ifndef js_Result_h
+#define js_Result_h
+
+#include "mozilla/Result.h"
+
+/**
+ * Evaluate the boolean expression expr. If it's true, do nothing.
+ * If it's false, return an error result.
+ */
+#define JS_TRY_BOOL_TO_RESULT(cx, expr)       \
+  do {                                        \
+    bool ok_ = (expr);                        \
+    if (!ok_) return (cx)->boolToResult(ok_); \
+  } while (0)
+
+/**
+ * JS_TRY_OR_RETURN_FALSE(cx, expr) runs expr to compute a Result value.
+ * On success, nothing happens; on error, it returns false immediately.
+ *
+ * Implementation note: this involves cx because this may eventually
+ * do the work of setting a pending exception or reporting OOM.
+ */
+#define JS_TRY_OR_RETURN_FALSE(cx, expr)                           \
+  do {                                                             \
+    auto tmpResult_ = (expr);                                      \
+    if (tmpResult_.isErr()) return (cx)->resultToBool(tmpResult_); \
+  } while (0)
+
+/**
+ * Like JS_TRY_OR_RETURN_FALSE, but returning nullptr on error,
+ * rather than false.
+ */
+#define JS_TRY_OR_RETURN_NULL(cx, expr)                \
+  do {                                                 \
+    auto tmpResult_ = (expr);                          \
+    if (tmpResult_.isErr()) {                          \
+      JS_ALWAYS_FALSE((cx)->resultToBool(tmpResult_)); \
+      return nullptr;                                  \
+    }                                                  \
+  } while (0)
+
+#define JS_TRY_VAR_OR_RETURN_FALSE(cx, target, expr)               \
+  do {                                                             \
+    auto tmpResult_ = (expr);                                      \
+    if (tmpResult_.isErr()) return (cx)->resultToBool(tmpResult_); \
+    (target) = tmpResult_.unwrap();                                \
+  } while (0)
+
+#define JS_TRY_VAR_OR_RETURN_NULL(cx, target, expr)    \
+  do {                                                 \
+    auto tmpResult_ = (expr);                          \
+    if (tmpResult_.isErr()) {                          \
+      JS_ALWAYS_FALSE((cx)->resultToBool(tmpResult_)); \
+      return nullptr;                                  \
+    }                                                  \
+    (target) = tmpResult_.unwrap();                    \
+  } while (0)
+
+namespace JS {
+
+using mozilla::Ok;
+
+/**
+ * Type representing a JS error or exception. At the moment this only
+ * "represents" an error in a rather abstract way.
+ */
+struct Error {
+  // Ensure sizeof(Error) > 1 so that Result<V, Error&> can use pointer
+  // tagging.
+  int dummy;
+};
+
+struct OOM : public Error {};
+
+/**
+ * `Result` is intended to be the return type of JSAPI calls and internal
+ * functions that can run JS code or allocate memory from the JS GC heap. Such
+ * functions can:
+ *
+ * -   succeed, possibly returning a value;
+ *
+ * -   fail with a JS exception (out-of-memory falls in this category); or
+ *
+ * -   fail because JS execution was terminated, which occurs when e.g. a
+ *     user kills a script from the "slow script" UI. This is also how we
+ *     unwind the stack when the debugger forces the current function to
+ *     return. JS `catch` blocks can't catch this kind of failure,
+ *     and JS `finally` blocks don't execute.
+ */
+template <typename V = Ok, typename E = Error&>
+using Result = mozilla::Result<V, E>;
+
+static_assert(sizeof(Result<>) == sizeof(uintptr_t),
+              "Result<> should be pointer-sized");
+
+static_assert(sizeof(Result<int*, Error&>) == sizeof(uintptr_t),
+              "Result<V*, Error&> should be pointer-sized");
+
+}  // namespace JS
+
+#endif  // js_Result_h
+                                                                                                                                                                                                  /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_RootingAPI_h
+#define js_RootingAPI_h
+
+#include "mozilla/Attributes.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/GuardObjects.h"
+#include "mozilla/LinkedList.h"
+#include "mozilla/Move.h"
+#include "mozilla/TypeTraits.h"
+
+#include <type_traits>
+
+#include "jspubtd.h"
+
+#include "js/GCAnnotations.h"
+#include "js/GCPolicyAPI.h"
+#include "js/HeapAPI.h"
+#include "js/ProfilingStack.h"
+#include "js/TypeDecls.h"
+#include "js/UniquePtr.h"
+#include "js/Utility.h"
+
+/*
+ * Moving GC Stack Rooting
+ *
+ * A moving GC may change the physical location of GC allocated things, even
+ * when they are rooted, updating all pointers to the thing to refer to its new
+ * location. The GC must therefore know about all live pointers to a thing,
+ * not just one of them, in order to behave correctly.
+ *
+ * The |Rooted| and |Handle| classes below are used to root stack locations
+ * whose value may be held live across a call that can trigger GC. For a
+ * code fragment such as:
+ *
+ * JSObject* obj = NewObject(cx);
+ * DoSomething(cx);
+ * ... = obj->lastProperty();
+ *
+ * If |DoSomething()| can trigger a GC, the stack location of |obj| must be
+ * rooted to ensure that the GC does not move the JSObject referred to by
+ * |obj| without updating |obj|'s location itself. This rooting must happen
+ * regardless of whether there are other roots which ensure that the object
+ * itself will not be collected.
+ *
+ * If |DoSomething()| cannot trigger a GC, and the same holds for all other
+ * calls made between |obj|'s definitions and its last uses, then no rooting
+ * is required.
+ *
+ * SpiderMonkey can trigger a GC at almost any time and in ways that are not
+ * always clear. For example, the following innocuous-looking actions can
+ * cause a GC: allocation of any new GC thing; JSObject::hasProperty;
+ * JS_ReportError and friends; and ToNumber, among many others. The following
+ * dangerous-looking actions cannot trigger a GC: js_malloc, cx->malloc_,
+ * rt->malloc_, and friends and JS_ReportOutOfMemory.
+ *
+ * The following family of three classes will exactly root a stack location.
+ * Incorrect usage of these classes will result in a compile error in almost
+ * all cases. Therefore, it is very hard to be incorrectly rooted if you use
+ * these classes exclusively. These classes are all templated on the type T of
+ * the value being rooted.
+ *
+ * - Rooted<T> declares a variable of type T, whose value is always rooted.
+ *   Rooted<T> may be automatically coerced to a Handle<T>, below. Rooted<T>
+ *   should be used whenever a local variable's value may be held live across a
+ *   call which can trigger a GC.
+ *
+ * - Handle<T> is a const reference to a Rooted<T>. Functions which take GC
+ *   things or values as arguments and need to root those arguments should
+ *   generally use handles for those arguments and avoid any explicit rooting.
+ *   This has two benefits. First, when several such functions call each other
+ *   then redundant rooting of multiple copies of the GC thing can be avoided.
+ *   Second, if the caller does not pass a rooted value a compile error will be
+ *   generated, which is quicker and easier to fix than when relying on a
+ *   separate rooting analysis.
+ *
+ * - MutableHandle<T> is a non-const reference to Rooted<T>. It is used in the
+ *   same way as Handle<T> and includes a |set(const T& v)| method to allow
+ *   updating the value of the referenced Rooted<T>. A MutableHandle<T> can be
+ *   created with an implicit cast from a Rooted<T>*.
+ *
+ * In some cases the small performance overhead of exact rooting (measured to
+ * be a few nanoseconds on desktop) is too much. In these cases, try the
+ * following:
+ *
+ * - Move all Rooted<T> above inner loops: this allows you to re-use the root
+ *   on each iteration of the loop.
+ *
+ * - Pass Handle<T> through your hot call stack to avoid re-rooting costs at
+ *   every invocation.
+ *
+ * The following diagram explains the list of supported, implicit type
+ * conversions between classes of this family:
+ *
+ *  Rooted<T> ----> Handle<T>
+ *     |               ^
+ *     |               |
+ *     |               |
+ *     +---> MutableHandle<T>
+ *     (via &)
+ *
+ * All of these types have an implicit conversion to raw pointers.
+ */
+
+namespace js {
+
+template <typename T>
+struct BarrierMethods {};
+
+template <typename Element, typename Wrapper>
+class WrappedPtrOperations {};
+
+template <typename Element, typename Wrapper>
+class MutableWrappedPtrOperations
+    : public WrappedPtrOperations<Element, Wrapper> {};
+
+template <typename T, typename Wrapper>
+class RootedBase : public MutableWrappedPtrOperations<T, Wrapper> {};
+
+template <typename T, typename Wrapper>
+class HandleBase : public WrappedPtrOperations<T, Wrapper> {};
+
+template <typename T, typename Wrapper>
+class MutableHandleBase : public MutableWrappedPtrOperations<T, Wrapper> {};
+
+template <typename T, typename Wrapper>
+class HeapBase : public MutableWrappedPtrOperations<T, Wrapper> {};
+
+// Cannot use FOR_EACH_HEAP_ABLE_GC_POINTER_TYPE, as this would import too many
+// macros into scope
+template <typename T>
+struct IsHeapConstructibleType {
+  static constexpr bool value = false;
+};
+#define DECLARE_IS_HEAP_CONSTRUCTIBLE_TYPE(T) \
+  template <>                                 \
+  struct IsHeapConstructibleType<T> {         \
+    static constexpr bool value = true;       \
+  };
+FOR_EACH_PUBLIC_GC_POINTER_TYPE(DECLARE_IS_HEAP_CONSTRUCTIBLE_TYPE)
+FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(DECLARE_IS_HEAP_CONSTRUCTIBLE_TYPE)
+#undef DECLARE_IS_HEAP_CONSTRUCTIBLE_TYPE
+
+template <typename T, typename Wrapper>
+class PersistentRootedBase : public MutableWrappedPtrOperations<T, Wrapper> {};
+
+template <typename T>
+class FakeRooted;
+
+template <typename T>
+class FakeMutableHandle;
+
+namespace gc {
+struct Cell;
+template <typename T>
+struct PersistentRootedMarker;
+} /* namespace gc */
+
+// Important: Return a reference so passing a Rooted<T>, etc. to
+// something that takes a |const T&| is not a GC hazard.
+#define DECLARE_POINTER_CONSTREF_OPS(T)       \
+  operator const T&() const { return get(); } \
+  const T& operator->() const { return get(); }
+
+// Assignment operators on a base class are hidden by the implicitly defined
+// operator= on the derived class. Thus, define the operator= directly on the
+// class as we would need to manually pass it through anyway.
+#define DECLARE_POINTER_ASSIGN_OPS(Wrapper, T)     \
+  Wrapper<T>& operator=(const T& p) {              \
+    set(p);                                        \
+    return *this;                                  \
+  }                                                \
+  Wrapper<T>& operator=(T&& p) {                   \
+    set(mozilla::Move(p));                         \
+    return *this;                                  \
+  }                                                \
+  Wrapper<T>& operator=(const Wrapper<T>& other) { \
+    set(other.get());                              \
+    return *this;                                  \
+  }
+
+#define DELETE_ASSIGNMENT_OPS(Wrapper, T) \
+  template <typename S>                   \
+  Wrapper<T>& operator=(S) = delete;      \
+  Wrapper<T>& operator=(const Wrapper<T>&) = delete;
+
+#define DECLARE_NONPOINTER_ACCESSOR_METHODS(ptr) \
+  const T* address() const { return &(ptr); }    \
+  const T& get() const { return (ptr); }
+
+#define DECLARE_NONPOINTER_MUTABLE_ACCESSOR_METHODS(ptr) \
+  T* address() { return &(ptr); }                        \
+  T& get() { return (ptr); }
+
+} /* namespace js */
+
+namespace JS {
+
+template <typename T>
+class Rooted;
+template <typename T>
+class PersistentRooted;
+
+/* This is exposing internal state of the GC for inlining purposes. */
+JS_FRIEND_API bool isGCEnabled();
+
+JS_FRIEND_API void HeapObjectPostBarrier(JSObject** objp, JSObject* prev,
+                                         JSObject* next);
+JS_FRIEND_API void HeapStringPostBarrier(JSString** objp, JSString* prev,
+                                         JSString* next);
+
+#ifdef JS_DEBUG
+/**
+ * For generational GC, assert that an object is in the tenured generation as
+ * opposed to being in the nursery.
+ */
+extern JS_FRIEND_API void AssertGCThingMustBeTenured(JSObject* obj);
+extern JS_FRIEND_API void AssertGCThingIsNotNurseryAllocable(
+    js::gc::Cell* cell);
+#else
+inline void AssertGCThingMustBeTenured(JSObject* obj) {}
+inline void AssertGCThingIsNotNurseryAllocable(js::gc::Cell* cell) {}
+#endif
+
+/**
+ * The Heap<T> class is a heap-stored reference to a JS GC thing. All members of
+ * heap classes that refer to GC things should use Heap<T> (or possibly
+ * TenuredHeap<T>, described below).
+ *
+ * Heap<T> is an abstraction that hides some of the complexity required to
+ * maintain GC invariants for the contained reference. It uses operator
+ * overloading to provide a normal pointer interface, but notifies the GC every
+ * time the value it contains is updated. This is necessary for generational GC,
+ * which keeps track of all pointers into the nursery.
+ *
+ * Heap<T> instances must be traced when their containing object is traced to
+ * keep the pointed-to GC thing alive.
+ *
+ * Heap<T> objects should only be used on the heap. GC references stored on the
+ * C/C++ stack must use Rooted/Handle/MutableHandle instead.
+ *
+ * Type T must be a public GC pointer type.
+ */
+template <typename T>
+class MOZ_NON_MEMMOVABLE Heap : public js::HeapBase<T, Heap<T>> {
+  // Please note: this can actually also be used by nsXBLMaybeCompiled<T>, for
+  // legacy reasons.
+  static_assert(js::IsHeapConstructibleType<T>::value,
+                "Type T must be a public GC pointer type");
+
+ public:
+  using ElementType = T;
+
+  Heap() {
+    static_assert(sizeof(T) == sizeof(Heap<T>),
+                  "Heap<T> must be binary compatible with T.");
+    init(GCPolicy<T>::initial());
+  }
+  explicit Heap(const T& p) { init(p); }
+
+  /*
+   * For Heap, move semantics are equivalent to copy semantics. In C++, a
+   * copy constructor taking const-ref is the way to get a single function
+   * that will be used for both lvalue and rvalue copies, so we can simply
+   * omit the rvalue variant.
+   */
+  explicit Heap(const Heap<T>& p) { init(p.ptr); }
+
+  ~Heap() { post(ptr, GCPolicy<T>::initial()); }
+
+  DECLARE_POINTER_CONSTREF_OPS(T);
+  DECLARE_POINTER_ASSIGN_OPS(Heap, T);
+
+  const T* address() const { return &ptr; }
+
+  void exposeToActiveJS() const { js::BarrierMethods<T>::exposeToJS(ptr); }
+  const T& get() const {
+    exposeToActiveJS();
+    return ptr;
+  }
+  const T& unbarrieredGet() const { return ptr; }
+
+  T* unsafeGet() { return &ptr; }
+
+  explicit operator bool() const {
+    return bool(js::BarrierMethods<T>::asGCThingOrNull(ptr));
+  }
+  explicit operator bool() {
+    return bool(js::BarrierMethods<T>::asGCThingOrNull(ptr));
+  }
+
+ private:
+  void init(const T& newPtr) {
+    ptr = newPtr;
+    post(GCPolicy<T>::initial(), ptr);
+  }
+
+  void set(const T& newPtr) {
+    T tmp = ptr;
+    ptr = newPtr;
+    post(tmp, ptr);
+  }
+
+  void post(const T& prev, const T& next) {
+    js::BarrierMethods<T>::postBarrier(&ptr, prev, next);
+  }
+
+  T ptr;
+};
+
+static MOZ_ALWAYS_INLINE bool ObjectIsTenured(JSObject* obj) {
+  return !js::gc::IsInsideNursery(reinterpret_cast<js::gc::Cell*>(obj));
+}
+
+static MOZ_ALWAYS_INLINE bool ObjectIsTenured(const Heap<JSObject*>& obj) {
+  return ObjectIsTenured(obj.unbarrieredGet());
+}
+
+static MOZ_ALWAYS_INLINE bool ObjectIsMarkedGray(JSObject* obj) {
+  auto cell = reinterpret_cast<js::gc::Cell*>(obj);
+  return js::gc::detail::CellIsMarkedGrayIfKnown(cell);
+}
+
+static MOZ_ALWAYS_INLINE bool ObjectIsMarkedGray(
+    const JS::Heap<JSObject*>& obj) {
+  return ObjectIsMarkedGray(obj.unbarrieredGet());
+}
+
+// The following *IsNotGray functions are for use in assertions and take account
+// of the eventual gray marking state at the end of any ongoing incremental GC.
+#ifdef DEBUG
+inline bool CellIsNotGray(js::gc::Cell* maybeCell) {
+  if (!maybeCell) return true;
+
+  return js::gc::detail::CellIsNotGray(maybeCell);
+}
+
+inline bool ObjectIsNotGray(JSObject* maybeObj) {
+  return CellIsNotGray(reinterpret_cast<js::gc::Cell*>(maybeObj));
+}
+
+inline bool ObjectIsNotGray(const JS::Heap<JSObject*>& obj) {
+  return ObjectIsNotGray(obj.unbarrieredGet());
+}
+#endif
+
+/**
+ * The TenuredHeap<T> class is similar to the Heap<T> class above in that it
+ * encapsulates the GC concerns of an on-heap reference to a JS object. However,
+ * it has two important differences:
+ *
+ *  1) Pointers which are statically known to only reference "tenured" objects
+ *     can avoid the extra overhead of SpiderMonkey's write barriers.
+ *
+ *  2) Objects in the "tenured" heap have stronger alignment restrictions than
+ *     those in the "nursery", so it is possible to store flags in the lower
+ *     bits of pointers known to be tenured. TenuredHeap wraps a normal tagged
+ *     pointer with a nice API for accessing the flag bits and adds various
+ *     assertions to ensure that it is not mis-used.
+ *
+ * GC things are said to be "tenured" when they are located in the long-lived
+ * heap: e.g. they have gained tenure as an object by surviving past at least
+ * one GC. For performance, SpiderMonkey allocates some things which are known
+ * to normally be long lived directly into the tenured generation; for example,
+ * global objects. Additionally, SpiderMonkey does not visit individual objects
+ * when deleting non-tenured objects, so object with finalizers are also always
+ * tenured; for instance, this includes most DOM objects.
+ *
+ * The considerations to keep in mind when using a TenuredHeap<T> vs a normal
+ * Heap<T> are:
+ *
+ *  - It is invalid for a TenuredHeap<T> to refer to a non-tenured thing.
+ *  - It is however valid for a Heap<T> to refer to a tenured thing.
+ *  - It is not possible to store flag bits in a Heap<T>.
+ */
+template <typename T>
+class TenuredHeap : public js::HeapBase<T, TenuredHeap<T>> {
+ public:
+  using ElementType = T;
+
+  TenuredHeap() : bits(0) {
+    static_assert(sizeof(T) == sizeof(TenuredHeap<T>),
+                  "TenuredHeap<T> must be binary compatible with T.");
+  }
+  explicit TenuredHeap(T p) : bits(0) { setPtr(p); }
+  explicit TenuredHeap(const TenuredHeap<T>& p) : bits(0) {
+    setPtr(p.getPtr());
+  }
+
+  void setPtr(T newPtr) {
+    MOZ_ASSERT((reinterpret_cast<uintptr_t>(newPtr) & flagsMask) == 0);
+    MOZ_ASSERT(js::gc::IsCellPointerValidOrNull(newPtr));
+    if (newPtr) AssertGCThingMustBeTenured(newPtr);
+    bits = (bits & flagsMask) | reinterpret_cast<uintptr_t>(newPtr);
+  }
+
+  void setFlags(uintptr_t flagsToSet) {
+    MOZ_ASSERT((flagsToSet & ~flagsMask) == 0);
+    bits |= flagsToSet;
+  }
+
+  void unsetFlags(uintptr_t flagsToUnset) {
+    MOZ_ASSERT((flagsToUnset & ~flagsMask) == 0);
+    bits &= ~flagsToUnset;
+  }
+
+  bool hasFlag(uintptr_t flag) const {
+    MOZ_ASSERT((flag & ~flagsMask) == 0);
+    return (bits & flag) != 0;
+  }
+
+  T unbarrieredGetPtr() const { return reinterpret_cast<T>(bits & ~flagsMask); }
+  uintptr_t getFlags() const { return bits & flagsMask; }
+
+  void exposeToActiveJS() const {
+    js::BarrierMethods<T>::exposeToJS(unbarrieredGetPtr());
+  }
+  T getPtr() const {
+    exposeToActiveJS();
+    return unbarrieredGetPtr();
+  }
+
+  operator T() const { return getPtr(); }
+  T operator->() const { return getPtr(); }
+
+  explicit operator bool() const {
+    return bool(js::BarrierMethods<T>::asGCThingOrNull(unbarrieredGetPtr()));
+  }
+  explicit operator bool() {
+    return bool(js::BarrierMethods<T>::asGCThingOrNull(unbarrieredGetPtr()));
+  }
+
+  TenuredHeap<T>& operator=(T p) {
+    setPtr(p);
+    return *this;
+  }
+
+  TenuredHeap<T>& operator=(const TenuredHeap<T>& other) {
+    bits = other.bits;
+    return *this;
+  }
+
+ private:
+  enum {
+    maskBits = 3,
+    flagsMask = (1 << maskBits) - 1,
+  };
+
+  uintptr_t bits;
+};
+
+/**
+ * Reference to a T that has been rooted elsewhere. This is most useful
+ * as a parameter type, which guarantees that the T lvalue is properly
+ * rooted. See "Move GC Stack Rooting" above.
+ *
+ * If you want to add additional methods to Handle for a specific
+ * specialization, define a HandleBase<T> specialization containing them.
+ */
+template <typename T>
+class MOZ_NONHEAP_CLASS Handle : public js::HandleBase<T, Handle<T>> {
+  friend class JS::MutableHandle<T>;
+
+ public:
+  using ElementType = T;
+
+  /* Creates a handle from a handle of a type convertible to T. */
+  template <typename S>
+  MOZ_IMPLICIT Handle(
+      Handle<S> handle,
+      typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type
+          dummy = 0) {
+    static_assert(sizeof(Handle<T>) == sizeof(T*),
+                  "Handle must be binary compatible with T*.");
+    ptr = reinterpret_cast<const T*>(handle.address());
+  }
+
+  MOZ_IMPLICIT Handle(decltype(nullptr)) {
+    static_assert(mozilla::IsPointer<T>::value,
+                  "nullptr_t overload not valid for non-pointer types");
+    static void* const ConstNullValue = nullptr;
+    ptr = reinterpret_cast<const T*>(&ConstNullValue);
+  }
+
+  MOZ_IMPLICIT Handle(MutableHandle<T> handle) { ptr = handle.address(); }
+
+  /*
+   * Take care when calling this method!
+   *
+   * This creates a Handle from the raw location of a T.
+   *
+   * It should be called only if the following conditions hold:
+   *
+   *  1) the location of the T is guaranteed to be marked (for some reason
+   *     other than being a Rooted), e.g., if it is guaranteed to be reachable
+   *     from an implicit root.
+   *
+   *  2) the contents of the location are immutable, or at least cannot change
+   *     for the lifetime of the handle, as its users may not expect its value
+   *     to change underneath them.
+   */
+  static constexpr Handle fromMarkedLocation(const T* p) {
+    return Handle(p, DeliberatelyChoosingThisOverload,
+                  ImUsingThisOnlyInFromFromMarkedLocation);
+  }
+
+  /*
+   * Construct a handle from an explicitly rooted location. This is the
+   * normal way to create a handle, and normally happens implicitly.
+   */
+  template <typename S>
+  inline MOZ_IMPLICIT Handle(
+      const Rooted<S>& root,
+      typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type
+          dummy = 0);
+
+  template <typename S>
+  inline MOZ_IMPLICIT Handle(
+      const PersistentRooted<S>& root,
+      typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type
+          dummy = 0);
+
+  /* Construct a read only handle from a mutable handle. */
+  template <typename S>
+  inline MOZ_IMPLICIT Handle(
+      MutableHandle<S>& root,
+      typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type
+          dummy = 0);
+
+  DECLARE_POINTER_CONSTREF_OPS(T);
+  DECLARE_NONPOINTER_ACCESSOR_METHODS(*ptr);
+
+ private:
+  Handle() {}
+  DELETE_ASSIGNMENT_OPS(Handle, T);
+
+  enum Disambiguator { DeliberatelyChoosingThisOverload = 42 };
+  enum CallerIdentity { ImUsingThisOnlyInFromFromMarkedLocation = 17 };
+  constexpr Handle(const T* p, Disambiguator, CallerIdentity) : ptr(p) {}
+
+  const T* ptr;
+};
+
+/**
+ * Similar to a handle, but the underlying storage can be changed. This is
+ * useful for outparams.
+ *
+ * If you want to add additional methods to MutableHandle for a specific
+ * specialization, define a MutableHandleBase<T> specialization containing
+ * them.
+ */
+template <typename T>
+class MOZ_STACK_CLASS MutableHandle
+    : public js::MutableHandleBase<T, MutableHandle<T>> {
+ public:
+  using ElementType = T;
+
+  inline MOZ_IMPLICIT MutableHandle(Rooted<T>* root);
+  inline MOZ_IMPLICIT MutableHandle(PersistentRooted<T>* root);
+
+ private:
+  // Disallow nullptr for overloading purposes.
+  MutableHandle(decltype(nullptr)) = delete;
+
+ public:
+  void set(const T& v) {
+    *ptr = v;
+    MOZ_ASSERT(GCPolicy<T>::isValid(*ptr));
+  }
+  void set(T&& v) {
+    *ptr = mozilla::Move(v);
+    MOZ_ASSERT(GCPolicy<T>::isValid(*ptr));
+  }
+
+  /*
+   * This may be called only if the location of the T is guaranteed
+   * to be marked (for some reason other than being a Rooted),
+   * e.g., if it is guaranteed to be reachable from an implicit root.
+   *
+   * Create a MutableHandle from a raw location of a T.
+   */
+  static MutableHandle fromMarkedLocation(T* p) {
+    MutableHandle h;
+    h.ptr = p;
+    return h;
+  }
+
+  DECLARE_POINTER_CONSTREF_OPS(T);
+  DECLARE_NONPOINTER_ACCESSOR_METHODS(*ptr);
+  DECLARE_NONPOINTER_MUTABLE_ACCESSOR_METHODS(*ptr);
+
+ private:
+  MutableHandle() {}
+  DELETE_ASSIGNMENT_OPS(MutableHandle, T);
+
+  T* ptr;
+};
+
+} /* namespace JS */
+
+namespace js {
+
+template <typename T>
+struct BarrierMethods<T*> {
+  static T* initial() { return nullptr; }
+  static gc::Cell* asGCThingOrNull(T* v) {
+    if (!v) return nullptr;
+    MOZ_ASSERT(uintptr_t(v) > 32);
+    return reinterpret_cast<gc::Cell*>(v);
+  }
+  static void postBarrier(T** vp, T* prev, T* next) {
+    if (next)
+      JS::AssertGCThingIsNotNurseryAllocable(
+          reinterpret_cast<js::gc::Cell*>(next));
+  }
+  static void exposeToJS(T* t) {
+    if (t) js::gc::ExposeGCThingToActiveJS(JS::GCCellPtr(t));
+  }
+};
+
+template <>
+struct BarrierMethods<JSObject*> {
+  static JSObject* initial() { return nullptr; }
+  static gc::Cell* asGCThingOrNull(JSObject* v) {
+    if (!v) return nullptr;
+    MOZ_ASSERT(uintptr_t(v) > 32);
+    return reinterpret_cast<gc::Cell*>(v);
+  }
+  static void postBarrier(JSObject** vp, JSObject* prev, JSObject* next) {
+    JS::HeapObjectPostBarrier(vp, prev, next);
+  }
+  static void exposeToJS(JSObject* obj) {
+    if (obj) JS::ExposeObjectToActiveJS(obj);
+  }
+};
+
+template <>
+struct BarrierMethods<JSFunction*> {
+  static JSFunction* initial() { return nullptr; }
+  static gc::Cell* asGCThingOrNull(JSFunction* v) {
+    if (!v) return nullptr;
+    MOZ_ASSERT(uintptr_t(v) > 32);
+    return reinterpret_cast<gc::Cell*>(v);
+  }
+  static void postBarrier(JSFunction** vp, JSFunction* prev, JSFunction* next) {
+    JS::HeapObjectPostBarrier(reinterpret_cast<JSObject**>(vp),
+                              reinterpret_cast<JSObject*>(prev),
+                              reinterpret_cast<JSObject*>(next));
+  }
+  static void exposeToJS(JSFunction* fun) {
+    if (fun) JS::ExposeObjectToActiveJS(reinterpret_cast<JSObject*>(fun));
+  }
+};
+
+template <>
+struct BarrierMethods<JSString*> {
+  static JSString* initial() { return nullptr; }
+  static gc::Cell* asGCThingOrNull(JSString* v) {
+    if (!v) return nullptr;
+    MOZ_ASSERT(uintptr_t(v) > 32);
+    return reinterpret_cast<gc::Cell*>(v);
+  }
+  static void postBarrier(JSString** vp, JSString* prev, JSString* next) {
+    JS::HeapStringPostBarrier(vp, prev, next);
+  }
+  static void exposeToJS(JSString* v) {
+    if (v) js::gc::ExposeGCThingToActiveJS(JS::GCCellPtr(v));
+  }
+};
+
+// Provide hash codes for Cell kinds that may be relocated and, thus, not have
+// a stable address to use as the base for a hash code. Instead of the address,
+// this hasher uses Cell::getUniqueId to provide exact matches and as a base
+// for generating hash codes.
+//
+// Note: this hasher, like PointerHasher can "hash" a nullptr. While a nullptr
+// would not likely be a useful key, there are some cases where being able to
+// hash a nullptr is useful, either on purpose or because of bugs:
+// (1) existence checks where the key may happen to be null and (2) some
+// aggregate Lookup kinds embed a JSObject* that is frequently null and do not
+// null test before dispatching to the hasher.
+template <typename T>
+struct JS_PUBLIC_API MovableCellHasher {
+  using Key = T;
+  using Lookup = T;
+
+  static bool hasHash(const Lookup& l);
+  static bool ensureHash(const Lookup& l);
+  static HashNumber hash(const Lookup& l);
+  static bool match(const Key& k, const Lookup& l);
+  static void rekey(Key& k, const Key& newKey) { k = newKey; }
+};
+
+template <typename T>
+struct JS_PUBLIC_API MovableCellHasher<JS::Heap<T>> {
+  using Key = JS::Heap<T>;
+  using Lookup = T;
+
+  static bool hasHash(const Lookup& l) {
+    return MovableCellHasher<T>::hasHash(l);
+  }
+  static bool ensureHash(const Lookup& l) {
+    return MovableCellHasher<T>::ensureHash(l);
+  }
+  static HashNumber hash(const Lookup& l) {
+    return MovableCellHasher<T>::hash(l);
+  }
+  static bool match(const Key& k, const Lookup& l) {
+    return MovableCellHasher<T>::match(k.unbarrieredGet(), l);
+  }
+  static void rekey(Key& k, const Key& newKey) { k.unsafeSet(newKey); }
+};
+
+template <typename T>
+struct FallibleHashMethods<MovableCellHasher<T>> {
+  template <typename Lookup>
+  static bool hasHash(Lookup&& l) {
+    return MovableCellHasher<T>::hasHash(mozilla::Forward<Lookup>(l));
+  }
+  template <typename Lookup>
+  static bool ensureHash(Lookup&& l) {
+    return MovableCellHasher<T>::ensureHash(mozilla::Forward<Lookup>(l));
+  }
+};
+
+} /* namespace js */
+
+namespace js {
+
+// The alignment must be set because the Rooted and PersistentRooted ptr fields
+// may be accessed through reinterpret_cast<Rooted<ConcreteTraceable>*>, and
+// the compiler may choose a different alignment for the ptr field when it
+// knows the actual type stored in DispatchWrapper<T>.
+//
+// It would make more sense to align only those specific fields of type
+// DispatchWrapper, rather than DispatchWrapper itself, but that causes MSVC to
+// fail when Rooted is used in an IsConvertible test.
+template <typename T>
+class alignas(8) DispatchWrapper {
+  static_assert(JS::MapTypeToRootKind<T>::kind == JS::RootKind::Traceable,
+                "DispatchWrapper is intended only for usage with a Traceable");
+
+  using TraceFn = void (*)(JSTracer*, T*, const char*);
+  TraceFn tracer;
+  alignas(gc::CellAlignBytes) T storage;
+
+ public:
+  template <typename U>
+  MOZ_IMPLICIT DispatchWrapper(U&& initial)
+      : tracer(&JS::GCPolicy<T>::trace),
+        storage(mozilla::Forward<U>(initial)) {}
+
+  // Mimic a pointer type, so that we can drop into Rooted.
+  T* operator&() { return &storage; }
+  const T* operator&() const { return &storage; }
+  operator T&() { return storage; }
+  operator const T&() const { return storage; }
+
+  // Trace the contained storage (of unknown type) using the trace function
+  // we set aside when we did know the type.
+  static void TraceWrapped(JSTracer* trc, T* thingp, const char* name) {
+    auto wrapper = reinterpret_cast<DispatchWrapper*>(
+        uintptr_t(thingp) - offsetof(DispatchWrapper, storage));
+    wrapper->tracer(trc, &wrapper->storage, name);
+  }
+};
+
+} /* namespace js */
+
+namespace JS {
+
+class JS_PUBLIC_API AutoGCRooter;
+
+// Our instantiations of Rooted<void*> and PersistentRooted<void*> require an
+// instantiation of MapTypeToRootKind.
+template <>
+struct MapTypeToRootKind<void*> {
+  static const RootKind kind = RootKind::Traceable;
+};
+
+using RootedListHeads =
+    mozilla::EnumeratedArray<RootKind, RootKind::Limit, Rooted<void*>*>;
+
+// Superclass of JSContext which can be used for rooting data in use by the
+// current thread but that does not provide all the functions of a JSContext.
+class RootingContext {
+  // Stack GC roots for Rooted GC heap pointers.
+  RootedListHeads stackRoots_;
+  template <typename T>
+  friend class JS::Rooted;
+
+  // Stack GC roots for AutoFooRooter classes.
+  JS::AutoGCRooter* autoGCRooters_;
+  friend class JS::AutoGCRooter;
+
+  // Gecko profiling metadata.
+  // This isn't really rooting related. It's only here because we want
+  // GetContextProfilingStack to be inlineable into non-JS code, and we
+  // didn't want to add another superclass of JSContext just for this.
+  js::GeckoProfilerThread geckoProfiler_;
+
+ public:
+  RootingContext();
+
+  void traceStackRoots(JSTracer* trc);
+  void checkNoGCRooters();
+
+  js::GeckoProfilerThread& geckoProfiler() { return geckoProfiler_; }
+
+ protected:
+  // The remaining members in this class should only be accessed through
+  // JSContext pointers. They are unrelated to rooting and are in place so
+  // that inlined API functions can directly access the data.
+
+  /* The current compartment. */
+  JSCompartment* compartment_;
+
+  /* The current zone. */
+  JS::Zone* zone_;
+
+ public:
+  /* Limit pointer for checking native stack consumption. */
+  uintptr_t nativeStackLimit[StackKindCount];
+
+  static const RootingContext* get(const JSContext* cx) {
+    return reinterpret_cast<const RootingContext*>(cx);
+  }
+
+  static RootingContext* get(JSContext* cx) {
+    return reinterpret_cast<RootingContext*>(cx);
+  }
+
+  friend JSCompartment* js::GetContextCompartment(const JSContext* cx);
+  friend JS::Zone* js::GetContextZone(const JSContext* cx);
+};
+
+class JS_PUBLIC_API AutoGCRooter {
+ public:
+  AutoGCRooter(JSContext* cx, ptrdiff_t tag)
+      : AutoGCRooter(JS::RootingContext::get(cx), tag) {}
+  AutoGCRooter(JS::RootingContext* cx, ptrdiff_t tag)
+      : down(cx->autoGCRooters_), tag_(tag), stackTop(&cx->autoGCRooters_) {
+    MOZ_ASSERT(this != *stackTop);
+    *stackTop = this;
+  }
+
+  ~AutoGCRooter() {
+    MOZ_ASSERT(this == *stackTop);
+    *stackTop = down;
+  }
+
+  /* Implemented in gc/RootMarking.cpp. */
+  inline void trace(JSTracer* trc);
+  static void traceAll(const js::CooperatingContext& target, JSTracer* trc);
+  static void traceAllWrappers(const js::CooperatingContext& target,
+                               JSTracer* trc);
+
+ protected:
+  AutoGCRooter* const down;
+
+  /*
+   * Discriminates actual subclass of this being used.  If non-negative, the
+   * subclass roots an array of values of the length stored in this field.
+   * If negative, meaning is indicated by the corresponding value in the enum
+   * below.  Any other negative value indicates some deeper problem such as
+   * memory corruption.
+   */
+  ptrdiff_t tag_;
+
+  enum {
+    VALARRAY = -2, /* js::AutoValueArray */
+    PARSER = -3,   /* js::frontend::Parser */
+#if defined(JS_BUILD_BINAST)
+    BINPARSER = -4,   /* js::frontend::BinSource */
+#endif                // defined(JS_BUILD_BINAST)
+    IONMASM = -19,    /* js::jit::MacroAssembler */
+    WRAPVECTOR = -20, /* js::AutoWrapperVector */
+    WRAPPER = -21,    /* js::AutoWrapperRooter */
+    CUSTOM = -26      /* js::CustomAutoRooter */
+  };
+
+ private:
+  AutoGCRooter** const stackTop;
+
+  /* No copy or assignment semantics. */
+  AutoGCRooter(AutoGCRooter& ida) = delete;
+  void operator=(AutoGCRooter& ida) = delete;
+};
+
+namespace detail {
+
+/*
+ * For pointer types, the TraceKind for tracing is based on the list it is
+ * in (selected via MapTypeToRootKind), so no additional storage is
+ * required here. Non-pointer types, however, share the same list, so the
+ * function to call for tracing is stored adjacent to the struct. Since C++
+ * cannot templatize on storage class, this is implemented via the wrapper
+ * class DispatchWrapper.
+ */
+template <typename T>
+using MaybeWrapped =
+    typename mozilla::Conditional<MapTypeToRootKind<T>::kind ==
+                                      JS::RootKind::Traceable,
+                                  js::DispatchWrapper<T>, T>::Type;
+
+} /* namespace detail */
+
+/**
+ * Local variable of type T whose value is always rooted. This is typically
+ * used for local variables, or for non-rooted values being passed to a
+ * function that requires a handle, e.g. Foo(Root<T>(cx, x)).
+ *
+ * If you want to add additional methods to Rooted for a specific
+ * specialization, define a RootedBase<T> specialization containing them.
+ */
+template <typename T>
+class MOZ_RAII Rooted : public js::RootedBase<T, Rooted<T>> {
+  inline void registerWithRootLists(RootedListHeads& roots) {
+    this->stack = &roots[JS::MapTypeToRootKind<T>::kind];
+    this->prev = *stack;
+    *stack = reinterpret_cast<Rooted<void*>*>(this);
+  }
+
+  inline RootedListHeads& rootLists(RootingContext* cx) {
+    return cx->stackRoots_;
+  }
+  inline RootedListHeads& rootLists(JSContext* cx) {
+    return rootLists(RootingContext::get(cx));
+  }
+
+ public:
+  using ElementType = T;
+
+  template <typename RootingContext>
+  explicit Rooted(const RootingContext& cx) : ptr(GCPolicy<T>::initial()) {
+    registerWithRootLists(rootLists(cx));
+  }
+
+  template <typename RootingContext, typename S>
+  Rooted(const RootingContext& cx, S&& initial)
+      : ptr(mozilla::Forward<S>(initial)) {
+    MOZ_ASSERT(GCPolicy<T>::isValid(ptr));
+    registerWithRootLists(rootLists(cx));
+  }
+
+  ~Rooted() {
+    MOZ_ASSERT(*stack == reinterpret_cast<Rooted<void*>*>(this));
+    *stack = prev;
+  }
+
+  Rooted<T>* previous() { return reinterpret_cast<Rooted<T>*>(prev); }
+
+  /*
+   * This method is public for Rooted so that Codegen.py can use a Rooted
+   * interchangeably with a MutableHandleValue.
+   */
+  void set(const T& value) {
+    ptr = value;
+    MOZ_ASSERT(GCPolicy<T>::isValid(ptr));
+  }
+  void set(T&& value) {
+    ptr = mozilla::Move(value);
+    MOZ_ASSERT(GCPolicy<T>::isValid(ptr));
+  }
+
+  DECLARE_POINTER_CONSTREF_OPS(T);
+  DECLARE_POINTER_ASSIGN_OPS(Rooted, T);
+  DECLARE_NONPOINTER_ACCESSOR_METHODS(ptr);
+  DECLARE_NONPOINTER_MUTABLE_ACCESSOR_METHODS(ptr);
+
+ private:
+  /*
+   * These need to be templated on void* to avoid aliasing issues between, for
+   * example, Rooted<JSObject> and Rooted<JSFunction>, which use the same
+   * stack head pointer for different classes.
+   */
+  Rooted<void*>** stack;
+  Rooted<void*>* prev;
+
+  detail::MaybeWrapped<T> ptr;
+
+  Rooted(const Rooted&) = delete;
+} JS_HAZ_ROOTED;
+
+} /* namespace JS */
+
+namespace js {
+
+/*
+ * Inlinable accessors for JSContext.
+ *
+ * - These must not be available on the more restricted superclasses of
+ *   JSContext, so we can't simply define them on RootingContext.
+ *
+ * - They're perfectly ordinary JSContext functionality, so ought to be
+ *   usable without resorting to jsfriendapi.h, and when JSContext is an
+ *   incomplete type.
+ */
+inline JSCompartment* GetContextCompartment(const JSContext* cx) {
+  return JS::RootingContext::get(cx)->compartment_;
+}
+
+inline JS::Zone* GetContextZone(const JSContext* cx) {
+  return JS::RootingContext::get(cx)->zone_;
+}
+
+inline PseudoStack* GetContextProfilingStack(JSContext* cx) {
+  return JS::RootingContext::get(cx)->geckoProfiler().getPseudoStack();
+}
+
+/**
+ * Augment the generic Rooted<T> interface when T = JSObject* with
+ * class-querying and downcasting operations.
+ *
+ * Given a Rooted<JSObject*> obj, one can view
+ *   Handle<StringObject*> h = obj.as<StringObject*>();
+ * as an optimization of
+ *   Rooted<StringObject*> rooted(cx, &obj->as<StringObject*>());
+ *   Handle<StringObject*> h = rooted;
+ */
+template <typename Container>
+class RootedBase<JSObject*, Container>
+    : public MutableWrappedPtrOperations<JSObject*, Container> {
+ public:
+  template <class U>
+  JS::Handle<U*> as() const;
+};
+
+/**
+ * Augment the generic Handle<T> interface when T = JSObject* with
+ * downcasting operations.
+ *
+ * Given a Handle<JSObject*> obj, one can view
+ *   Handle<StringObject*> h = obj.as<StringObject*>();
+ * as an optimization of
+ *   Rooted<StringObject*> rooted(cx, &obj->as<StringObject*>());
+ *   Handle<StringObject*> h = rooted;
+ */
+template <typename Container>
+class HandleBase<JSObject*, Container>
+    : public WrappedPtrOperations<JSObject*, Container> {
+ public:
+  template <class U>
+  JS::Handle<U*> as() const;
+};
+
+/**
+ * Types for a variable that either should or shouldn't be rooted, depending on
+ * the template parameter allowGC. Used for implementing functions that can
+ * operate on either rooted or unrooted data.
+ *
+ * The toHandle() and toMutableHandle() functions are for calling functions
+ * which require handle types and are only called in the CanGC case. These
+ * allow the calling code to type check.
+ */
+enum AllowGC { NoGC = 0, CanGC = 1 };
+template <typename T, AllowGC allowGC>
+class MaybeRooted {};
+
+template <typename T>
+class MaybeRooted<T, CanGC> {
+ public:
+  typedef JS::Handle<T> HandleType;
+  typedef JS::Rooted<T> RootType;
+  typedef JS::MutableHandle<T> MutableHandleType;
+
+  static inline JS::Handle<T> toHandle(HandleType v) { return v; }
+
+  static inline JS::MutableHandle<T> toMutableHandle(MutableHandleType v) {
+    return v;
+  }
+
+  template <typename T2>
+  static inline JS::Handle<T2*> downcastHandle(HandleType v) {
+    return v.template as<T2>();
+  }
+};
+
+} /* namespace js */
+
+namespace JS {
+
+template <typename T>
+template <typename S>
+inline Handle<T>::Handle(
+    const Rooted<S>& root,
+    typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type
+        dummy) {
+  ptr = reinterpret_cast<const T*>(root.address());
+}
+
+template <typename T>
+template <typename S>
+inline Handle<T>::Handle(
+    const PersistentRooted<S>& root,
+    typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type
+        dummy) {
+  ptr = reinterpret_cast<const T*>(root.address());
+}
+
+template <typename T>
+template <typename S>
+inline Handle<T>::Handle(
+    MutableHandle<S>& root,
+    typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type
+        dummy) {
+  ptr = reinterpret_cast<const T*>(root.address());
+}
+
+template <typename T>
+inline MutableHandle<T>::MutableHandle(Rooted<T>* root) {
+  static_assert(sizeof(MutableHandle<T>) == sizeof(T*),
+                "MutableHandle must be binary compatible with T*.");
+  ptr = root->address();
+}
+
+template <typename T>
+inline MutableHandle<T>::MutableHandle(PersistentRooted<T>* root) {
+  static_assert(sizeof(MutableHandle<T>) == sizeof(T*),
+                "MutableHandle must be binary compatible with T*.");
+  ptr = root->address();
+}
+
+JS_PUBLIC_API void AddPersistentRoot(RootingContext* cx, RootKind kind,
+                                     PersistentRooted<void*>* root);
+
+JS_PUBLIC_API void AddPersistentRoot(JSRuntime* rt, RootKind kind,
+                                     PersistentRooted<void*>* root);
+
+/**
+ * A copyable, assignable global GC root type with arbitrary lifetime, an
+ * infallible constructor, and automatic unrooting on destruction.
+ *
+ * These roots can be used in heap-allocated data structures, so they are not
+ * associated with any particular JSContext or stack. They are registered with
+ * the JSRuntime itself, without locking, so they require a full JSContext to be
+ * initialized, not one of its more restricted superclasses. Initialization may
+ * take place on construction, or in two phases if the no-argument constructor
+ * is called followed by init().
+ *
+ * Note that you must not use an PersistentRooted in an object owned by a JS
+ * object:
+ *
+ * Whenever one object whose lifetime is decided by the GC refers to another
+ * such object, that edge must be traced only if the owning JS object is traced.
+ * This applies not only to JS objects (which obviously are managed by the GC)
+ * but also to C++ objects owned by JS objects.
+ *
+ * If you put a PersistentRooted in such a C++ object, that is almost certainly
+ * a leak. When a GC begins, the referent of the PersistentRooted is treated as
+ * live, unconditionally (because a PersistentRooted is a *root*), even if the
+ * JS object that owns it is unreachable. If there is any path from that
+ * referent back to the JS object, then the C++ object containing the
+ * PersistentRooted will not be destructed, and the whole blob of objects will
+ * not be freed, even if there are no references to them from the outside.
+ *
+ * In the context of Firefox, this is a severe restriction: almost everything in
+ * Firefox is owned by some JS object or another, so using PersistentRooted in
+ * such objects would introduce leaks. For these kinds of edges, Heap<T> or
+ * TenuredHeap<T> would be better types. It's up to the implementor of the type
+ * containing Heap<T> or TenuredHeap<T> members to make sure their referents get
+ * marked when the object itself is marked.
+ */
+template <typename T>
+class PersistentRooted
+    : public js::RootedBase<T, PersistentRooted<T>>,
+      private mozilla::LinkedListElement<PersistentRooted<T>> {
+  using ListBase = mozilla::LinkedListElement<PersistentRooted<T>>;
+
+  friend class mozilla::LinkedList<PersistentRooted>;
+  friend class mozilla::LinkedListElement<PersistentRooted>;
+
+  void registerWithRootLists(RootingContext* cx) {
+    MOZ_ASSERT(!initialized());
+    JS::RootKind kind = JS::MapTypeToRootKind<T>::kind;
+    AddPersistentRoot(cx, kind,
+                      reinterpret_cast<JS::PersistentRooted<void*>*>(this));
+  }
+
+  void registerWithRootLists(JSRuntime* rt) {
+    MOZ_ASSERT(!initialized());
+    JS::RootKind kind = JS::MapTypeToRootKind<T>::kind;
+    AddPersistentRoot(rt, kind,
+                      reinterpret_cast<JS::PersistentRooted<void*>*>(this));
+  }
+
+ public:
+  using ElementType = T;
+
+  PersistentRooted() : ptr(GCPolicy<T>::initial()) {}
+
+  explicit PersistentRooted(RootingContext* cx) : ptr(GCPolicy<T>::initial()) {
+    registerWithRootLists(cx);
+  }
+
+  explicit PersistentRooted(JSContext* cx) : ptr(GCPolicy<T>::initial()) {
+    registerWithRootLists(RootingContext::get(cx));
+  }
+
+  template <typename U>
+  PersistentRooted(RootingContext* cx, U&& initial)
+      : ptr(mozilla::Forward<U>(initial)) {
+    registerWithRootLists(cx);
+  }
+
+  template <typename U>
+  PersistentRooted(JSContext* cx, U&& initial)
+      : ptr(mozilla::Forward<U>(initial)) {
+    registerWithRootLists(RootingContext::get(cx));
+  }
+
+  explicit PersistentRooted(JSRuntime* rt) : ptr(GCPolicy<T>::initial()) {
+    registerWithRootLists(rt);
+  }
+
+  template <typename U>
+  PersistentRooted(JSRuntime* rt, U&& initial)
+      : ptr(mozilla::Forward<U>(initial)) {
+    registerWithRootLists(rt);
+  }
+
+  PersistentRooted(const PersistentRooted& rhs)
+      : mozilla::LinkedListElement<PersistentRooted<T>>(), ptr(rhs.ptr) {
+    /*
+     * Copy construction takes advantage of the fact that the original
+     * is already inserted, and simply adds itself to whatever list the
+     * original was on - no JSRuntime pointer needed.
+     *
+     * This requires mutating rhs's links, but those should be 'mutable'
+     * anyway. C++ doesn't let us declare mutable base classes.
+     */
+    const_cast<PersistentRooted&>(rhs).setNext(this);
+  }
+
+  bool initialized() { return ListBase::isInList(); }
+
+  void init(JSContext* cx) { init(cx, GCPolicy<T>::initial()); }
+
+  template <typename U>
+  void init(JSContext* cx, U&& initial) {
+    ptr = mozilla::Forward<U>(initial);
+    registerWithRootLists(RootingContext::get(cx));
+  }
+
+  void reset() {
+    if (initialized()) {
+      set(GCPolicy<T>::initial());
+      ListBase::remove();
+    }
+  }
+
+  DECLARE_POINTER_CONSTREF_OPS(T);
+  DECLARE_POINTER_ASSIGN_OPS(PersistentRooted, T);
+  DECLARE_NONPOINTER_ACCESSOR_METHODS(ptr);
+
+  // These are the same as DECLARE_NONPOINTER_MUTABLE_ACCESSOR_METHODS, except
+  // they check that |this| is initialized in case the caller later stores
+  // something in |ptr|.
+  T* address() {
+    MOZ_ASSERT(initialized());
+    return &ptr;
+  }
+  T& get() {
+    MOZ_ASSERT(initialized());
+    return ptr;
+  }
+
+ private:
+  template <typename U>
+  void set(U&& value) {
+    MOZ_ASSERT(initialized());
+    ptr = mozilla::Forward<U>(value);
+  }
+
+  detail::MaybeWrapped<T> ptr;
+} JS_HAZ_ROOTED;
+
+class JS_PUBLIC_API ObjectPtr {
+  Heap<JSObject*> value;
+
+ public:
+  using ElementType = JSObject*;
+
+  ObjectPtr() : value(nullptr) {}
+
+  explicit ObjectPtr(JSObject* obj) : value(obj) {}
+
+  ObjectPtr(const ObjectPtr& other) : value(other.value) {}
+
+  ObjectPtr(ObjectPtr&& other) : value(other.value) { other.value = nullptr; }
+
+  /* Always call finalize before the destructor. */
+  ~ObjectPtr() { MOZ_ASSERT(!value); }
+
+  void finalize(JSRuntime* rt);
+  void finalize(JSContext* cx);
+
+  void init(JSObject* obj) { value = obj; }
+
+  JSObject* get() const { return value; }
+  JSObject* unbarrieredGet() const { return value.unbarrieredGet(); }
+
+  void writeBarrierPre(JSContext* cx) { IncrementalPreWriteBarrier(value); }
+
+  void updateWeakPointerAfterGC();
+
+  ObjectPtr& operator=(JSObject* obj) {
+    IncrementalPreWriteBarrier(value);
+    value = obj;
+    return *this;
+  }
+
+  void trace(JSTracer* trc, const char* name);
+
+  JSObject& operator*() const { return *value; }
+  JSObject* operator->() const { return value; }
+  operator JSObject*() const { return value; }
+
+  explicit operator bool() const { return value.unbarrieredGet(); }
+  explicit operator bool() { return value.unbarrieredGet(); }
+};
+
+} /* namespace JS */
+
+namespace js {
+
+template <typename T, typename D, typename Container>
+class WrappedPtrOperations<UniquePtr<T, D>, Container> {
+  const UniquePtr<T, D>& uniquePtr() const {
+    return static_cast<const Container*>(this)->get();
+  }
+
+ public:
+  explicit operator bool() const { return !!uniquePtr(); }
+  T* get() const { return uniquePtr().get(); }
+  T* operator->() const { return get(); }
+  T& operator*() const { return *uniquePtr(); }
+};
+
+template <typename T, typename D, typename Container>
+class MutableWrappedPtrOperations<UniquePtr<T, D>, Container>
+    : public WrappedPtrOperations<UniquePtr<T, D>, Container> {
+  UniquePtr<T, D>& uniquePtr() { return static_cast<Container*>(this)->get(); }
+
+ public:
+  MOZ_MUST_USE typename UniquePtr<T, D>::Pointer release() {
+    return uniquePtr().release();
+  }
+  void reset(T* ptr = T()) { uniquePtr().reset(ptr); }
+};
+
+namespace gc {
+
+template <typename T, typename TraceCallbacks>
+void CallTraceCallbackOnNonHeap(T* v, const TraceCallbacks& aCallbacks,
+                                const char* aName, void* aClosure) {
+  static_assert(sizeof(T) == sizeof(JS::Heap<T>),
+                "T and Heap<T> must be compatible.");
+  MOZ_ASSERT(v);
+  mozilla::DebugOnly<Cell*> cell = BarrierMethods<T>::asGCThingOrNull(*v);
+  MOZ_ASSERT(cell);
+  MOZ_ASSERT(!IsInsideNursery(cell));
+  JS::Heap<T>* asHeapT = reinterpret_cast<JS::Heap<T>*>(v);
+  aCallbacks.Trace(asHeapT, aName, aClosure);
+}
+
+} /* namespace gc */
+} /* namespace js */
+
+// mozilla::Swap uses a stack temporary, which prevents classes like Heap<T>
+// from being declared MOZ_HEAP_CLASS.
+namespace mozilla {
+
+template <typename T>
+inline void Swap(JS::Heap<T>& aX, JS::Heap<T>& aY) {
+  T tmp = aX;
+  aX = aY;
+  aY = tmp;
+}
+
+template <typename T>
+inline void Swap(JS::TenuredHeap<T>& aX, JS::TenuredHeap<T>& aY) {
+  T tmp = aX;
+  aX = aY;
+  aY = tmp;
+}
+
+} /* namespace mozilla */
+
+namespace js {
+namespace detail {
+
+// DefineComparisonOps is a trait which selects which wrapper classes to define
+// operator== and operator!= for. It supplies a getter function to extract the
+// value to compare. This is used to avoid triggering the automatic read
+// barriers where appropriate.
+//
+// If DefineComparisonOps is not specialized for a particular wrapper you may
+// get errors such as 'invalid operands to binary expression' or 'no match for
+// operator==' when trying to compare against instances of the wrapper.
+
+template <typename T>
+struct DefineComparisonOps : mozilla::FalseType {};
+
+template <typename T>
+struct DefineComparisonOps<JS::Heap<T>> : mozilla::TrueType {
+  static const T& get(const JS::Heap<T>& v) { return v.unbarrieredGet(); }
+};
+
+template <typename T>
+struct DefineComparisonOps<JS::TenuredHeap<T>> : mozilla::TrueType {
+  static const T get(const JS::TenuredHeap<T>& v) {
+    return v.unbarrieredGetPtr();
+  }
+};
+
+template <>
+struct DefineComparisonOps<JS::ObjectPtr> : mozilla::TrueType {
+  static const JSObject* get(const JS::ObjectPtr& v) {
+    return v.unbarrieredGet();
+  }
+};
+
+template <typename T>
+struct DefineComparisonOps<JS::Rooted<T>> : mozilla::TrueType {
+  static const T& get(const JS::Rooted<T>& v) { return v.get(); }
+};
+
+template <typename T>
+struct DefineComparisonOps<JS::Handle<T>> : mozilla::TrueType {
+  static const T& get(const JS::Handle<T>& v) { return v.get(); }
+};
+
+template <typename T>
+struct DefineComparisonOps<JS::MutableHandle<T>> : mozilla::TrueType {
+  static const T& get(const JS::MutableHandle<T>& v) { return v.get(); }
+};
+
+template <typename T>
+struct DefineComparisonOps<JS::PersistentRooted<T>> : mozilla::TrueType {
+  static const T& get(const JS::PersistentRooted<T>& v) { return v.get(); }
+};
+
+template <typename T>
+struct DefineComparisonOps<js::FakeRooted<T>> : mozilla::TrueType {
+  static const T& get(const js::FakeRooted<T>& v) { return v.get(); }
+};
+
+template <typename T>
+struct DefineComparisonOps<js::FakeMutableHandle<T>> : mozilla::TrueType {
+  static const T& get(const js::FakeMutableHandle<T>& v) { return v.get(); }
+};
+
+} /* namespace detail */
+} /* namespace js */
+
+// Overload operator== and operator!= for all types with the DefineComparisonOps
+// trait using the supplied getter.
+//
+// There are four cases:
+
+// Case 1: comparison between two wrapper objects.
+
+template <typename T, typename U>
+typename mozilla::EnableIf<js::detail::DefineComparisonOps<T>::value &&
+                               js::detail::DefineComparisonOps<U>::value,
+                           bool>::Type
+operator==(const T& a, const U& b) {
+  return js::detail::DefineComparisonOps<T>::get(a) ==
+         js::detail::DefineComparisonOps<U>::get(b);
+}
+
+template <typename T, typename U>
+typename mozilla::EnableIf<js::detail::DefineComparisonOps<T>::value &&
+                               js::detail::DefineComparisonOps<U>::value,
+                           bool>::Type
+operator!=(const T& a, const U& b) {
+  return !(a == b);
+}
+
+// Case 2: comparison between a wrapper object and its unwrapped element type.
+
+template <typename T>
+typename mozilla::EnableIf<js::detail::DefineComparisonOps<T>::value,
+                           bool>::Type
+operator==(const T& a, const typename T::ElementType& b) {
+  return js::detail::DefineComparisonOps<T>::get(a) == b;
+}
+
+template <typename T>
+typename mozilla::EnableIf<js::detail::DefineComparisonOps<T>::value,
+                           bool>::Type
+operator!=(const T& a, const typename T::ElementType& b) {
+  return !(a == b);
+}
+
+template <typename T>
+typename mozilla::EnableIf<js::detail::DefineComparisonOps<T>::value,
+                           bool>::Type
+operator==(const typename T::ElementType& a, const T& b) {
+  return a == js::detail::DefineComparisonOps<T>::get(b);
+}
+
+template <typename T>
+typename mozilla::EnableIf<js::detail::DefineComparisonOps<T>::value,
+                           bool>::Type
+operator!=(const typename T::ElementType& a, const T& b) {
+  return !(a == b);
+}
+
+// Case 3: For pointer wrappers, comparison between the wrapper and a const
+// element pointer.
+
+template <typename T>
+typename mozilla::EnableIf<
+    js::detail::DefineComparisonOps<T>::value &&
+        mozilla::IsPointer<typename T::ElementType>::value,
+    bool>::Type
+operator==(
+    const typename mozilla::RemovePointer<typename T::ElementType>::Type* a,
+    const T& b) {
+  return a == js::detail::DefineComparisonOps<T>::get(b);
+}
+
+template <typename T>
+typename mozilla::EnableIf<
+    js::detail::DefineComparisonOps<T>::value &&
+        mozilla::IsPointer<typename T::ElementType>::value,
+    bool>::Type
+operator!=(
+    const typename mozilla::RemovePointer<typename T::ElementType>::Type* a,
+    const T& b) {
+  return !(a == b);
+}
+
+template <typename T>
+typename mozilla::EnableIf<
+    js::detail::DefineComparisonOps<T>::value &&
+        mozilla::IsPointer<typename T::ElementType>::value,
+    bool>::Type
+operator==(
+    const T& a,
+    const typename mozilla::RemovePointer<typename T::ElementType>::Type* b) {
+  return js::detail::DefineComparisonOps<T>::get(a) == b;
+}
+
+template <typename T>
+typename mozilla::EnableIf<
+    js::detail::DefineComparisonOps<T>::value &&
+        mozilla::IsPointer<typename T::ElementType>::value,
+    bool>::Type
+operator!=(
+    const T& a,
+    const typename mozilla::RemovePointer<typename T::ElementType>::Type* b) {
+  return !(a == b);
+}
+
+// Case 4: For pointer wrappers, comparison between the wrapper and nullptr.
+
+template <typename T>
+typename mozilla::EnableIf<
+    js::detail::DefineComparisonOps<T>::value &&
+        mozilla::IsPointer<typename T::ElementType>::value,
+    bool>::Type
+operator==(std::nullptr_t a, const T& b) {
+  return a == js::detail::DefineComparisonOps<T>::get(b);
+}
+
+template <typename T>
+typename mozilla::EnableIf<
+    js::detail::DefineComparisonOps<T>::value &&
+        mozilla::IsPointer<typename T::ElementType>::value,
+    bool>::Type
+operator!=(std::nullptr_t a, const T& b) {
+  return !(a == b);
+}
+
+template <typename T>
+typename mozilla::EnableIf<
+    js::detail::DefineComparisonOps<T>::value &&
+        mozilla::IsPointer<typename T::ElementType>::value,
+    bool>::Type
+operator==(const T& a, std::nullptr_t b) {
+  return js::detail::DefineComparisonOps<T>::get(a) == b;
+}
+
+template <typename T>
+typename mozilla::EnableIf<
+    js::detail::DefineComparisonOps<T>::value &&
+        mozilla::IsPointer<typename T::ElementType>::value,
+    bool>::Type
+operator!=(const T& a, std::nullptr_t b) {
+  return !(a == b);
+}
+
+#endif /* js_RootingAPI_h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/*
+ * JSAPI functions and callbacks related to WHATWG Stream objects.
+ *
+ * Much of the API here mirrors the JS API of ReadableStream and associated
+ * classes, e.g. ReadableStreamDefaultReader, ReadableStreamBYOBReader,
+ * ReadableStreamDefaultController, ReadableByteStreamController, and
+ * ReadableStreamBYOBRequest.
+ *
+ * There are some crucial differences, though: Functionality that's exposed
+ * as methods/accessors on controllers in JS is exposed as functions taking
+ * ReadableStream instances instead. This is because an analysis of how
+ * the API would be used showed that all functions that'd take controllers
+ * would do so by first getting the controller from the stream instance it's
+ * associated with and then call the function taking it. I.e., it would purely
+ * add boilerplate without any gains in ease of use of the API.
+ *
+ * It would probably still make sense to factor the API the same as the JS API
+ * if we had to keep any API stability guarantees: the JS API won't change, so
+ * we could be sure that the C++ API could stay the same, too. Given that we
+ * don't guarantee API stability, this concern isn't too pressing.
+ *
+ * Some functions exposed here deal with ReadableStream instances that have an
+ * embedding-provided underlying source. These instances are largely similar
+ * to byte streams as created using |new ReadableStream({type: "bytes"})|:
+ * They enable users to acquire ReadableStreamBYOBReaders and only vend chunks
+ * that're typed array instances.
+ *
+ * When creating an "external readable stream" using
+ * JS::NewReadableExternalSourceStreamObject, an underlying source and a set
+ * of flags can be passed to be stored on the stream. The underlying source is
+ * treated as an opaque void* pointer by the JS engine: it's purely meant as
+ * a reference to be used by the embedding to identify whatever actual source
+ * it uses to supply data for the stream. Similarly, the flags aren't
+ * interpreted by the JS engine, but are passed to some of the callbacks below
+ * and can be retrieved using JS::ReadableStreamGetEmbeddingFlags.
+ *
+ * External readable streams are optimized to allow the embedding to interact
+ * with them with a minimum of overhead: chunks aren't enqueued as individual
+ * typed array instances; instead, the embedding only updates the amount of
+ * data available using ReadableStreamUpdateDataAvailableFromSource.
+ * When content requests data by reading from a reader,
+ * WriteIntoReadRequestBufferCallback is invoked, asking the embedding to
+ * write data directly into the buffer we're about to hand to content.
+ *
+ * Additionally, ReadableStreamGetExternalUnderlyingSource can be used to
+ * get the void* pointer to the underlying source. This is equivalent to
+ * acquiring a reader for the stream in that it locks the stream until it
+ * is released again using JS::ReadableStreamReleaseExternalUnderlyingSource.
+ *
+ * Embeddings are expected to detect situations where an API exposed to JS
+ * takes a ReadableStream to read from that has an external underlying source.
+ * In those situations, it might be preferable to directly perform data
+ * transfers from the stream's underlying source to whatever sink the
+ * embedding uses, assuming that such direct transfers can be performed
+ * more efficiently.
+ *
+ * An example of such an optimized operation might be a ServiceWorker piping a
+ * fetch Response body to a TextDecoder: instead of writing chunks of data
+ * into JS typed array buffers only to immediately read from them again, the
+ * embedding can presumably directly feed the incoming data to the
+ * TextDecoder's underlying implementation.
+ */
+
+#ifndef js_Stream_h
+#define js_Stream_h
+
+#include "jstypes.h"
+
+#include "js/TypeDecls.h"
+
+namespace JS {
+
+/**
+ * Invoked whenever a reader desires more data from a ReadableStream's
+ * embedding-provided underlying source.
+ *
+ * The given |desiredSize| is the absolute size, not a delta from the previous
+ * desired size.
+ */
+typedef void (*RequestReadableStreamDataCallback)(JSContext* cx,
+                                                  HandleObject stream,
+                                                  void* underlyingSource,
+                                                  uint8_t flags,
+                                                  size_t desiredSize);
+
+/**
+ * Invoked to cause the embedding to fill the given |buffer| with data from
+ * the given embedding-provided underlying source.
+ *
+ * This can only happen after the embedding has updated the amount of data
+ * available using JS::ReadableStreamUpdateDataAvailableFromSource. If at
+ * least one read request is pending when
+ * JS::ReadableStreamUpdateDataAvailableFromSource is called,
+ * the WriteIntoReadRequestBufferCallback is invoked immediately from under
+ * the call to JS::WriteIntoReadRequestBufferCallback. If not, it is invoked
+ * if and when a new read request is made.
+ *
+ * Note: This callback *must not cause GC*, because that could potentially
+ * invalidate the |buffer| pointer.
+ */
+typedef void (*WriteIntoReadRequestBufferCallback)(
+    JSContext* cx, HandleObject stream, void* underlyingSource, uint8_t flags,
+    void* buffer, size_t length, size_t* bytesWritten);
+
+/**
+ * Invoked in reaction to the ReadableStream being canceled to allow the
+ * embedding to free the underlying source.
+ *
+ * This is equivalent to calling |cancel| on non-external underlying sources
+ * provided to the ReadableStream constructor in JavaScript.
+ *
+ * The given |reason| is the JS::Value that was passed as an argument to
+ * ReadableStream#cancel().
+ *
+ * The returned JS::Value will be used to resolve the Promise returned by
+ * ReadableStream#cancel().
+ */
+typedef Value (*CancelReadableStreamCallback)(JSContext* cx,
+                                              HandleObject stream,
+                                              void* underlyingSource,
+                                              uint8_t flags,
+                                              HandleValue reason);
+
+/**
+ * Invoked in reaction to a ReadableStream with an embedding-provided
+ * underlying source being closed.
+ */
+typedef void (*ReadableStreamClosedCallback)(JSContext* cx, HandleObject stream,
+                                             void* underlyingSource,
+                                             uint8_t flags);
+
+/**
+ * Invoked in reaction to a ReadableStream with an embedding-provided
+ * underlying source being errored with the
+ * given reason.
+ */
+typedef void (*ReadableStreamErroredCallback)(JSContext* cx,
+                                              HandleObject stream,
+                                              void* underlyingSource,
+                                              uint8_t flags,
+                                              HandleValue reason);
+
+/**
+ * Invoked in reaction to a ReadableStream with an embedding-provided
+ * underlying source being finalized. Only the underlying source is passed
+ * as an argument, while the ReadableStream itself is not to prevent the
+ * embedding from operating on a JSObject that might not be in a valid state
+ * anymore.
+ *
+ * Note: the ReadableStream might be finalized on a background thread. That
+ * means this callback might be invoked from an arbitrary thread, which the
+ * embedding must be able to handle.
+ */
+typedef void (*ReadableStreamFinalizeCallback)(void* underlyingSource,
+                                               uint8_t flags);
+
+/**
+ * Sets runtime-wide callbacks to use for interacting with embedding-provided
+ * hooks for operating on ReadableStream instances.
+ *
+ * See the documentation for the individual callback types for details.
+ */
+extern JS_PUBLIC_API void SetReadableStreamCallbacks(
+    JSContext* cx, RequestReadableStreamDataCallback dataRequestCallback,
+    WriteIntoReadRequestBufferCallback writeIntoReadRequestCallback,
+    CancelReadableStreamCallback cancelCallback,
+    ReadableStreamClosedCallback closedCallback,
+    ReadableStreamErroredCallback erroredCallback,
+    ReadableStreamFinalizeCallback finalizeCallback);
+
+extern JS_PUBLIC_API bool HasReadableStreamCallbacks(JSContext* cx);
+
+/**
+ * Returns a new instance of the ReadableStream builtin class in the current
+ * compartment, configured as a default stream.
+ * If a |proto| is passed, that gets set as the instance's [[Prototype]]
+ * instead of the original value of |ReadableStream.prototype|.
+ */
+extern JS_PUBLIC_API JSObject* NewReadableDefaultStreamObject(
+    JSContext* cx, HandleObject underlyingSource = nullptr,
+    HandleFunction size = nullptr, double highWaterMark = 1,
+    HandleObject proto = nullptr);
+
+/**
+ * Returns a new instance of the ReadableStream builtin class in the current
+ * compartment, configured as a byte stream.
+ * If a |proto| is passed, that gets set as the instance's [[Prototype]]
+ * instead of the original value of |ReadableStream.prototype|.
+ */
+extern JS_PUBLIC_API JSObject* NewReadableByteStreamObject(
+    JSContext* cx, HandleObject underlyingSource = nullptr,
+    double highWaterMark = 0, HandleObject proto = nullptr);
+
+/**
+ * Returns a new instance of the ReadableStream builtin class in the current
+ * compartment, with the right slot layout. If a |proto| is passed, that gets
+ * set as the instance's [[Prototype]] instead of the original value of
+ * |ReadableStream.prototype|.
+ *
+ * The instance is optimized for operating as a byte stream backed by an
+ * embedding-provided underlying source, using the callbacks set via
+ * |JS::SetReadableStreamCallbacks|.
+ *
+ * The given |flags| will be passed to all applicable callbacks and can be
+ * used to disambiguate between different types of stream sources the
+ * embedding might support.
+ *
+ * Note: the embedding is responsible for ensuring that the pointer to the
+ * underlying source stays valid as long as the stream can be read from.
+ * The underlying source can be freed if the tree is canceled or errored.
+ * It can also be freed if the stream is destroyed. The embedding is notified
+ * of that using ReadableStreamFinalizeCallback.
+ */
+extern JS_PUBLIC_API JSObject* NewReadableExternalSourceStreamObject(
+    JSContext* cx, void* underlyingSource, uint8_t flags = 0,
+    HandleObject proto = nullptr);
+
+/**
+ * Returns the flags that were passed to NewReadableExternalSourceStreamObject
+ * when creating the given stream.
+ *
+ * Asserts that the given stream has an embedding-provided underlying source.
+ */
+extern JS_PUBLIC_API uint8_t
+ReadableStreamGetEmbeddingFlags(const JSObject* stream);
+
+/**
+ * Returns the embedding-provided underlying source of the given |stream|.
+ *
+ * Can be used to optimize operations if both the underlying source and the
+ * intended sink are embedding-provided. In that case it might be
+ * preferrable to pipe data directly from source to sink without interacting
+ * with the stream at all.
+ *
+ * Locks the stream until ReadableStreamReleaseExternalUnderlyingSource is
+ * called.
+ *
+ * Throws an exception if the stream is locked, i.e. if a reader has been
+ * acquired for the stream, or if ReadableStreamGetExternalUnderlyingSource
+ * has been used previously without releasing the external source again.
+ *
+ * Throws an exception if the stream isn't readable, i.e if it is errored or
+ * closed. This is different from ReadableStreamGetReader because we don't
+ * have a Promise to resolve/reject, which a reader provides.
+ *
+ * Asserts that the stream has an embedding-provided underlying source.
+ */
+extern JS_PUBLIC_API bool ReadableStreamGetExternalUnderlyingSource(
+    JSContext* cx, HandleObject stream, void** source);
+
+/**
+ * Releases the embedding-provided underlying source of the given |stream|,
+ * returning the stream into an unlocked state.
+ *
+ * Asserts that the stream was locked through
+ * ReadableStreamGetExternalUnderlyingSource.
+ *
+ * Asserts that the stream has an embedding-provided underlying source.
+ */
+extern JS_PUBLIC_API void ReadableStreamReleaseExternalUnderlyingSource(
+    JSObject* stream);
+
+/**
+ * Update the amount of data available at the underlying source of the given
+ * |stream|.
+ *
+ * Can only be used for streams with an embedding-provided underlying source.
+ * The JS engine will use the given value to satisfy read requests for the
+ * stream by invoking the JS::WriteIntoReadRequestBuffer callback.
+ */
+extern JS_PUBLIC_API bool ReadableStreamUpdateDataAvailableFromSource(
+    JSContext* cx, HandleObject stream, uint32_t availableData);
+
+/**
+ * Returns true if the given object is an unwrapped ReadableStream object,
+ * false otherwise.
+ */
+extern JS_PUBLIC_API bool IsReadableStream(const JSObject* obj);
+
+/**
+ * Returns true if the given object is an unwrapped
+ * ReadableStreamDefaultReader or ReadableStreamBYOBReader object,
+ * false otherwise.
+ */
+extern JS_PUBLIC_API bool IsReadableStreamReader(const JSObject* obj);
+
+/**
+ * Returns true if the given object is an unwrapped
+ * ReadableStreamDefaultReader object, false otherwise.
+ */
+extern JS_PUBLIC_API bool IsReadableStreamDefaultReader(const JSObject* obj);
+
+/**
+ * Returns true if the given object is an unwrapped
+ * ReadableStreamBYOBReader object, false otherwise.
+ */
+extern JS_PUBLIC_API bool IsReadableStreamBYOBReader(const JSObject* obj);
+
+enum class ReadableStreamMode { Default, Byte, ExternalSource };
+
+/**
+ * Returns the stream's ReadableStreamMode. If the mode is |Byte| or
+ * |ExternalSource|, it's possible to acquire a BYOB reader for more optimized
+ * operations.
+ *
+ * Asserts that |stream| is an unwrapped ReadableStream instance.
+ */
+extern JS_PUBLIC_API ReadableStreamMode
+ReadableStreamGetMode(const JSObject* stream);
+
+enum class ReadableStreamReaderMode { Default, BYOB };
+
+/**
+ * Returns true if the given ReadableStream is readable, false if not.
+ *
+ * Asserts that |stream| is an unwrapped ReadableStream instance.
+ */
+extern JS_PUBLIC_API bool ReadableStreamIsReadable(const JSObject* stream);
+
+/**
+ * Returns true if the given ReadableStream is locked, false if not.
+ *
+ * Asserts that |stream| is an unwrapped ReadableStream instance.
+ */
+extern JS_PUBLIC_API bool ReadableStreamIsLocked(const JSObject* stream);
+
+/**
+ * Returns true if the given ReadableStream is disturbed, false if not.
+ *
+ * Asserts that |stream| is an ReadableStream instance.
+ */
+extern JS_PUBLIC_API bool ReadableStreamIsDisturbed(const JSObject* stream);
+
+/**
+ * Cancels the given ReadableStream with the given reason and returns a
+ * Promise resolved according to the result.
+ *
+ * Asserts that |stream| is an unwrapped ReadableStream instance.
+ */
+extern JS_PUBLIC_API JSObject* ReadableStreamCancel(JSContext* cx,
+                                                    HandleObject stream,
+                                                    HandleValue reason);
+
+/**
+ * Creates a reader of the type specified by the mode option and locks the
+ * stream to the new reader.
+ *
+ * Asserts that |stream| is an unwrapped ReadableStream instance.
+ */
+extern JS_PUBLIC_API JSObject* ReadableStreamGetReader(
+    JSContext* cx, HandleObject stream, ReadableStreamReaderMode mode);
+
+/**
+ * Tees the given ReadableStream and stores the two resulting streams in
+ * outparams. Returns false if the operation fails, e.g. because the stream is
+ * locked.
+ *
+ * Asserts that |stream| is an unwrapped ReadableStream instance.
+ */
+extern JS_PUBLIC_API bool ReadableStreamTee(JSContext* cx, HandleObject stream,
+                                            MutableHandleObject branch1Stream,
+                                            MutableHandleObject branch2Stream);
+
+/**
+ * Retrieves the desired combined size of additional chunks to fill the given
+ * ReadableStream's queue. Stores the result in |value| and sets |hasValue| to
+ * true on success, returns false on failure.
+ *
+ * If the stream is errored, the call will succeed but no value will be stored
+ * in |value| and |hasValue| will be set to false.
+ *
+ * Note: This is semantically equivalent to the |desiredSize| getter on
+ * the stream controller's prototype in JS. We expose it with the stream
+ * itself as a target for simplicity.
+ *
+ * Asserts that |stream| is an unwrapped ReadableStream instance.
+ */
+extern JS_PUBLIC_API void ReadableStreamGetDesiredSize(JSObject* stream,
+                                                       bool* hasValue,
+                                                       double* value);
+
+/**
+ * Closes the given ReadableStream.
+ *
+ * Throws a TypeError and returns false if the closing operation fails.
+ *
+ * Note: This is semantically equivalent to the |close| method on
+ * the stream controller's prototype in JS. We expose it with the stream
+ * itself as a target for simplicity.
+ *
+ * Asserts that |stream| is an unwrapped ReadableStream instance.
+ */
+extern JS_PUBLIC_API bool ReadableStreamClose(JSContext* cx,
+                                              HandleObject stream);
+
+/**
+ * Returns true if the given ReadableStream reader is locked, false otherwise.
+ *
+ * Asserts that |reader| is an unwrapped ReadableStreamDefaultReader or
+ * ReadableStreamBYOBReader instance.
+ */
+extern JS_PUBLIC_API bool ReadableStreamReaderIsClosed(const JSObject* reader);
+
+/**
+ * Enqueues the given chunk in the given ReadableStream.
+ *
+ * Throws a TypeError and returns false if the enqueing operation fails.
+ *
+ * Note: This is semantically equivalent to the |enqueue| method on
+ * the stream controller's prototype in JS. We expose it with the stream
+ * itself as a target for simplicity.
+ *
+ * If the ReadableStream has an underlying byte source, the given chunk must
+ * be a typed array or a DataView. Consider using
+ * ReadableByteStreamEnqueueBuffer.
+ *
+ * Asserts that |stream| is an unwrapped ReadableStream instance.
+ */
+extern JS_PUBLIC_API bool ReadableStreamEnqueue(JSContext* cx,
+                                                HandleObject stream,
+                                                HandleValue chunk);
+
+/**
+ * Enqueues the given buffer as a chunk in the given ReadableStream.
+ *
+ * Throws a TypeError and returns false if the enqueing operation fails.
+ *
+ * Note: This is semantically equivalent to the |enqueue| method on
+ * the stream controller's prototype in JS. We expose it with the stream
+ * itself as a target for simplicity. Additionally, the JS version only
+ * takes typed arrays and ArrayBufferView instances as arguments, whereas
+ * this takes an ArrayBuffer, obviating the need to wrap it into a typed
+ * array.
+ *
+ * Asserts that |stream| is an unwrapped ReadableStream instance and |buffer|
+ * an unwrapped ArrayBuffer instance.
+ */
+extern JS_PUBLIC_API bool ReadableByteStreamEnqueueBuffer(JSContext* cx,
+                                                          HandleObject stream,
+                                                          HandleObject buffer);
+
+/**
+ * Errors the given ReadableStream, causing all future interactions to fail
+ * with the given error value.
+ *
+ * Throws a TypeError and returns false if the erroring operation fails.
+ *
+ * Note: This is semantically equivalent to the |error| method on
+ * the stream controller's prototype in JS. We expose it with the stream
+ * itself as a target for simplicity.
+ *
+ * Asserts that |stream| is an unwrapped ReadableStream instance.
+ */
+extern JS_PUBLIC_API bool ReadableStreamError(JSContext* cx,
+                                              HandleObject stream,
+                                              HandleValue error);
+
+/**
+ * Cancels the given ReadableStream reader's associated stream.
+ *
+ * Throws a TypeError and returns false if the given reader isn't active.
+ *
+ * Asserts that |reader| is an unwrapped ReadableStreamDefaultReader or
+ * ReadableStreamBYOBReader instance.
+ */
+extern JS_PUBLIC_API bool ReadableStreamReaderCancel(JSContext* cx,
+                                                     HandleObject reader,
+                                                     HandleValue reason);
+
+/**
+ * Cancels the given ReadableStream reader's associated stream.
+ *
+ * Throws a TypeError and returns false if the given reader has pending
+ * read or readInto (for default or byob readers, respectively) requests.
+ *
+ * Asserts that |reader| is an unwrapped ReadableStreamDefaultReader or
+ * ReadableStreamBYOBReader instance.
+ */
+extern JS_PUBLIC_API bool ReadableStreamReaderReleaseLock(JSContext* cx,
+                                                          HandleObject reader);
+
+/**
+ * Requests a read from the reader's associated ReadableStream and returns the
+ * resulting PromiseObject.
+ *
+ * Returns a Promise that's resolved with the read result once available or
+ * rejected immediately if the stream is errored or the operation failed.
+ *
+ * Asserts that |reader| is an unwrapped ReadableStreamDefaultReader instance.
+ */
+extern JS_PUBLIC_API JSObject* ReadableStreamDefaultReaderRead(
+    JSContext* cx, HandleObject reader);
+
+/**
+ * Requests a read from the reader's associated ReadableStream into the given
+ * ArrayBufferView and returns the resulting PromiseObject.
+ *
+ * Returns a Promise that's resolved with the read result once available or
+ * rejected immediately if the stream is errored or the operation failed.
+ *
+ * Asserts that |reader| is an unwrapped ReadableStreamDefaultReader and
+ * |view| an unwrapped typed array or DataView instance.
+ */
+extern JS_PUBLIC_API JSObject* ReadableStreamBYOBReaderRead(JSContext* cx,
+                                                            HandleObject reader,
+                                                            HandleObject view);
+
+}  // namespace JS
+
+#endif  // js_Realm_h
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef js_StructuredClone_h
+#define js_StructuredClone_h
+
+#include "mozilla/Attributes.h"
+#include "mozilla/BufferList.h"
+#include "mozilla/MemoryReporting.h"
+#include "mozilla/Move.h"
+
+#include <stdint.h>
+
+#include "jstypes.h"
+
+#include "js/RootingAPI.h"
+#include "js/TypeDecls.h"
+#include "js/Value.h"
+#include "js/Vector.h"
+
+/*
+ * API for safe passing of structured data, HTML 2018 Feb 21 section 2.7.
+ * <https://html.spec.whatwg.org/multipage/structured-data.html>
+ *
+ * This is a serialization scheme for JS values, somewhat like JSON. It
+ * preserves some aspects of JS objects (strings, numbers, own data properties
+ * with string keys, array elements) but not others (methods, getters and
+ * setters, prototype chains). Unlike JSON, structured data:
+ *
+ * -   can contain cyclic references.
+ *
+ * -   handles Maps, Sets, and some other object types.
+ *
+ * -   supports *transferring* objects of certain types from one realm to
+ *     another, rather than cloning them.
+ *
+ * -   is specified by a living standard, and continues to evolve.
+ *
+ * -   is encoded in a nonstandard binary format, and is never exposed to Web
+ *     content in its serialized form. It's used internally by the browser to
+ *     send data from one thread/realm/domain to another, not across the
+ *     network.
+ */
+
+struct JSStructuredCloneReader;
+struct JSStructuredCloneWriter;
+
+/**
+ * The structured-clone serialization format version number.
+ *
+ * When serialized data is stored as bytes, e.g. in your Firefox profile, later
+ * versions of the engine may have to read it. When you upgrade Firefox, we
+ * don't crawl through your whole profile converting all saved data from the
+ * previous version of the serialization format to the latest version. So it is
+ * normal to have data in old formats stored in your profile.
+ *
+ * The JS engine can *write* data only in the current format version.
+ *
+ * It can *read* any data written in the current version, and data written for
+ * DifferentProcess scope in earlier versions.
+ *
+ *
+ * ## When to bump this version number
+ *
+ * When making a change so drastic that the JS engine needs to know whether
+ * it's reading old or new serialized data in order to handle both correctly,
+ * increment this version number. Make sure the engine can still read all
+ * old data written with previous versions.
+ *
+ * If StructuredClone.cpp doesn't contain code that distinguishes between
+ * version 8 and version 9, there should not be a version 9.
+ *
+ * Do not increment for changes that only affect SameProcess encoding.
+ *
+ * Increment only for changes that would otherwise break old serialized data.
+ * Do not increment for new data types. (Rationale: Modulo bugs, older versions
+ * of the JS engine can already correctly throw errors when they encounter new,
+ * unrecognized features. A version number bump does not actually help them.)
+ */
+#define JS_STRUCTURED_CLONE_VERSION 8
+
+namespace JS {
+
+/**
+ * Indicates the "scope of validity" of serialized data.
+ *
+ * Writing plain JS data produces an array of bytes that can be copied and
+ * read in another process or whatever. The serialized data is Plain Old Data.
+ * However, HTML also supports `Transferable` objects, which, when cloned, can
+ * be moved from the source object into the clone, like when you take a
+ * photograph of someone and it steals their soul.
+ * See <https://developer.mozilla.org/en-US/docs/Web/API/Transferable>.
+ * We support cloning and transferring objects of many types.
+ *
+ * For example, when we transfer an ArrayBuffer (within a process), we "detach"
+ * the ArrayBuffer, embed the raw buffer pointer in the serialized data, and
+ * later install it in a new ArrayBuffer in the destination realm. Ownership
+ * of that buffer memory is transferred from the original ArrayBuffer to the
+ * serialized data and then to the clone.
+ *
+ * This only makes sense within a single address space. When we transfer an
+ * ArrayBuffer to another process, the contents of the buffer must be copied
+ * into the serialized data. (The original ArrayBuffer is still detached,
+ * though, for consistency; in some cases the caller shouldn't know or care if
+ * the recipient is in the same process.)
+ *
+ * ArrayBuffers are actually a lucky case; some objects (like MessagePorts)
+ * can't reasonably be stored by value in serialized data -- it's pointers or
+ * nothing.
+ *
+ * So there is a tradeoff between scope of validity -- how far away the
+ * serialized data may be sent and still make sense -- and efficiency or
+ * features. The read and write algorithms therefore take an argument of this
+ * type, allowing the user to control those trade-offs.
+ */
+enum class StructuredCloneScope : uint32_t {
+  /**
+   * The most restrictive scope, with greatest efficiency and features.
+   *
+   * When writing, this means we're writing for an audience in the same
+   * process and same thread. The caller promises that the serialized data
+   * will **not** be shipped off to a different thread/process or stored in a
+   * database. It's OK to produce serialized data that contains pointers.  In
+   * Rust terms, the serialized data will be treated as `!Send`.
+   *
+   * When reading, this means: Accept transferred objects and buffers
+   * (pointers). The caller promises that the serialized data was written
+   * using this API (otherwise, the serialized data may contain bogus
+   * pointers, leading to undefined behavior).
+   */
+  SameProcessSameThread,
+
+  /**
+   * When writing, this means: The caller promises that the serialized data
+   * will **not** be shipped off to a different process or stored in a
+   * database. However, it may be shipped to another thread. It's OK to
+   * produce serialized data that contains pointers to data that is safe to
+   * send across threads, such as array buffers. In Rust terms, the
+   * serialized data will be treated as `Send` but not `Copy`.
+   *
+   * When reading, this means the same thing as SameProcessSameThread;
+   * the distinction only matters when writing.
+   */
+  SameProcessDifferentThread,
+
+  /**
+   * When writing, this means we're writing for an audience in a different
+   * process. Produce serialized data that can be sent to other processes,
+   * bitwise copied, or even stored as bytes in a database and read by later
+   * versions of Firefox years from now. The HTML5 spec refers to this as
+   * "ForStorage" as in StructuredSerializeForStorage, though we use
+   * DifferentProcess for IPC as well as storage.
+   *
+   * Transferable objects are limited to ArrayBuffers, whose contents are
+   * copied into the serialized data (rather than just writing a pointer).
+   *
+   * When reading, this means: Do not accept pointers.
+   */
+  DifferentProcess,
+
+  /**
+   * Handle a backwards-compatibility case with IndexedDB (bug 1434308): when
+   * reading, this means to treat legacy SameProcessSameThread data as if it
+   * were DifferentProcess.
+   *
+   * Do not use this for writing; use DifferentProcess instead.
+   */
+  DifferentProcessForIndexedDB,
+
+  /**
+   * Existing code wants to be able to create an uninitialized
+   * JSStructuredCloneData without knowing the scope, then populate it with
+   * data (at which point the scope *is* known.)
+   */
+  Unassigned
+};
+
+enum TransferableOwnership {
+  /** Transferable data has not been filled in yet */
+  SCTAG_TMO_UNFILLED = 0,
+
+  /** Structured clone buffer does not yet own the data */
+  SCTAG_TMO_UNOWNED = 1,
+
+  /** All values at least this large are owned by the clone buffer */
+  SCTAG_TMO_FIRST_OWNED = 2,
+
+  /** Data is a pointer that can be freed */
+  SCTAG_TMO_ALLOC_DATA = 2,
+
+  /** Data is a memory mapped pointer */
+  SCTAG_TMO_MAPPED_DATA = 3,
+
+  /**
+   * Data is embedding-specific. The engine can free it by calling the
+   * freeTransfer op. The embedding can also use SCTAG_TMO_USER_MIN and
+   * greater, up to 32 bits, to distinguish specific ownership variants.
+   */
+  SCTAG_TMO_CUSTOM = 4,
+
+  SCTAG_TMO_USER_MIN
+};
+
+class CloneDataPolicy {
+  bool sharedArrayBuffer_;
+
+ public:
+  // The default is to allow all policy-controlled aspects.
+
+  CloneDataPolicy() : sharedArrayBuffer_(true) {}
+
+  // In the JS engine, SharedArrayBuffers can only be cloned intra-process
+  // because the shared memory areas are allocated in process-private memory.
+  // Clients should therefore deny SharedArrayBuffers when cloning data that
+  // are to be transmitted inter-process.
+  //
+  // Clients should also deny SharedArrayBuffers when cloning data that are to
+  // be transmitted intra-process if policy needs dictate such denial.
+
+  CloneDataPolicy& denySharedArrayBuffer() {
+    sharedArrayBuffer_ = false;
+    return *this;
+  }
+
+  bool isSharedArrayBufferAllowed() const { return sharedArrayBuffer_; }
+};
+
+} /* namespace JS */
+
+/**
+ * Read structured data from the reader r. This hook is used to read a value
+ * previously serialized by a call to the WriteStructuredCloneOp hook.
+ *
+ * tag and data are the pair of uint32_t values from the header. The callback
+ * may use the JS_Read* APIs to read any other relevant parts of the object
+ * from the reader r. closure is any value passed to the JS_ReadStructuredClone
+ * function. Return the new object on success, nullptr on error/exception.
+ */
+typedef JSObject* (*ReadStructuredCloneOp)(JSContext* cx,
+                                           JSStructuredCloneReader* r,
+                                           uint32_t tag, uint32_t data,
+                                           void* closure);
+
+/**
+ * Structured data serialization hook. The engine can write primitive values,
+ * Objects, Arrays, Dates, RegExps, TypedArrays, ArrayBuffers, Sets, Maps,
+ * and SharedTypedArrays. Any other type of object requires application support.
+ * This callback must first use the JS_WriteUint32Pair API to write an object
+ * header, passing a value greater than JS_SCTAG_USER to the tag parameter.
+ * Then it can use the JS_Write* APIs to write any other relevant parts of
+ * the value v to the writer w. closure is any value passed to the
+ * JS_WriteStructuredClone function.
+ *
+ * Return true on success, false on error/exception.
+ */
+typedef bool (*WriteStructuredCloneOp)(JSContext* cx,
+                                       JSStructuredCloneWriter* w,
+                                       JS::HandleObject obj, void* closure);
+
+/**
+ * This is called when JS_WriteStructuredClone is given an invalid transferable.
+ * To follow HTML5, the application must throw a DATA_CLONE_ERR DOMException
+ * with error set to one of the JS_SCERR_* values.
+ */
+typedef void (*StructuredCloneErrorOp)(JSContext* cx, uint32_t errorid);
+
+/**
+ * This is called when JS_ReadStructuredClone receives a transferable object
+ * not known to the engine. If this hook does not exist or returns false, the
+ * JS engine calls the reportError op if set, otherwise it throws a
+ * DATA_CLONE_ERR DOM Exception. This method is called before any other
+ * callback and must return a non-null object in returnObject on success.
+ */
+typedef bool (*ReadTransferStructuredCloneOp)(
+    JSContext* cx, JSStructuredCloneReader* r, uint32_t tag, void* content,
+    uint64_t extraData, void* closure, JS::MutableHandleObject returnObject);
+
+/**
+ * Called when JS_WriteStructuredClone receives a transferable object not
+ * handled by the engine. If this hook does not exist or returns false, the JS
+ * engine will call the reportError hook or fall back to throwing a
+ * DATA_CLONE_ERR DOM Exception. This method is called before any other
+ * callback.
+ *
+ *  tag: indicates what type of transferable this is. Must be greater than
+ *       0xFFFF0201 (value of the internal SCTAG_TRANSFER_MAP_PENDING_ENTRY)
+ *
+ *  ownership: see TransferableOwnership, above. Used to communicate any needed
+ *       ownership info to the FreeTransferStructuredCloneOp.
+ *
+ *  content, extraData: what the ReadTransferStructuredCloneOp will receive
+ */
+typedef bool (*TransferStructuredCloneOp)(JSContext* cx,
+                                          JS::Handle<JSObject*> obj,
+                                          void* closure,
+                                          // Output:
+                                          uint32_t* tag,
+                                          JS::TransferableOwnership* ownership,
+                                          void** content, uint64_t* extraData);
+
+/**
+ * Called when freeing an unknown transferable object. Note that it
+ * should never trigger a garbage collection (and will assert in a
+ * debug build if it does.)
+ */
+typedef void (*FreeTransferStructuredCloneOp)(
+    uint32_t tag, JS::TransferableOwnership ownership, void* content,
+    uint64_t extraData, void* closure);
+
+struct JSStructuredCloneCallbacks {
+  ReadStructuredCloneOp read;
+  WriteStructuredCloneOp write;
+  StructuredCloneErrorOp reportError;
+  ReadTransferStructuredCloneOp readTransfer;
+  TransferStructuredCloneOp writeTransfer;
+  FreeTransferStructuredCloneOp freeTransfer;
+};
+
+enum OwnTransferablePolicy {
+  OwnsTransferablesIfAny,
+  IgnoreTransferablesIfAny,
+  NoTransferables
+};
+
+namespace js {
+class SharedArrayRawBuffer;
+
+class SharedArrayRawBufferRefs {
+ public:
+  SharedArrayRawBufferRefs() = default;
+  SharedArrayRawBufferRefs(SharedArrayRawBufferRefs&& other) = default;
+  SharedArrayRawBufferRefs& operator=(SharedArrayRawBufferRefs&& other);
+  ~SharedArrayRawBufferRefs();
+
+  MOZ_MUST_USE bool acquire(JSContext* cx, SharedArrayRawBuffer* rawbuf);
+  MOZ_MUST_USE bool acquireAll(JSContext* cx,
+                               const SharedArrayRawBufferRefs& that);
+  void takeOwnership(SharedArrayRawBufferRefs&&);
+  void releaseAll();
+
+ private:
+  js::Vector<js::SharedArrayRawBuffer*, 0, js::SystemAllocPolicy> refs_;
+};
+
+template <typename T, typename AllocPolicy>
+struct BufferIterator;
+}  // namespace js
+
+/**
+ * JSStructuredCloneData represents structured clone data together with the
+ * information needed to read/write/trans

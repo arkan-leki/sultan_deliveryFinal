@@ -1,0 +1,17 @@
+TTL" link="telepathy-glib-enums.html#TP-RTCP-XR-STATISTICS-FLAGS-TTL:CAPS"/>
+    <keyword type="constant" name="TP_RTCP_XR_STATISTICS_FLAGS_HL" link="telepathy-glib-enums.html#TP-RTCP-XR-STATISTICS-FLAGS-HL:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_NETWORK_ERROR" link="telepathy-glib-errors.html#TP-ERROR-NETWORK-ERROR:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_NOT_IMPLEMENTED" link="telepathy-glib-errors.html#TP-ERROR-NOT-IMPLEMENTED:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_INVALID_ARGUMENT" link="telepathy-glib-errors.html#TP-ERROR-INVALID-ARGUMENT:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_NOT_AVAILABLE" link="telepathy-glib-errors.html#TP-ERROR-NOT-AVAILABLE:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_PERMISSION_DENIED" link="telepathy-glib-errors.html#TP-ERROR-PERMISSION-DENIED:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_DISCONNECTED" link="telepathy-glib-errors.html#TP-ERROR-DISCONNECTED:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_INVALID_HANDLE" link="telepathy-glib-errors.html#TP-ERROR-INVALID-HANDLE:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_CHANNEL_BANNED" link="telepathy-glib-errors.html#TP-ERROR-CHANNEL-BANNED:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_CHANNEL_FULL" link="telepathy-glib-errors.html#TP-ERROR-CHANNEL-FULL:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_CHANNEL_INVITE_ONLY" link="telepathy-glib-errors.html#TP-ERROR-CHANNEL-INVITE-ONLY:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_NOT_YOURS" link="telepathy-glib-errors.html#TP-ERROR-NOT-YOURS:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_CANCELLED" link="telepathy-glib-errors.html#TP-ERROR-CANCELLED:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_AUTHENTICATION_FAILED" link="telepathy-glib-errors.html#TP-ERROR-AUTHENTICATION-FAILED:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_ENCRYPTION_NOT_AVAILABLE" link="telepathy-glib-errors.html#TP-ERROR-ENCRYPTION-NOT-AVAILABLE:CAPS"/>
+    <keyword type="constant" name="TP_ERROR_ENCRYPTION_ERROR" l

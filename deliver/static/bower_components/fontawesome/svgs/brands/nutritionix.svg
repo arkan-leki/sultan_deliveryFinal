@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<page xmlns="http://projectmallard.org/1.0/" type="guide" style="task" id="printing-envelopes" xml:lang="gu">
+
+  <info>
+    <link type="guide" xref="printing#paper"/>
+
+    <revision pkgversion="3.4.0" date="2012-02-19" status="candidate"/>
+    <revision pkgversion="3.13.92" date="2014-09-22" status="candidate"/>
+    <revision pkgversion="3.18" date="2015-09-29" status="candidate"/>
+
+    <credit type="author">
+      <name>ફીલ બુલ</name>
+      <email>philbull@gmail.com</email>
+    </credit>
+    <credit type="author">
+      <name>જીમ કેમ્પબેલ</name>
+      <email>jwcampbell@gmail.com</email>
+    </credit>
+
+    <include xmlns="http://www.w3.org/2001/XInclude" href="legal.xml"/>
+
+    <desc>Make sure that you have the envelope the right way up, and have
+    chosen the correct paper size.</desc>
+  </info>
+
+  <title>Print envelopes</title>
+
+  <p>Most printers will allow you to print directly onto an envelope<!-- or sheet
+  of labels-->. This is especially useful if you have a lot of letters to send,
+  for example.</p>
+
+  <section id="envelope">
+    <title>કવરમાં છાપી રહ્યા છે</title>
+
+  <p>There are two things you need to check when trying to print onto an
+  envelope.</p>
+  <p>The first is that your printer knows what size the envelope is. Press
+  <keyseq><key>Ctrl</key><key>P</key></keyseq> to open the Print dialog, go to
+  the <gui>Page Setup</gui> tab and choose the <gui>Pap

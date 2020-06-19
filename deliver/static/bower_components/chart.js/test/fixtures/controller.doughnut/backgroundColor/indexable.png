@@ -1,0 +1,294 @@
+n.html#e-webdav-session-acl-sync" title="e_webdav_session_acl_sync ()">e_webdav_session_acl_sync</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<a href="../glib/glib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+</td>
+<td class="function_name">
+<a class="link" href="EWebDAVSession.html#e-webdav-session-get-supported-privilege-set-sync" title="e_webdav_session_get_supported_privilege_set_sync ()">e_webdav_session_get_supported_privilege_set_sync</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<a href="../glib/glib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+</td>
+<td class="function_name">
+<a class="link" href="EWebDAVSession.html#e-webdav-session-get-current-user-privilege-set-sync" title="e_webdav_session_get_current_user_privilege_set_sync ()">e_webdav_session_get_current_user_privilege_set_sync</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<a href="../glib/glib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+</td>
+<td class="function_name">
+<a class="link" href="EWebDAVSession.html#e-webdav-session-get-acl-sync" title="e_webdav_session_get_acl_sync ()">e_webdav_session_get_acl_sync</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<a href="../glib/glib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+</td>
+<td class="function_name">
+<a class="link" href="EWebDAVSession.html#e-webdav-session-get-acl-restrictions-sync" title="e_webdav_session_get_acl_restrictions_sync ()">e_webdav_session_get_acl_restrictions_sync</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<a href="../glib/glib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+</td>
+<td class="function_name">
+<a class="link" href="EWebDAVSession.html#e-webdav-session-get-principal-collection-set-sync" title="e_webdav_session_get_principal_collection_set_sync ()">e_webdav_session_get_principal_collection_set_sync</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<a href="../glib/glib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+</td>
+<td class="function_name">
+<a class="link" href="EWebDAVSession.html#e-webdav-session-set-acl-sync" title="e_webdav_session_set_acl_sync ()">e_webdav_session_set_acl_sync</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<a href="../glib/glib-Basic-Types.html#gboolean"><span class="returnvalue">gboolean</span></a>
+</td>
+<td class="function_name">
+<a class="link" href="EWebDAVSession.html#e-webdav-session-principal-property-search-sync" title="e_webdav_session_principal_property_search_sync ()">e_webdav_session_principal_property_search_sync</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<a href="../glib/glib-Basic-Types.html#gchar"><span class="returnvalue">gchar</span></a> *
+</td>
+<td class="function_name">
+<a class="link" href="EWebDAVSession.html#e-webdav-session-util-maybe-dequote" title="e_webdav_session_util_maybe_dequote ()">e_webdav_session_util_maybe_dequote</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<span class="returnvalue">void</span>
+</td>
+<td class="function_name">
+<a class="link" href="EWebDAVSession.html#e-webdav-session-util-free-privileges" title="e_webdav_session_util_free_privileges ()">e_webdav_session_util_free_privileges</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<a name="EWebDAVAccessControlEntry"></a><a name="EWebDAVPrivilege"></a><a name="EWebDAVPropertyChange"></a><a name="EWebDAVResource"></a><div class="refsect1">
+<a name="EWebDAVSession.other"></a><h2>Types and Values</h2>
+<div class="informaltable"><table class="informaltable" width="100%" border="0">
+<colgroup>
+<col width="150px" class="other_proto_type">
+<col class="other_proto_name">
+</colgroup>
+<tbody>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CAPABILITY-CLASS-1:CAPS" title="E_WEBDAV_CAPABILITY_CLASS_1">E_WEBDAV_CAPABILITY_CLASS_1</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CAPABILITY-CLASS-2:CAPS" title="E_WEBDAV_CAPABILITY_CLASS_2">E_WEBDAV_CAPABILITY_CLASS_2</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CAPABILITY-CLASS-3:CAPS" title="E_WEBDAV_CAPABILITY_CLASS_3">E_WEBDAV_CAPABILITY_CLASS_3</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CAPABILITY-ACCESS-CONTROL:CAPS" title="E_WEBDAV_CAPABILITY_ACCESS_CONTROL">E_WEBDAV_CAPABILITY_ACCESS_CONTROL</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CAPABILITY-BIND:CAPS" title="E_WEBDAV_CAPABILITY_BIND">E_WEBDAV_CAPABILITY_BIND</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CAPABILITY-EXTENDED-MKCOL:CAPS" title="E_WEBDAV_CAPABILITY_EXTENDED_MKCOL">E_WEBDAV_CAPABILITY_EXTENDED_MKCOL</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CAPABILITY-ADDRESSBOOK:CAPS" title="E_WEBDAV_CAPABILITY_ADDRESSBOOK">E_WEBDAV_CAPABILITY_ADDRESSBOOK</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CAPABILITY-CALENDAR-ACCESS:CAPS" title="E_WEBDAV_CAPABILITY_CALENDAR_ACCESS">E_WEBDAV_CAPABILITY_CALENDAR_ACCESS</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CAPABILITY-CALENDAR-SCHEDULE:CAPS" title="E_WEBDAV_CAPABILITY_CALENDAR_SCHEDULE">E_WEBDAV_CAPABILITY_CALENDAR_SCHEDULE</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CAPABILITY-CALENDAR-AUTO-SCHEDULE:CAPS" title="E_WEBDAV_CAPABILITY_CALENDAR_AUTO_SCHEDULE">E_WEBDAV_CAPABILITY_CALENDAR_AUTO_SCHEDULE</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CAPABILITY-CALENDAR-PROXY:CAPS" title="E_WEBDAV_CAPABILITY_CALENDAR_PROXY">E_WEBDAV_CAPABILITY_CALENDAR_PROXY</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-DEPTH-THIS:CAPS" title="E_WEBDAV_DEPTH_THIS">E_WEBDAV_DEPTH_THIS</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-DEPTH-THIS-AND-CHILDREN:CAPS" title="E_WEBDAV_DEPTH_THIS_AND_CHILDREN">E_WEBDAV_DEPTH_THIS_AND_CHILDREN</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-DEPTH-INFINITY:CAPS" title="E_WEBDAV_DEPTH_INFINITY">E_WEBDAV_DEPTH_INFINITY</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CONTENT-TYPE-XML:CAPS" title="E_WEBDAV_CONTENT_TYPE_XML">E_WEBDAV_CONTENT_TYPE_XML</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CONTENT-TYPE-CALENDAR:CAPS" title="E_WEBDAV_CONTENT_TYPE_CALENDAR">E_WEBDAV_CONTENT_TYPE_CALENDAR</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-CONTENT-TYPE-VCARD:CAPS" title="E_WEBDAV_CONTENT_TYPE_VCARD">E_WEBDAV_CONTENT_TYPE_VCARD</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-NS-DAV:CAPS" title="E_WEBDAV_NS_DAV">E_WEBDAV_NS_DAV</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-NS-CALDAV:CAPS" title="E_WEBDAV_NS_CALDAV">E_WEBDAV_NS_CALDAV</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-NS-CARDDAV:CAPS" title="E_WEBDAV_NS_CARDDAV">E_WEBDAV_NS_CARDDAV</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-NS-CALENDARSERVER:CAPS" title="E_WEBDAV_NS_CALENDARSERVER">E_WEBDAV_NS_CALENDARSERVER</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-NS-ICAL:CAPS" title="E_WEBDAV_NS_ICAL">E_WEBDAV_NS_ICAL</a></td>
+</tr>
+<tr>
+<td class="datatype_keyword">enum</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#EWebDAVResourceKind" title="enum EWebDAVResourceKind">EWebDAVResourceKind</a></td>
+</tr>
+<tr>
+<td class="datatype_keyword">enum</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#EWebDAVResourceSupports" title="enum EWebDAVResourceSupports">EWebDAVResourceSupports</a></td>
+</tr>
+<tr>
+<td class="datatype_keyword">enum</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#EWebDAVListFlags" title="enum EWebDAVListFlags">EWebDAVListFlags</a></td>
+</tr>
+<tr>
+<td class="datatype_keyword">enum</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#EWebDAVPropertyChangeKind" title="enum EWebDAVPropertyChangeKind">EWebDAVPropertyChangeKind</a></td>
+</tr>
+<tr>
+<td class="datatype_keyword">enum</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#EWebDAVLockScope" title="enum EWebDAVLockScope">EWebDAVLockScope</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-COLLATION-ASCII-NUMERIC-SUFFIX:CAPS" title="E_WEBDAV_COLLATION_ASCII_NUMERIC_SUFFIX">E_WEBDAV_COLLATION_ASCII_NUMERIC_SUFFIX</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-COLLATION-ASCII-NUMERIC:CAPS" title="E_WEBDAV_COLLATION_ASCII_NUMERIC">E_WEBDAV_COLLATION_ASCII_NUMERIC</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-COLLATION-ASCII-CASEMAP-SUFFIX:CAPS" title="E_WEBDAV_COLLATION_ASCII_CASEMAP_SUFFIX">E_WEBDAV_COLLATION_ASCII_CASEMAP_SUFFIX</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-COLLATION-ASCII-CASEMAP:CAPS" title="E_WEBDAV_COLLATION_ASCII_CASEMAP">E_WEBDAV_COLLATION_ASCII_CASEMAP</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-COLLATION-OCTET-SUFFIX:CAPS" title="E_WEBDAV_COLLATION_OCTET_SUFFIX">E_WEBDAV_COLLATION_OCTET_SUFFIX</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-COLLATION-OCTET:CAPS" title="E_WEBDAV_COLLATION_OCTET">E_WEBDAV_COLLATION_OCTET</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-COLLATION-UNICODE-CASEMAP-SUFFIX:CAPS" title="E_WEBDAV_COLLATION_UNICODE_CASEMAP_SUFFIX">E_WEBDAV_COLLATION_UNICODE_CASEMAP_SUFFIX</a></td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#E-WEBDAV-COLLATION-UNICODE-CASEMAP:CAPS" title="E_WEBDAV_COLLATION_UNICODE_CASEMAP">E_WEBDAV_COLLATION_UNICODE_CASEMAP</a></td>
+</tr>
+<tr>
+<td class="datatype_keyword">enum</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#EWebDAVPrivilegeKind" title="enum EWebDAVPrivilegeKind">EWebDAVPrivilegeKind</a></td>
+</tr>
+<tr>
+<td class="datatype_keyword">enum</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#EWebDAVPrivilegeHint" title="enum EWebDAVPrivilegeHint">EWebDAVPrivilegeHint</a></td>
+</tr>
+<tr>
+<td class="datatype_keyword">enum</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#EWebDAVACEPrincipalKind" title="enum EWebDAVACEPrincipalKind">EWebDAVACEPrincipalKind</a></td>
+</tr>
+<tr>
+<td class="datatype_keyword">enum</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#EWebDAVACEFlag" title="enum EWebDAVACEFlag">EWebDAVACEFlag</a></td>
+</tr>
+<tr>
+<td class="datatype_keyword">enum</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#EWebDAVACLRestrictions" title="enum EWebDAVACLRestrictions">EWebDAVACLRestrictions</a></td>
+</tr>
+<tr>
+<td class="datatype_keyword">struct</td>
+<td class="function_name"><a class="link" href="EWebDAVSession.html#EWebDAVSession-struct" title="struct EWebDAVSession">EWebDAVSession</a></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="refsect1">
+<a name="EWebDAVSession.object-hierarchy"></a><h2>Object Hierarchy</h2>
+<pre class="screen">    <a href="/usr/share/gtk-doc/html/gobject/gobject-Boxed-Types.html">GBoxed</a>
+    <span class="lineart">├──</span> EWebDAVAccessControlEntry
+    <span class="lineart">├──</span> EWebDAVPrivilege
+    <span class="lineart">├──</span> EWebDAVPropertyChange
+    <span class="lineart">╰──</span> EWebDAVResource
+    <a href="../gobject/gobject-The-Base-Object-Type.html#GObject-struct">GObject</a>
+    <span class="lineart">╰──</span> <a href="../libsoup-2.4/SoupSession.html#SoupSession-struct">SoupSession</a>
+        <span class="lineart">╰──</span> <a class="link" href="ESoupSession.html" title="ESoupSession">ESoupSession</a>
+            <span class="lineart">╰──</span> EWebDAVSession
+</pre>
+</div>
+<div class="refsect1">
+<a name="EWebDAVSession.includes"></a><h2>Includes</h2>
+<pre class="synopsis">#include &lt;libedataserver/libedataserver.h&gt;
+</pre>
+</div>
+<div class="refsect1">
+<a name="EWebDAVSession.description"></a><h2>Description</h2>
+<p>The <a class="link" href="EWebDAVSession.html" title="EWebDAVSession"><span class="type">EWebDAVSession</span></a> is a class to work with WebDAV (RFC 4918),
+CalDAV (RFC 4791) or CardDAV (RFC 6352) servers, providing API
+for common requests/responses, on top of an <a class="link" href="ESoupSession.html" title="ESoupSession"><span class="type">ESoupSession</span></a>. It
+supports also Access Control Protocol (RFC 3744).</p>
+</div>
+<div class="refsect1">
+<a name="EWebDAVSession.functions_details"></a><h2>Functions</h2>
+<div class="refsect2">
+<a name="e-webdav-resource-new"></a><h3>e_webdav_resource_new ()</h3>
+<pre class="programlisting"><a class="link" href="EWebDAVSession.html#EWebDAVResource"><span class="returnvalue">EWebDAVResource</span></a> *
+e_webdav_resource_new (<em class="parameter"><code><a class="link" href="EWebDAVSession.html#EWebDAVResourceKind" title="enum EWebDAVResourceKind"><span class="type">EWebDAVResourceKind</span></a> kind</code></em>,
+                       <em class="parameter"><code><a href="../glib/glib-Basic-Types.html#guint32"><span class="type">guint32</span></a> supports</code></em>,
+                       <em class="parameter"><code>const <a href="../glib/glib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *href</code></em>,
+                       <em class="parameter"><code>const <a href="../glib/glib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *etag</code></em>,
+                       <em class="parameter"><code>const <a href="../glib/glib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *display_name</code></em>,
+                       <em class="parameter"><code>const <a href="../glib/glib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *content_type</code></em>,
+                       <em class="parameter"><code><a href="../glib/glib-Basic-Types.html#gsize"><span class="type">gsize</span></a> content_length</code></em>,
+                       <em class="parameter"><code><a href="../glib/glib-Basic-Types.html#glong"><span class="type">glong</span></a> creation_date</code></em>,
+                       <em class="parameter"><code><a href="../glib/glib-Basic-Types.html#glong"><span class="type">glong</span></a> last_modified</code></em>,
+                       <em class="parameter"><code>const <a href="../glib/glib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *description</code></em>,
+                       <em class="parameter"><code>const <a href="../glib/glib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *color</code></em>);<

@@ -1,0 +1,509 @@
+perty_id_begin" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="8684">The property id to assign to the first overridden property.</doc>
+          <type name="guint" c:type="guint"/>
+        </parameter>
+      </parameters>
+    </function>
+    <function name="manager_interface_info"
+              c:identifier="goa_manager_interface_info"
+              moved-to="Manager.interface_info">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="7356">Gets a machine-readable description of the &lt;link linkend="gdbus-interface-org-gnome-OnlineAccounts-Manager.top_of_page"&gt;org.gnome.OnlineAccounts.Manager&lt;/link&gt; D-Bus interface.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="900"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="7361">A #GDBusInterfaceInfo. Do not free.</doc>
+        <type name="Gio.DBusInterfaceInfo" c:type="GDBusInterfaceInfo*"/>
+      </return-value>
+    </function>
+    <function name="manager_override_properties"
+              c:identifier="goa_manager_override_properties"
+              moved-to="Manager.override_properties">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="7369">Overrides all #GObject properties in the #GoaManager interface for a concrete class.
+The properties are overridden in the order they are defined.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="901"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="7377">The last property id.</doc>
+        <type name="guint" c:type="guint"/>
+      </return-value>
+      <parameters>
+        <parameter name="klass" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="7371">The class structure for a #GObject derived class.</doc>
+          <type name="GObject.ObjectClass" c:type="GObjectClass*"/>
+        </parameter>
+        <parameter name="property_id_begin" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="7372">The property id to assign to the first overridden property.</doc>
+          <type name="guint" c:type="guint"/>
+        </parameter>
+      </parameters>
+    </function>
+    <function name="maps_interface_info"
+              c:identifier="goa_maps_interface_info"
+              moved-to="Maps.interface_info"
+              version="3.14.0">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="14763">Gets a machine-readable description of the &lt;link linkend="gdbus-interface-org-gnome-OnlineAccounts-Maps.top_of_page"&gt;org.gnome.OnlineAccounts.Maps&lt;/link&gt; D-Bus interface.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="1877"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="14768">A #GDBusInterfaceInfo. Do not free.</doc>
+        <type name="Gio.DBusInterfaceInfo" c:type="GDBusInterfaceInfo*"/>
+      </return-value>
+    </function>
+    <function name="maps_override_properties"
+              c:identifier="goa_maps_override_properties"
+              moved-to="Maps.override_properties"
+              version="3.14.0">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="14778">Overrides all #GObject properties in the #GoaMaps interface for a concrete class.
+The properties are overridden in the order they are defined.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="1878"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="14786">The last property id.</doc>
+        <type name="guint" c:type="guint"/>
+      </return-value>
+      <parameters>
+        <parameter name="klass" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="14780">The class structure for a #GObject derived class.</doc>
+          <type name="GObject.ObjectClass" c:type="GObjectClass*"/>
+        </parameter>
+        <parameter name="property_id_begin" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="14781">The property id to assign to the first overridden property.</doc>
+          <type name="guint" c:type="guint"/>
+        </parameter>
+      </parameters>
+    </function>
+    <function name="media_server_interface_info"
+              c:identifier="goa_media_server_interface_info"
+              moved-to="MediaServer.interface_info"
+              version="3.14">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="19366">Gets a machine-readable description of the &lt;link linkend="gdbus-interface-org-gnome-OnlineAccounts-MediaServer.top_of_page"&gt;org.gnome.OnlineAccounts.MediaServer&lt;/link&gt; D-Bus interface.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="2565"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="19371">A #GDBusInterfaceInfo. Do not free.</doc>
+        <type name="Gio.DBusInterfaceInfo" c:type="GDBusInterfaceInfo*"/>
+      </return-value>
+    </function>
+    <function name="media_server_override_properties"
+              c:identifier="goa_media_server_override_properties"
+              moved-to="MediaServer.override_properties"
+              version="3.14">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="19381">Overrides all #GObject properties in the #GoaMediaServer interface for a concrete class.
+The properties are overridden in the order they are defined.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="2566"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="19389">The last property id.</doc>
+        <type name="guint" c:type="guint"/>
+      </return-value>
+      <parameters>
+        <parameter name="klass" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="19383">The class structure for a #GObject derived class.</doc>
+          <type name="GObject.ObjectClass" c:type="GObjectClass*"/>
+        </parameter>
+        <parameter name="property_id_begin" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="19384">The property id to assign to the first overridden property.</doc>
+          <type name="guint" c:type="guint"/>
+        </parameter>
+      </parameters>
+    </function>
+    <function name="music_interface_info"
+              c:identifier="goa_music_interface_info"
+              moved-to="Music.interface_info"
+              version="3.18.0">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="15503">Gets a machine-readable description of the &lt;link linkend="gdbus-interface-org-gnome-OnlineAccounts-Music.top_of_page"&gt;org.gnome.OnlineAccounts.Music&lt;/link&gt; D-Bus interface.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="2008"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="15508">A #GDBusInterfaceInfo. Do not free.</doc>
+        <type name="Gio.DBusInterfaceInfo" c:type="GDBusInterfaceInfo*"/>
+      </return-value>
+    </function>
+    <function name="music_override_properties"
+              c:identifier="goa_music_override_properties"
+              moved-to="Music.override_properties"
+              version="3.18.0">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="15518">Overrides all #GObject properties in the #GoaMusic interface for a concrete class.
+The properties are overridden in the order they are defined.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="2009"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="15526">The last property id.</doc>
+        <type name="guint" c:type="guint"/>
+      </return-value>
+      <parameters>
+        <parameter name="klass" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="15520">The class structure for a #GObject derived class.</doc>
+          <type name="GObject.ObjectClass" c:type="GObjectClass*"/>
+        </parameter>
+        <parameter name="property_id_begin" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="15521">The property id to assign to the first overridden property.</doc>
+          <type name="guint" c:type="guint"/>
+        </parameter>
+      </parameters>
+    </function>
+    <function name="oauth2_based_interface_info"
+              c:identifier="goa_oauth2_based_interface_info"
+              moved-to="OAuth2Based.interface_info">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="3616">Gets a machine-readable description of the &lt;link linkend="gdbus-interface-org-gnome-OnlineAccounts-OAuth2Based.top_of_page"&gt;org.gnome.OnlineAccounts.OAuth2Based&lt;/link&gt; D-Bus interface.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="358"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="3621">A #GDBusInterfaceInfo. Do not free.</doc>
+        <type name="Gio.DBusInterfaceInfo" c:type="GDBusInterfaceInfo*"/>
+      </return-value>
+    </function>
+    <function name="oauth2_based_override_properties"
+              c:identifier="goa_oauth2_based_override_properties"
+              moved-to="OAuth2Based.override_properties">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="3629">Overrides all #GObject properties in the #GoaOAuth2Based interface for a concrete class.
+The properties are overridden in the order they are defined.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="359"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="3637">The last property id.</doc>
+        <type name="guint" c:type="guint"/>
+      </return-value>
+      <parameters>
+        <parameter name="klass" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="3631">The class structure for a #GObject derived class.</doc>
+          <type name="GObject.ObjectClass" c:type="GObjectClass*"/>
+        </parameter>
+        <parameter name="property_id_begin" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="3632">The property id to assign to the first overridden property.</doc>
+          <type name="guint" c:type="guint"/>
+        </parameter>
+      </parameters>
+    </function>
+    <function name="oauth_based_interface_info"
+              c:identifier="goa_oauth_based_interface_info"
+              moved-to="OAuthBased.interface_info">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="4978">Gets a machine-readable description of the &lt;link linkend="gdbus-interface-org-gnome-OnlineAccounts-OAuthBased.top_of_page"&gt;org.gnome.OnlineAccounts.OAuthBased&lt;/link&gt; D-Bus interface.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="541"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="4983">A #GDBusInterfaceInfo. Do not free.</doc>
+        <type name="Gio.DBusInterfaceInfo" c:type="GDBusInterfaceInfo*"/>
+      </return-value>
+    </function>
+    <function name="oauth_based_override_properties"
+              c:identifier="goa_oauth_based_override_properties"
+              moved-to="OAuthBased.override_properties">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="4991">Overrides all #GObject properties in the #GoaOAuthBased interface for a concrete class.
+The properties are overridden in the order they are defined.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="542"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="4999">The last property id.</doc>
+        <type name="guint" c:type="guint"/>
+      </return-value>
+      <parameters>
+        <parameter name="klass" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="4993">The class structure for a #GObject derived class.</doc>
+          <type name="GObject.ObjectClass" c:type="GObjectClass*"/>
+        </parameter>
+        <parameter name="property_id_begin" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="4994">The property id to assign to the first overridden property.</doc>
+          <type name="guint" c:type="guint"/>
+        </parameter>
+      </parameters>
+    </function>
+    <function name="password_based_interface_info"
+              c:identifier="goa_password_based_interface_info"
+              moved-to="PasswordBased.interface_info"
+              version="3.6.0">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="6307">Gets a machine-readable description of the &lt;link linkend="gdbus-interface-org-gnome-OnlineAccounts-PasswordBased.top_of_page"&gt;org.gnome.OnlineAccounts.PasswordBased&lt;/link&gt; D-Bus interface.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="723"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="6312">A #GDBusInterfaceInfo. Do not free.</doc>
+        <type name="Gio.DBusInterfaceInfo" c:type="GDBusInterfaceInfo*"/>
+      </return-value>
+    </function>
+    <function name="password_based_override_properties"
+              c:identifier="goa_password_based_override_properties"
+              moved-to="PasswordBased.override_properties"
+              version="3.6.0">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="6322">Overrides all #GObject properties in the #GoaPasswordBased interface for a concrete class.
+The properties are overridden in the order they are defined.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="724"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="6330">The last property id.</doc>
+        <type name="guint" c:type="guint"/>
+      </return-value>
+      <parameters>
+        <parameter name="klass" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="6324">The class structure for a #GObject derived class.</doc>
+          <type name="GObject.ObjectClass" c:type="GObjectClass*"/>
+        </parameter>
+        <parameter name="property_id_begin" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="6325">The property id to assign to the first overridden property.</doc>
+          <type name="guint" c:type="guint"/>
+        </parameter>
+      </parameters>
+    </function>
+    <function name="photos_interface_info"
+              c:identifier="goa_photos_interface_info"
+              moved-to="Photos.interface_info"
+              version="3.8.0">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="16243">Gets a machine-readable description of the &lt;link linkend="gdbus-interface-org-gnome-OnlineAccounts-Photos.top_of_page"&gt;org.gnome.OnlineAccounts.Photos&lt;/link&gt; D-Bus interface.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="2139"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="16248">A #GDBusInterfaceInfo. Do not free.</doc>
+        <type name="Gio.DBusInterfaceInfo" c:type="GDBusInterfaceInfo*"/>
+      </return-value>
+    </function>
+    <function name="photos_override_properties"
+              c:identifier="goa_photos_override_properties"
+              moved-to="Photos.override_properties"
+              version="3.8.0">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="16258">Overrides all #GObject properties in the #GoaPhotos interface for a concrete class.
+The properties are overridden in the order they are defined.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="2140"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="16266">The last property id.</doc>
+        <type name="guint" c:type="guint"/>
+      </return-value>
+      <parameters>
+        <parameter name="klass" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="16260">The class structure for a #GObject derived class.</doc>
+          <type name="GObject.ObjectClass" c:type="GObjectClass*"/>
+        </parameter>
+        <parameter name="property_id_begin" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="16261">The property id to assign to the first overridden property.</doc>
+          <type name="guint" c:type="guint"/>
+        </parameter>
+      </parameters>
+    </function>
+    <function name="printers_interface_info"
+              c:identifier="goa_printers_interface_info"
+              moved-to="Printers.interface_info"
+              version="3.12.0">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="23316">Gets a machine-readable description of the &lt;link linkend="gdbus-interface-org-gnome-OnlineAccounts-Printers.top_of_page"&gt;org.gnome.OnlineAccounts.Printers&lt;/link&gt; D-Bus interface.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="3138"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="23321">A #GDBusInterfaceInfo. Do not free.</doc>
+        <type name="Gio.DBusInterfaceInfo" c:type="GDBusInterfaceInfo*"/>
+      </return-value>
+    </function>
+    <function name="printers_override_properties"
+              c:identifier="goa_printers_override_properties"
+              moved-to="Printers.override_properties"
+              version="3.12.0">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="23331">Overrides all #GObject properties in the #GoaPrinters interface for a concrete class.
+The properties are overridden in the order they are defined.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="3139"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="23339">The last property id.</doc>
+        <type name="guint" c:type="guint"/>
+      </return-value>
+      <parameters>
+        <parameter name="klass" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="23333">The class structure for a #GObject derived class.</doc>
+          <type name="GObject.ObjectClass" c:type="GObjectClass*"/>
+        </parameter>
+        <parameter name="property_id_begin" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="23334">The property id to assign to the first overridden property.</doc>
+          <type name="guint" c:type="guint"/>
+        </parameter>
+      </parameters>
+    </function>
+    <function name="read_later_interface_info"
+              c:identifier="goa_read_later_interface_info"
+              moved-to="ReadLater.interface_info"
+              version="3.12.0"
+              deprecated="1">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="22546">Gets a machine-readable description of the &lt;link linkend="gdbus-interface-org-gnome-OnlineAccounts-ReadLater.top_of_page"&gt;org.gnome.OnlineAccounts.ReadLater&lt;/link&gt; D-Bus interface.</doc>
+      <doc-deprecated xml:space="preserve">The D-Bus interface has been deprecated.</doc-deprecated>
+      <source-position filename="../src/goa/goa-generated.h" line="3007"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="22551">A #GDBusInterfaceInfo. Do not free.</doc>
+        <type name="Gio.DBusInterfaceInfo" c:type="GDBusInterfaceInfo*"/>
+      </return-value>
+    </function>
+    <function name="read_later_override_properties"
+              c:identifier="goa_read_later_override_properties"
+              moved-to="ReadLater.override_properties"
+              version="3.12.0"
+              deprecated="1">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="22563">Overrides all #GObject properties in the #GoaReadLater interface for a concrete class.
+The properties are overridden in the order they are defined.</doc>
+      <doc-deprecated xml:space="preserve">The D-Bus interface has been deprecated.</doc-deprecated>
+      <source-position filename="../src/goa/goa-generated.h" line="3008"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="22571">The last property id.</doc>
+        <type name="guint" c:type="guint"/>
+      </return-value>
+      <parameters>
+        <parameter name="klass" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="22565">The class structure for a #GObject derived class.</doc>
+          <type name="GObject.ObjectClass" c:type="GObjectClass*"/>
+        </parameter>
+        <parameter name="property_id_begin" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="22566">The property id to assign to the first overridden property.</doc>
+          <type name="guint" c:type="guint"/>
+        </parameter>
+      </parameters>
+    </function>
+    <function name="ticketing_interface_info"
+              c:identifier="goa_ticketing_interface_info"
+              moved-to="Ticketing.interface_info"
+              version="3.6.0">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="20544">Gets a machine-readable description of the &lt;link linkend="gdbus-interface-org-gnome-OnlineAccounts-Ticketing.top_of_page"&gt;org.gnome.OnlineAccounts.Ticketing&lt;/link&gt; D-Bus interface.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="2713"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="20549">A #GDBusInterfaceInfo. Do not free.</doc>
+        <type name="Gio.DBusInterfaceInfo" c:type="GDBusInterfaceInfo*"/>
+      </return-value>
+    </function>
+    <function name="ticketing_override_properties"
+              c:identifier="goa_ticketing_override_properties"
+              moved-to="Ticketing.override_properties"
+              version="3.6.0">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="20559">Overrides all #GObject properties in the #GoaTicketing interface for a concrete class.
+The properties are overridden in the order they are defined.</doc>
+      <source-position filename="../src/goa/goa-generated.h" line="2714"/>
+      <return-value transfer-ownership="none">
+        <doc xml:space="preserve"
+             filename="../src/goa/goa-generated.c"
+             line="20567">The last property id.</doc>
+        <type name="guint" c:type="guint"/>
+      </return-value>
+      <parameters>
+        <parameter name="klass" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="20561">The class structure for a #GObject derived class.</doc>
+          <type name="GObject.ObjectClass" c:type="GObjectClass*"/>
+        </parameter>
+        <parameter name="property_id_begin" transfer-ownership="none">
+          <doc xml:space="preserve"
+               filename="../src/goa/goa-generated.c"
+               line="20562">The property id to assign to the first overridden property.</doc>
+          <type name="guint" c:type="guint"/>
+        </parameter>
+      </parameters>
+    </function>
+    <function name="todo_interface_info"
+              c:identifier="goa_todo_interface_info"
+              moved-to="Todo.interface_info"
+              version="3.26.0"
+              deprecated="1">
+      <doc xml:space="preserve"
+           filename="../src/goa/goa-generated.c"
+           line="21762">Gets a machine-readable description of the &lt;link linkend="gdbus-interface-org-gnome-OnlineAccount

@@ -1,0 +1,6 @@
+code><a class="link" href="EWebDAVSession.html" title="EWebDAVSession"><span class="type">EWebDAVSession</span></a> *webdav</code></em>,
+                                <em class="parameter"><code>const <a href="../glib/glib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *uri</code></em>,
+                                <em class="parameter"><code><a href="../glib/glib-Basic-Types.html#guint32"><span class="type">guint32</span></a> *out_restrictions</code></em>,
+                                <em class="parameter"><code><a class="link" href="EWebDAVSession.html#EWebDAVACEPrincipalKind" title="enum EWebDAVACEPrincipalKind"><span class="type">EWebDAVACEPrincipalKind</span></a> *out_principal_kind</code></em>,
+                                <em class="parameter"><code><a href="../glib/glib-Singly-Linked-Lists.html#GSList"><span class="type">GSList</span></a> **out_principal_hrefs</code></em>,
+                                <em class="parameter"><code><a href="../gio/GCancellable.html#GCancellable-struct"><span class="type">GCancellable</span></a> *cancellable</code

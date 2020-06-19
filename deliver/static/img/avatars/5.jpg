@@ -1,0 +1,897 @@
+on PIXMA iP4100"
+msgstr "Canon PIXMA iP4100"
+
+#: src/xml/xmli18n-tmp.h:3289
+msgid "Canon PIXUS iP4100"
+msgstr "Canon PIXUS iP4100"
+
+#: src/xml/xmli18n-tmp.h:3290
+msgid "Canon PIXUS iP4100R"
+msgstr "Canon PIXUS iP4100R"
+
+#: src/xml/xmli18n-tmp.h:3291
+msgid "Canon PIXMA iP4100R"
+msgstr "Canon PIXMA iP4100R"
+
+#: src/xml/xmli18n-tmp.h:3292
+msgid "Canon iP4200 series"
+msgstr "Canon iP4200 series"
+
+#: src/xml/xmli18n-tmp.h:3293
+msgid "Canon PIXMA iP4200"
+msgstr "Canon PIXMA iP4200"
+
+#: src/xml/xmli18n-tmp.h:3294
+msgid "Canon PIXUS iP4200"
+msgstr "Canon PIXUS iP4200"
+
+#: src/xml/xmli18n-tmp.h:3295
+msgid "Canon iP4300 series"
+msgstr "Canon iP4300 series"
+
+#: src/xml/xmli18n-tmp.h:3296
+msgid "Canon PIXMA iP4300"
+msgstr "Canon PIXMA iP4300"
+
+#: src/xml/xmli18n-tmp.h:3297
+msgid "Canon PIXUS iP4300"
+msgstr "Canon PIXUS iP4300"
+
+#: src/xml/xmli18n-tmp.h:3298
+msgid "Canon iP4500 series"
+msgstr "Canon iP4500 series"
+
+#: src/xml/xmli18n-tmp.h:3299
+msgid "Canon PIXMA iP4500"
+msgstr "Canon PIXMA iP4500"
+
+#: src/xml/xmli18n-tmp.h:3300
+msgid "Canon PIXUS iP4500"
+msgstr "Canon PIXUS iP4500"
+
+#: src/xml/xmli18n-tmp.h:3301
+msgid "Canon iP4600 series"
+msgstr "Canon iP4600 series"
+
+#: src/xml/xmli18n-tmp.h:3302
+msgid "Canon PIXMA iP4600"
+msgstr "Canon PIXMA iP4600"
+
+#: src/xml/xmli18n-tmp.h:3303
+msgid "Canon PIXUS iP4600"
+msgstr "Canon PIXUS iP4600"
+
+#: src/xml/xmli18n-tmp.h:3304
+msgid "Canon PIXMA iP4680"
+msgstr "Canon PIXMA iP4680"
+
+#: src/xml/xmli18n-tmp.h:3305
+msgid "Canon iP4700 series"
+msgstr "Canon iP4700 series"
+
+#: src/xml/xmli18n-tmp.h:3306
+msgid "Canon PIXMA iP4700"
+msgstr "Canon PIXMA iP4700"
+
+#: src/xml/xmli18n-tmp.h:3307
+msgid "Canon PIXUS iP4700"
+msgstr "Canon PIXUS iP4700"
+
+#: src/xml/xmli18n-tmp.h:3308
+msgid "Canon PIXMA iP4760"
+msgstr "Canon PIXMA iP4760"
+
+#: src/xml/xmli18n-tmp.h:3309
+msgid "Canon iP4800 series"
+msgstr "Canon iP4800 series"
+
+#: src/xml/xmli18n-tmp.h:3310
+msgid "Canon PIXMA iP4800"
+msgstr "Canon PIXMA iP4800"
+
+#: src/xml/xmli18n-tmp.h:3311
+msgid "Canon PIXMA iP4810"
+msgstr "Canon PIXMA iP4810"
+
+#: src/xml/xmli18n-tmp.h:3312
+msgid "Canon PIXMA iP4820"
+msgstr "Canon PIXMA iP4820"
+
+#: src/xml/xmli18n-tmp.h:3313
+msgid "Canon PIXUS iP4830"
+msgstr "Canon PIXUS iP4830"
+
+#: src/xml/xmli18n-tmp.h:3314
+msgid "Canon PIXMA iP4840"
+msgstr "Canon PIXMA iP4840"
+
+#: src/xml/xmli18n-tmp.h:3315
+msgid "Canon PIXMA iP4850"
+msgstr "Canon PIXMA iP4850"
+
+#: src/xml/xmli18n-tmp.h:3316
+msgid "Canon PIXMA iP4870"
+msgstr "Canon PIXMA iP4870"
+
+#: src/xml/xmli18n-tmp.h:3317
+msgid "Canon PIXMA iP4880"
+msgstr "Canon PIXMA iP4880"
+
+#: src/xml/xmli18n-tmp.h:3318
+msgid "Canon iP4900 series"
+msgstr "Canon iP4900 series"
+
+#: src/xml/xmli18n-tmp.h:3319
+msgid "Canon PIXMA iP4900"
+msgstr "Canon PIXMA iP4900"
+
+#: src/xml/xmli18n-tmp.h:3320
+msgid "Canon PIXMA iP4910"
+msgstr "Canon PIXMA iP4910"
+
+#: src/xml/xmli18n-tmp.h:3321
+msgid "Canon PIXMA iP4920"
+msgstr "Canon PIXMA iP4920"
+
+#: src/xml/xmli18n-tmp.h:3322
+msgid "Canon PIXUS iP4930"
+msgstr "Canon PIXUS iP4930"
+
+#: src/xml/xmli18n-tmp.h:3323
+msgid "Canon PIXMA iP4940"
+msgstr "Canon PIXMA iP4940"
+
+#: src/xml/xmli18n-tmp.h:3324
+msgid "Canon PIXMA iP4950"
+msgstr "Canon PIXMA iP4950"
+
+#: src/xml/xmli18n-tmp.h:3325
+msgid "Canon PIXMA iP4970"
+msgstr "Canon PIXMA iP4970"
+
+#: src/xml/xmli18n-tmp.h:3326
+msgid "Canon PIXMA iP4980"
+msgstr "Canon PIXMA iP4980"
+
+#: src/xml/xmli18n-tmp.h:3327
+msgid "Canon PIXMA iP5000"
+msgstr "Canon PIXMA iP5000"
+
+#: src/xml/xmli18n-tmp.h:3328
+msgid "Canon PIXMA iP5200"
+msgstr "Canon PIXMA iP5200"
+
+#: src/xml/xmli18n-tmp.h:3329
+msgid "Canon iP5200R series"
+msgstr "Canon iP5200R series"
+
+#: src/xml/xmli18n-tmp.h:3330
+msgid "Canon PIXMA iP5200R"
+msgstr "Canon PIXMA iP5200R"
+
+#: src/xml/xmli18n-tmp.h:3331
+msgid "Canon PIXUS iP5200R"
+msgstr "Canon PIXUS iP5200R"
+
+#: src/xml/xmli18n-tmp.h:3332
+msgid "Canon PIXMA iP5300"
+msgstr "Canon PIXMA iP5300"
+
+#: src/xml/xmli18n-tmp.h:3333
+msgid "Canon PIXMA iP6000D"
+msgstr "Canon PIXMA iP6000D"
+
+#: src/xml/xmli18n-tmp.h:3334
+msgid "Canon PIXMA iP6100D"
+msgstr "Canon PIXMA iP6100D"
+
+#: src/xml/xmli18n-tmp.h:3335
+msgid "Canon PIXUS iP6100D"
+msgstr "Canon PIXUS iP6100D"
+
+#: src/xml/xmli18n-tmp.h:3336
+msgid "Canon PIXMA iP6210D"
+msgstr "Canon PIXMA iP6210D"
+
+#: src/xml/xmli18n-tmp.h:3337
+msgid "Canon PIXMA iP6220D"
+msgstr "Canon PIXMA iP6220D"
+
+#: src/xml/xmli18n-tmp.h:3338
+msgid "Canon PIXMA iP6310D"
+msgstr "Canon PIXMA iP310D"
+
+#: src/xml/xmli18n-tmp.h:3339
+msgid "Canon PIXMA iP6320D"
+msgstr "Canon PIXMA iP6320D"
+
+#: src/xml/xmli18n-tmp.h:3340
+msgid "Canon iP6600D series"
+msgstr "Canon iP6600D series"
+
+#: src/xml/xmli18n-tmp.h:3341
+msgid "Canon PIXMA iP6600D"
+msgstr "Canon PIXMA iP6600D"
+
+#: src/xml/xmli18n-tmp.h:3342
+msgid "Canon PIXUS iP6600D"
+msgstr "Canon PIXUS iP6600D"
+
+#: src/xml/xmli18n-tmp.h:3343
+msgid "Canon iP6700D series"
+msgstr "Canon iP6700D series"
+
+#: src/xml/xmli18n-tmp.h:3344
+msgid "Canon PIXMA iP6700D"
+msgstr "Canon PIXMA iP6700D"
+
+#: src/xml/xmli18n-tmp.h:3345
+msgid "Canon PIXUS iP6700D"
+msgstr "Canon PIXUS iP6700D"
+
+#: src/xml/xmli18n-tmp.h:3346
+msgid "Canon PIXMA iP7100"
+msgstr "Canon PIXMA iP7100"
+
+#: src/xml/xmli18n-tmp.h:3347
+msgid "Canon PIXUS iP7100"
+msgstr "Canon PIXUS iP7100"
+
+#: src/xml/xmli18n-tmp.h:3348
+msgid "Canon iP7200 series"
+msgstr "Canon iP7200 series"
+
+#: src/xml/xmli18n-tmp.h:3349
+msgid "Canon PIXMA iP7210"
+msgstr "Canon PIXMA iP7210"
+
+#: src/xml/xmli18n-tmp.h:3350
+msgid "Canon PIXMA iP7220"
+msgstr "Canon PIXMA iP7220"
+
+#: src/xml/xmli18n-tmp.h:3351
+msgid "Canon PIXUS iP7230"
+msgstr "Canon PIXUS iP7230"
+
+#: src/xml/xmli18n-tmp.h:3352
+msgid "Canon PIXMA iP7240"
+msgstr "Canon PIXMA iP7240"
+
+#: src/xml/xmli18n-tmp.h:3353
+msgid "Canon PIXMA iP7250"
+msgstr "Canon PIXMA iP7250"
+
+#: src/xml/xmli18n-tmp.h:3354
+msgid "Canon PIXMA iP7260"
+msgstr "Canon PIXMA iP7260"
+
+#: src/xml/xmli18n-tmp.h:3355
+msgid "Canon PIXMA iP7270"
+msgstr "Canon PIXMA iP7270"
+
+#: src/xml/xmli18n-tmp.h:3356
+msgid "Canon PIXMA iP7280"
+msgstr "Canon PIXMA iP7280"
+
+#: src/xml/xmli18n-tmp.h:3357
+msgid "Canon PIXMA iP7500"
+msgstr "Canon PIXMA iP7500"
+
+#: src/xml/xmli18n-tmp.h:3358
+msgid "Canon PIXUS iP7500"
+msgstr "Canon PIXUS iP7500"
+
+#: src/xml/xmli18n-tmp.h:3359
+msgid "Canon PIXMA iP8100"
+msgstr "Canon PIXMA iP8100"
+
+#: src/xml/xmli18n-tmp.h:3360
+msgid "Canon PIXUS iP8100"
+msgstr "Canon PIXUS iP8100"
+
+#: src/xml/xmli18n-tmp.h:3361
+msgid "Canon PIXMA iP8500"
+msgstr "Canon PIXMA iP8500"
+
+#: src/xml/xmli18n-tmp.h:3362
+msgid "Canon PIXMA iP8600"
+msgstr "Canon PIXMA iP8600"
+
+#: src/xml/xmli18n-tmp.h:3363
+msgid "Canon PIXUS iP8600"
+msgstr "Canon PIXUS iP8600"
+
+#: src/xml/xmli18n-tmp.h:3364
+#, fuzzy
+msgid "Canon iP8700 series"
+msgstr "Canon iP2700 series"
+
+#: src/xml/xmli18n-tmp.h:3365
+#, fuzzy
+msgid "Canon PIXMA iP7810"
+msgstr "Canon PIXMA iP7100"
+
+#: src/xml/xmli18n-tmp.h:3366
+#, fuzzy
+msgid "Canon PIXMA iP8720"
+msgstr "Canon PIXMA iP4820"
+
+#: src/xml/xmli18n-tmp.h:3367
+#, fuzzy
+msgid "Canon PIXUS iP8730"
+msgstr "Canon PIXUS iP4830"
+
+#: src/xml/xmli18n-tmp.h:3368
+#, fuzzy
+msgid "Canon PIXMA iP8740"
+msgstr "Canon PIXMA iP2740"
+
+#: src/xml/xmli18n-tmp.h:3369
+#, fuzzy
+msgid "Canon PIXMA iP8750"
+msgstr "Canon PIXMA iP8500"
+
+#: src/xml/xmli18n-tmp.h:3370
+#, fuzzy
+msgid "Canon PIXMA iP8760"
+msgstr "Canon PIXMA iP8600"
+
+#: src/xml/xmli18n-tmp.h:3371
+#, fuzzy
+msgid "Canon PIXMA iP8770"
+msgstr "Canon PIXMA iP2770"
+
+#: src/xml/xmli18n-tmp.h:3372
+#, fuzzy
+msgid "Canon PIXMA iP8780"
+msgstr "Canon PIXMA iP2780"
+
+#: src/xml/xmli18n-tmp.h:3373
+msgid "Canon PIXMA iP9910"
+msgstr "Canon PIXMA iP9910"
+
+#: src/xml/xmli18n-tmp.h:3374
+msgid "Canon PIXUS iP9910"
+msgstr "Canon PIXUS iP9910"
+
+#: src/xml/xmli18n-tmp.h:3375
+msgid "Canon PIXMA iX4000"
+msgstr "Canon PIXMA iX4000"
+
+#: src/xml/xmli18n-tmp.h:3376
+msgid "Canon iX5000 series"
+msgstr "Canon iX5000 series"
+
+#: src/xml/xmli18n-tmp.h:3377
+msgid "Canon PIXMA iX5000"
+msgstr "Canon PIXMA iX5000"
+
+#: src/xml/xmli18n-tmp.h:3378
+msgid "Canon PIXUS iX5000"
+msgstr "Canon PIXUS iX5000"
+
+#: src/xml/xmli18n-tmp.h:3379
+msgid "Canon iX6500 series"
+msgstr "Canon iX6500 series"
+
+#: src/xml/xmli18n-tmp.h:3380
+msgid "Canon PIXMA iX6500"
+msgstr "Canon PIXMA iX6500"
+
+#: src/xml/xmli18n-tmp.h:3381
+msgid "Canon PIXMA iX6510"
+msgstr "Canon PIXMA iX6510"
+
+#: src/xml/xmli18n-tmp.h:3382
+msgid "Canon PIXMA iX6520"
+msgstr "Canon PIXMA iX6520"
+
+#: src/xml/xmli18n-tmp.h:3383
+msgid "Canon PIXUS iX6530"
+msgstr "Canon PIXUS iX6530"
+
+#: src/xml/xmli18n-tmp.h:3384
+msgid "Canon PIXMA iX6540"
+msgstr "Canon PIXMA iX6540"
+
+#: src/xml/xmli18n-tmp.h:3385
+msgid "Canon PIXMA iX6550"
+msgstr "Canon PIXMA iX6550"
+
+#: src/xml/xmli18n-tmp.h:3386
+msgid "Canon PIXMA iX6560"
+msgstr "Canon PIXMA iX6560"
+
+#: src/xml/xmli18n-tmp.h:3387
+msgid "Canon PIXMA iX6580"
+msgstr "Canon PIXMA iX6580"
+
+#: src/xml/xmli18n-tmp.h:3388
+#, fuzzy
+msgid "Canon iX6700 series"
+msgstr "Canon iX6500 series"
+
+#: src/xml/xmli18n-tmp.h:3389
+#, fuzzy
+msgid "Canon PIXMA iX6770"
+msgstr "Canon PIXMA iX6500"
+
+#: src/xml/xmli18n-tmp.h:3390
+#, fuzzy
+msgid "Canon PIXMA iX6780"
+msgstr "Canon PIXMA iX6580"
+
+#: src/xml/xmli18n-tmp.h:3391
+#, fuzzy
+msgid "Canon iX6800 series"
+msgstr "Canon iX6500 series"
+
+#: src/xml/xmli18n-tmp.h:3392
+#, fuzzy
+msgid "Canon PIXMA iX6810"
+msgstr "Canon PIXMA iX6510"
+
+#: src/xml/xmli18n-tmp.h:3393
+#, fuzzy
+msgid "Canon PIXMA iX6820"
+msgstr "Canon PIXMA iX6520"
+
+#: src/xml/xmli18n-tmp.h:3394
+#, fuzzy
+msgid "Canon PIXUS iX6830"
+msgstr "Canon PIXUS iX6530"
+
+#: src/xml/xmli18n-tmp.h:3395
+#, fuzzy
+msgid "Canon PIXMA iX6840"
+msgstr "Canon PIXMA iX6540"
+
+#: src/xml/xmli18n-tmp.h:3396
+#, fuzzy
+msgid "Canon PIXMA iX6850"
+msgstr "Canon PIXMA iX6500"
+
+#: src/xml/xmli18n-tmp.h:3397
+#, fuzzy
+msgid "Canon PIXMA iX6860"
+msgstr "Canon PIXMA iX6560"
+
+#: src/xml/xmli18n-tmp.h:3398
+#, fuzzy
+msgid "Canon PIXMA iX6870"
+msgstr "Canon PIXMA iX6580"
+
+#: src/xml/xmli18n-tmp.h:3399
+#, fuzzy
+msgid "Canon PIXMA iX6880"
+msgstr "Canon PIXMA iX6580"
+
+#: src/xml/xmli18n-tmp.h:3400
+msgid "Canon iX7000 series"
+msgstr "Canon iX7000 series"
+
+#: src/xml/xmli18n-tmp.h:3401
+msgid "Canon PIXMA iX7000"
+msgstr "Canon PIXMA iX7000"
+
+#: src/xml/xmli18n-tmp.h:3402
+msgid "Canon PIXUS iX7000"
+msgstr "Canon PIXUS iX7000"
+
+#: src/xml/xmli18n-tmp.h:3403
+msgid "Canon Pro9000 series"
+msgstr "Canon Pro9000 series"
+
+#: src/xml/xmli18n-tmp.h:3404
+msgid "Canon PIXMA Pro9000"
+msgstr "Canon PIXMA Pro9000"
+
+#: src/xml/xmli18n-tmp.h:3405
+msgid "Canon PIXUS Pro9000"
+msgstr "Canon PIXUS Pro9000"
+
+#: src/xml/xmli18n-tmp.h:3406
+msgid "Canon Pro9000 Mk.II series"
+msgstr "Canon Pro9000 Mk.II series"
+
+#: src/xml/xmli18n-tmp.h:3407
+msgid "Canon PIXMA Pro9000mk2"
+msgstr "Canon PIXMA Pro9000mk2"
+
+#: src/xml/xmli18n-tmp.h:3408
+msgid "Canon PIXUS Pro9000mk2"
+msgstr "Canon PIXUS Pro9000mk2"
+
+#: src/xml/xmli18n-tmp.h:3409
+msgid "Canon Pro9500 series"
+msgstr "Canon Pro9500 series"
+
+#: src/xml/xmli18n-tmp.h:3410
+msgid "Canon PIXMA Pro9500"
+msgstr "Canon PIXMA Pro9500"
+
+#: src/xml/xmli18n-tmp.h:3411
+msgid "Canon PIXUS Pro9500"
+msgstr "Canon PIXUS Pro9500"
+
+#: src/xml/xmli18n-tmp.h:3412
+msgid "Canon Pro9500 Mk.II series"
+msgstr "Canon Pro9500 Mk.II series"
+
+#: src/xml/xmli18n-tmp.h:3413
+msgid "Canon PIXMA Pro9500mk2"
+msgstr "Canon PIXMA Pro9500mk2"
+
+#: src/xml/xmli18n-tmp.h:3414
+msgid "Canon PIXUS Pro9500mk2"
+msgstr "Canon PIXUS Pro9500mk2"
+
+#: src/xml/xmli18n-tmp.h:3415
+#, fuzzy
+msgid "Canon SmartBase MPC400"
+msgstr "Canon SmartBase MP700"
+
+#: src/xml/xmli18n-tmp.h:3416
+#, fuzzy
+msgid "Canon SmartBase MPC600F"
+msgstr "Canon SmartBase MP360"
+
+#: src/xml/xmli18n-tmp.h:3417
+#, fuzzy
+msgid "Canon PIXUS MP55"
+msgstr "Canon PIXUS MP550"
+
+#: src/xml/xmli18n-tmp.h:3418
+msgid "Canon MP140 series"
+msgstr "Canon MP140 series"
+
+#: src/xml/xmli18n-tmp.h:3419
+msgid "Canon PIXMA MP140"
+msgstr "Canon PIXMA MP140"
+
+#: src/xml/xmli18n-tmp.h:3420
+msgid "Canon PIXMA MP145"
+msgstr "Canon PIXMA MP145"
+
+#: src/xml/xmli18n-tmp.h:3421
+msgid "Canon MP150 series"
+msgstr "Canon MP150 series"
+
+#: src/xml/xmli18n-tmp.h:3422
+msgid "Canon PIXMA MP150"
+msgstr "Canon PIXMA MP150"
+
+#: src/xml/xmli18n-tmp.h:3423
+msgid "Canon MP160 series"
+msgstr "Canon MP160 series"
+
+#: src/xml/xmli18n-tmp.h:3424
+msgid "Canon PIXMA MP160"
+msgstr "Canon PIXMA MP160"
+
+#: src/xml/xmli18n-tmp.h:3425
+msgid "Canon MP170 series"
+msgstr "Canon MP170 series"
+
+#: src/xml/xmli18n-tmp.h:3426
+msgid "Canon PIXMA MP170"
+msgstr "Canon PIXMA MP170"
+
+#: src/xml/xmli18n-tmp.h:3427
+msgid "Canon PIXUS MP170"
+msgstr "Canon PIXUS MP170"
+
+#: src/xml/xmli18n-tmp.h:3428
+msgid "Canon MP180 series"
+msgstr "Canon MP180 series"
+
+#: src/xml/xmli18n-tmp.h:3429
+msgid "Canon PIXMA MP180"
+msgstr "Canon PIXMA MP180"
+
+#: src/xml/xmli18n-tmp.h:3430
+msgid "Canon MP190 series"
+msgstr "Canon MP190 series"
+
+#: src/xml/xmli18n-tmp.h:3431
+msgid "Canon PIXMA MP190"
+msgstr "Canon PIXMA MP190"
+
+#: src/xml/xmli18n-tmp.h:3432
+msgid "Canon PIXMA MP198"
+msgstr "Canon PIXMA MP198"
+
+#: src/xml/xmli18n-tmp.h:3433
+msgid "Canon MP210 series"
+msgstr "Canon MP210 series"
+
+#: src/xml/xmli18n-tmp.h:3434
+msgid "Canon PIXMA MP210"
+msgstr "Canon PIXMA MP210"
+
+#: src/xml/xmli18n-tmp.h:3435
+msgid "Canon PIXMA MP218"
+msgstr "Canon PIXMA MP218"
+
+#: src/xml/xmli18n-tmp.h:3436
+msgid "Canon MP220 series"
+msgstr "Canon MP220 series"
+
+#: src/xml/xmli18n-tmp.h:3437
+msgid "Canon PIXMA MP220"
+msgstr "Canon PIXMA MP220"
+
+#: src/xml/xmli18n-tmp.h:3438
+msgid "Canon PIXMA MP228"
+msgstr "Canon PIXMA MP228"
+
+#: src/xml/xmli18n-tmp.h:3439
+msgid "Canon MP230 series"
+msgstr "Canon MP230 series"
+
+#: src/xml/xmli18n-tmp.h:3440
+msgid "Canon PIXMA MP230"
+msgstr "Canon PIXMA MP230"
+
+#: src/xml/xmli18n-tmp.h:3441
+msgid "Canon PIXMA MP236"
+msgstr "Canon PIXMA MP236"
+
+#: src/xml/xmli18n-tmp.h:3442
+msgid "Canon PIXMA MP237"
+msgstr "Canon PIXMA MP237"
+
+#: src/xml/xmli18n-tmp.h:3443
+msgid "Canon MP240 series"
+msgstr "Canon MP240 series"
+
+#: src/xml/xmli18n-tmp.h:3444
+msgid "Canon PIXMA MP240"
+msgstr "Canon PIXMA MP240"
+
+#: src/xml/xmli18n-tmp.h:3445
+msgid "Canon PIXMA MP245"
+msgstr "Canon PIXMA MP245"
+
+#: src/xml/xmli18n-tmp.h:3446
+msgid "Canon MP250 series"
+msgstr "Canon MP250 series"
+
+#: src/xml/xmli18n-tmp.h:3447
+msgid "Canon PIXMA MP250"
+msgstr "Canon PIXMA MP250"
+
+#: src/xml/xmli18n-tmp.h:3448
+msgid "Canon PIXMA MP252"
+msgstr "Canon PIXMA MP252"
+
+#: src/xml/xmli18n-tmp.h:3449
+msgid "Canon PIXMA MP258"
+msgstr "Canon PIXMA MP258"
+
+#: src/xml/xmli18n-tmp.h:3450
+msgid "Canon PIXMA MP259"
+msgstr "Canon PIXMA MP259"
+
+#: src/xml/xmli18n-tmp.h:3451
+msgid "Canon MP260 series"
+msgstr "Canon MP260 series"
+
+#: src/xml/xmli18n-tmp.h:3452
+msgid "Canon PIXMA MP260"
+msgstr "Canon PIXMA MP260"
+
+#: src/xml/xmli18n-tmp.h:3453
+msgid "Canon PIXMA MP268"
+msgstr "Canon PIXMA MP268"
+
+#: src/xml/xmli18n-tmp.h:3454
+msgid "Canon MP270 series"
+msgstr "Canon MP270 series"
+
+#: src/xml/xmli18n-tmp.h:3455
+msgid "Canon PIXMA MP270"
+msgstr "Canon PIXMA MP270"
+
+#: src/xml/xmli18n-tmp.h:3456
+msgid "Canon PIXUS MP270"
+msgstr "Canon PIXUS MP270"
+
+#: src/xml/xmli18n-tmp.h:3457
+msgid "Canon PIXMA MP272"
+msgstr "Canon PIXMA MP272"
+
+#: src/xml/xmli18n-tmp.h:3458
+msgid "Canon PIXMA MP276"
+msgstr "Canon PIXMA MP276"
+
+#: src/xml/xmli18n-tmp.h:3459
+msgid "Canon MP280 series"
+msgstr "Canon MP280 series"
+
+#: src/xml/xmli18n-tmp.h:3460
+msgid "Canon PIXMA MP280"
+msgstr "Canon PIXMA MP280"
+
+#: src/xml/xmli18n-tmp.h:3461
+msgid "Canon PIXUS MP280"
+msgstr "Canon PIXUS MP280"
+
+#: src/xml/xmli18n-tmp.h:3462
+msgid "Canon PIXMA MP282"
+msgstr "Canon PIXMA MP282"
+
+#: src/xml/xmli18n-tmp.h:3463
+msgid "Canon PIXMA MP287"
+msgstr "Canon PIXMA MP287"
+
+#: src/xml/xmli18n-tmp.h:3464
+msgid "Canon PIXMA MP288"
+msgstr "Canon PIXMA MP288"
+
+#: src/xml/xmli18n-tmp.h:3465
+msgid "Canon MP360 series"
+msgstr "Canon MP360 series"
+
+#: src/xml/xmli18n-tmp.h:3466
+msgid "Canon PIXMA MP360"
+msgstr "Canon PIXMA MP360"
+
+#: src/xml/xmli18n-tmp.h:3467
+msgid "Canon PIXUS MP360"
+msgstr "Canon PIXUS MP360"
+
+#: src/xml/xmli18n-tmp.h:3468
+msgid "Canon SmartBase MP360"
+msgstr "Canon SmartBase MP360"
+
+#: src/xml/xmli18n-tmp.h:3469
+msgid "Canon SmartBase MP360S"
+msgstr "Canon SmartBase MP360S"
+
+#: src/xml/xmli18n-tmp.h:3470
+msgid "Canon MultiPASS MP360"
+msgstr "Canon MultiPASS MP360"
+
+#: src/xml/xmli18n-tmp.h:3471
+msgid "Canon MP370 series"
+msgstr "Canon MP370 series"
+
+#: src/xml/xmli18n-tmp.h:3472
+msgid "Canon PIXMA MP370"
+msgstr "Canon PIXMA MP370"
+
+#: src/xml/xmli18n-tmp.h:3473
+msgid "Canon PIXUS MP370"
+msgstr "Canon PIXUS MP370"
+
+#: src/xml/xmli18n-tmp.h:3474
+msgid "Canon SmartBase MP370"
+msgstr "Canon SmartBase MP370"
+
+#: src/xml/xmli18n-tmp.h:3475
+msgid "Canon MultiPASS MP370"
+msgstr "Canon MultiPASS MP370"
+
+#: src/xml/xmli18n-tmp.h:3476
+msgid "Canon PIXMA MP375R"
+msgstr "Canon PIXMA MP375R"
+
+#: src/xml/xmli18n-tmp.h:3477
+msgid "Canon PIXUS MP375R"
+msgstr "Canon PIXUS MP375R"
+
+#: src/xml/xmli18n-tmp.h:3478
+msgid "Canon MP390 series"
+msgstr "Canon MP390 series"
+
+#: src/xml/xmli18n-tmp.h:3479
+msgid "Canon PIXMA MP390"
+msgstr "Canon PIXMA MP390"
+
+#: src/xml/xmli18n-tmp.h:3480
+msgid "Canon PIXUS MP390"
+msgstr "Canon PIXUS MP390"
+
+#: src/xml/xmli18n-tmp.h:3481
+msgid "Canon SmartBase MP390"
+msgstr "Canon SmartBase MP390"
+
+#: src/xml/xmli18n-tmp.h:3482
+msgid "Canon MultiPASS MP390"
+msgstr "Canon MultiPASS MP390"
+
+#: src/xml/xmli18n-tmp.h:3483
+msgid "Canon MP450 series"
+msgstr "Canon MP450 series"
+
+#: src/xml/xmli18n-tmp.h:3484
+msgid "Canon PIXMA MP450"
+msgstr "Canon PIXMA MP450"
+
+#: src/xml/xmli18n-tmp.h:3485
+msgid "Canon PIXUS MP450"
+msgstr "Canon PIXUS MP450"
+
+#: src/xml/xmli18n-tmp.h:3486
+msgid "Canon MP460 series"
+msgstr "Canon MP460 series"
+
+#: src/xml/xmli18n-tmp.h:3487
+msgid "Canon PIXMA MP460"
+msgstr "Canon PIXMA MP460"
+
+#: src/xml/xmli18n-tmp.h:3488
+msgid "Canon PIXUS MP460"
+msgstr "Canon PIXUS MP460"
+
+#: src/xml/xmli18n-tmp.h:3489
+msgid "Canon MP470 series"
+msgstr "Canon MP470 series"
+
+#: src/xml/xmli18n-tmp.h:3490
+msgid "Canon PIXMA MP470"
+msgstr "Canon PIXMA MP470"
+
+#: src/xml/xmli18n-tmp.h:3491
+msgid "Canon PIXUS MP470"
+msgstr "Canon PIXUS MP470"
+
+#: src/xml/xmli18n-tmp.h:3492
+msgid "Canon PIXMA MP476"
+msgstr "Canon PIXMA MP476"
+
+#: src/xml/xmli18n-tmp.h:3493
+msgid "Canon MP480 series"
+msgstr "Canon MP480 series"
+
+#: src/xml/xmli18n-tmp.h:3494
+msgid "Canon PIXMA MP480"
+msgstr "Canon PIXMA MP480"
+
+#: src/xml/xmli18n-tmp.h:3495
+msgid "Canon PIXUS MP480"
+msgstr "Canon PIXUS MP480"
+
+#: src/xml/xmli18n-tmp.h:3496
+msgid "Canon PIXMA MP486"
+msgstr "Canon PIXMA MP486"
+
+#: src/xml/xmli18n-tmp.h:3497
+msgid "Canon MP490 series"
+msgstr "Canon MP490 series"
+
+#: src/xml/xmli18n-tmp.h:3498
+msgid "Canon PIXMA MP490"
+msgstr "Canon PIXMA MP490"
+
+#: src/xml/xmli18n-tmp.h:3499
+msgid "Canon PIXUS MP490"
+msgstr "Canon PIXUS MP490"
+
+#: src/xml/xmli18n-tmp.h:3500
+msgid "Canon PIXMA MP492"
+msgstr "Canon PIXMA MP492"
+
+#: src/xml/xmli18n-tmp.h:3501
+msgid "Canon PIXMA MP493"
+msgstr "Canon PIXMA MP493"
+
+#: src/xml/xmli18n-tmp.h:3502
+msgid "Canon PIXUS MP493"
+msgstr "Canon PIXUS MP493"
+
+#: src/xml/xmli18n-tmp.h:3503
+msgid "Canon PIXMA MP495"
+msgstr "Canon PIXMA MP495"
+
+#: src/xml/xmli18n-tmp.h:3504
+msgid "Canon PIXMA MP496"
+msgstr "Canon PIXMA MP496"
+
+#: src/xml/xmli18n-tmp.h:3505
+msgid "Canon PIXMA MP497"
+msgstr "Canon PIXMA MP497"
+
+#: src/xml/xmli18n-tmp.h:3506
+msgid "Canon 

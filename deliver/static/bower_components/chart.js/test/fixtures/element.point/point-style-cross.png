@@ -1,0 +1,89 @@
+isks_volume_group_complete_delete</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<span class="returnvalue">void</span>
+</td>
+<td class="function_name">
+<a class="link" href="udisks2-UDisksVolumeGroup.html#udisks-volume-group-complete-rename" title="udisks_volume_group_complete_rename ()">udisks_volume_group_complete_rename</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<span class="returnvalue">void</span>
+</td>
+<td class="function_name">
+<a class="link" href="udisks2-UDisksVolumeGroup.html#udisks-volume-group-complete-add-device" title="udisks_volume_group_complete_add_device ()">udisks_volume_group_complete_add_device</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<span class="returnvalue">void</span>
+</td>
+<td class="function_name">
+<a class="link" href="udisks2-UDisksVolumeGroup.html#udisks-volume-group-complete-empty-device" title="udisks_volume_group_complete_empty_device ()">udisks_volume_group_complete_empty_device</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<span class="returnvalue">void</span>
+</td>
+<td class="function_name">
+<a class="link" href="udisks2-UDisksVolumeGroup.html#udisks-volume-group-complete-remove-device" title="udisks_volume_group_complete_remove_device ()">udisks_volume_group_complete_remove_device</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<span class="returnvalue">void</span>
+</td>
+<td class="function_name">
+<a class="link" href="udisks2-UDisksVolumeGroup.html#udisks-volume-group-complete-create-plain-volume" title="udisks_volume_group_complete_create_plain_volume ()">udisks_volume_group_complete_create_plain_volume</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<span class="returnvalue">void</span>
+</td>
+<td class="function_name">
+<a class="link" href="udisks2-UDisksVolumeGroup.html#udisks-volume-group-complete-create-thin-pool-volume" title="udisks_volume_group_complete_create_thin_pool_volume ()">udisks_volume_group_complete_create_thin_pool_volume</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<span class="returnvalue">void</span>
+</td>
+<td class="function_name">
+<a class="link" href="udisks2-UDisksVolumeGroup.html#udisks-volume-group-complete-create-thin-volume" title="udisks_volume_group_complete_create_thin_volume ()">udisks_volume_group_complete_create_thin_volume</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<span class="returnvalue">void</span>
+</td>
+<td class="function_name">
+<a class="link" href="udisks2-UDisksVolumeGroup.html#udisks-volume-group-proxy-new" title="udisks_volume_group_proxy_new ()">udisks_volume_group_proxy_new</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<a class="link" href="udisks2-UDisksVolumeGroup.html#UDisksVolumeGroup" title="UDisksVolumeGroup"><span class="returnvalue">UDisksVolumeGroup</span></a> *
+</td>
+<td class="function_name">
+<a class="link" href="udisks2-UDisksVolumeGroup.html#udisks-volume-group-proxy-new-finish" title="udisks_volume_group_proxy_new_finish ()">udisks_volume_group_proxy_new_finish</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<a class="link" href="udisks2-UDisksVolumeGroup.html#UDisksVolumeGroup" title="UDisksVolumeGroup"><span class="returnvalue">UDisksVolumeGroup</span></a> *
+</td>
+<td class="function_name">
+<a class="link" href="udisks2-UDisksVolumeGroup.html#udisks-volume-group-proxy-new-sync" title="udisks_volume_group_proxy_new_sync ()">udisks_volume_group_proxy_new_sync</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<span class="returnvalue">void</span>
+</td>
+<td class="function_name">
+<a class="link" href="udisks2-UDisksV
