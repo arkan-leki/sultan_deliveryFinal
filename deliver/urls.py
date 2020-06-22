@@ -49,6 +49,7 @@ urlpatterns = [
     path('login/', views.loginView, name="login"),
     path('logout/', views.logout_view, name="logout"),
     path('ajax/', views.ajax, name="ajax"),
+    path('warehouse/', views.warehouse, name="warehouse"),
 
     url('^api/requestz/$', views.RequestDetailListView.as_view()),
     url('^api/foodz/$', views.FoodListView.as_view()),

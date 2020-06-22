@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.models import User
-from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors, Customer, Rate
+from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors, Customer, Rate, Warehouse
 from rest_framework import viewsets
 from . import serializer
 from django_filters.rest_framework import DjangoFilterBackend
@@ -186,6 +186,15 @@ def accounts(request):
     }
     return render(request, 'deliver/screens/accounts.html', context)
 
+def warehouse(request):
+    ls = Warehouse.objects.all()
+    context = {
+        'userform': UserForm,
+        'warehouses': ls,
+        'title': "Warehouse",
+    }
+    return render(request, 'deliver/screens/warehouse.html', context)
+
 def requestDetail(request):
     requests = RequestDetail.objects.all()
     context = {
@@ -218,7 +227,6 @@ def customer(request,pk):
         'title': "Customer",
     }
     return render(request, 'deliver/screens/customer.html', context)
-
 
 
 def requests(request):
@@ -302,6 +310,15 @@ def ajax(request):
             'message': sp.id
         }
         return redirect('deliver:delivers')
+    if request.GET.get('action') == 'warehousedelete':
+        id = request.GET.get('id')
+        sp = Warehouse.objects.get(pk=id)
+        sp.status =  not sp.status
+        sp.save()
+        data = {
+            'message': sp.status
+        }
+        return redirect('deliver:warehouse')
     if request.GET.get('action') == 'reqdelete':
         id = request.GET.get('id')
         sp = Request.objects.get(pk=id)
@@ -418,6 +435,15 @@ def ajax(request):
             dp.save()
             data = {
                 'redirect': '/delivers/',
+                'message': 'success'
+            }
+        if request.POST.get('action') == 'warehouse':
+            dp = Warehouse()
+            dp.title = request.POST.get('title')
+            dp.status = False
+            dp.save()
+            data = {
+                'redirect': '/warehouse/',
                 'message': 'success'
             }
         if request.POST.get('action') == 'deliver_edit':

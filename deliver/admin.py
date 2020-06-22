@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
-from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Rate, Customer
+from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Rate, Customer, Warehouse
 from django.utils.html import format_html
 
 # # Register your models here.
@@ -163,3 +163,4 @@ admin.site.register(Account)
 admin.site.register(Request)
 admin.site.register(RequestDetail)
 admin.site.register(Customer)
+admin.site.register(Warehouse)
