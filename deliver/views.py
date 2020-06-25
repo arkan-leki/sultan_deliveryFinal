@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.models import User
-from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors, Customer, Rate, Warehouse
+from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors, Customer, Rate, Warehouse, BnkaUser
 from rest_framework import viewsets
 from . import serializer
 from django_filters.rest_framework import DjangoFilterBackend
@@ -178,8 +178,10 @@ def motorEdit(request, pk):
 
 
 def accounts(request):
+    war = Warehouse.objects.all()
     accounts = Account.objects.all()
     context = {
+        'war': war,
         'userform': UserForm,
         'accounts': accounts,
         'title': "Accounts",
@@ -493,6 +495,16 @@ def ajax(request):
             dp.save()
             data = {
                 'redirect': '/motors/',
+                'message': 'success'
+            }
+        if request.POST.get('action') == 'add_UsrBnka':
+            print("awd")
+            dp = BnkaUser()
+            dp.bnka_id = request.POST.get('bnka')
+            dp.user_id = request.POST.get('usrid')
+            dp.save()
+            data = {
+                'redirect': '/accounts/',
                 'message': 'success'
             }
         if request.POST.get('action') == 'add_user':

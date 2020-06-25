@@ -95,11 +95,19 @@ body {background: #f6f6f6; color: #444; font-family: 'Roboto', sans-serif; font-
         </span>
     </footer>
 
-    <!-- Bootstrap and necessary plugins -->
+
+        <!-- Bootstrap and necessary plugins -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+
+
+    {% comment %} <!-- Bootstrap and necessary plugins -->
     <script src="{% static 'bower_components/jquery/dist/jquery.min.js' %}"></script>
     <script src="{% static 'bower_components/popper.js/dist/umd/popper.min.js' %}"></script>
     <script src="{% static 'bower_components/bootstrap/dist/js/bootstrap.min.js' %}"></script>
-    <script src="{% static 'bower_components/pace/pace.min.js' %}"></script>
+    <script src="{% static 'bower_components/pace/pace.min.js' %}"></script> {% endcomment %}
 
 
     <!-- Plugins and scripts required by all views -->

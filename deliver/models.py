@@ -75,6 +75,19 @@ class Account(AbstractBaseUser):
     class Meta:
         verbose_name_plural = "هه‌ژمار"
 
+class Warehouse(models.Model):
+    title =  models.CharField(max_length=110)
+    add_date = models.DateTimeField(verbose_name='add date', auto_now=True)
+    status = models.BooleanField(default=False)
+
+    def __str__(self):
+        return str(self.title)
+
+    def __unicode__(self):
+        return
+
+    class Meta:
+        verbose_name_plural = "بنکە"
 
 class Cat(models.Model):
     image = models.ImageField(
@@ -280,16 +293,17 @@ class Transport(models.Model):
         verbose_name_plural = "باركراو"
 
 
-class Warehouse(models.Model):
-    title =  models.CharField(max_length=110)
-    add_date = models.DateTimeField(verbose_name='add date', auto_now=True)
-    status = models.BooleanField(default=False)
+class BnkaUser(models.Model):
+    bnka = models.ForeignKey(
+        Warehouse, related_name='BnkaUser', on_delete=models.CASCADE)
+    user = models.ForeignKey(Account, related_name='BnkasUser', on_delete=models.CASCADE)
+    date_added = models.DateField(verbose_name='date added', auto_now_add=True)
 
     def __str__(self):
-        return str(self.title)
+        return self.bnka
 
     def __unicode__(self):
         return
 
     class Meta:
-        verbose_name_plural = "بنکە"
+        verbose_name_plural = "بنکەو بەکارهێنەر"
