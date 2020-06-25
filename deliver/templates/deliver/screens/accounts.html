@@ -275,9 +275,9 @@
                                                 <th>ناو بەکارهێنەر</th>
                                                 <th>ئیمەیل</th>
                                                 <th>بارودۆخ</th>
-                                                <th>بنکەکان</th>                                                   
+                                                <th>بەرێوبەرە</th>                                                  
+                                                <th>بنکەکان</th> 
                                                 <th>زیادكردن  بۆ بنکەکان</th>
-                                                <th>کردارەکان</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -291,6 +291,17 @@
                                                     <span class="badge badge-danger">سڕکراوە</span>
                                                 {% else %}
                                                     <span class="badge badge-success">چالاکە</span>
+                                                {% endif %}                                                    
+                                                </td>
+                                                <td>
+                                                {% if usr.is_staff %}
+                                                    {% if usr.is_admin %}
+                                                    <span class="badge badge-danger">بەرێوبەری سەرەکی</span>
+                                                        {% else %}
+                                                    <span class="badge badge-success">بەرێوبەرە</span>
+                                                {% endif %}  
+                                                {% else %}
+                                                    <span class="badge badge-primary">ئەندامە </span>
                                                 {% endif %}                                                    
                                                 </td>
                                                 <td>

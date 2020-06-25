@@ -54,7 +54,8 @@
             <li class="nav-item">
                 <a class="nav-link" href="charts.html"><i class="icon-pie-chart"></i> ئاماره‌كان</a>
             </li>
-            <li class="divider"></li>
+            {% if user.is_staff %}
+                <li class="divider"></li>
             <li class="nav-title">
                 ئه‌دمینی سه‌ره‌كی
             </li>
@@ -75,7 +76,7 @@
                 <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-call-end"></i> خه‌لك </a>
                 <ul class="nav-dropdown-items">
                     <li class="nav-item">
-                        <a class="nav-link" href="pages-login.html" target="_top"><i class="icon-star"></i> ئامار</a>
+                        <a class="nav-link" href="{% url 'deliver:customers' %}" target="_top"><i class="icon-star"></i> کڕیاران</a>
                     </li>
                 </ul>
                 <ul class="nav-dropdown-items">
@@ -84,6 +85,7 @@
                     </li>
                 </ul>
             </li>
+            {% endif %}
         </ul>
     </nav>
 </div>

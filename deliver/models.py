@@ -90,6 +90,8 @@ class Warehouse(models.Model):
         verbose_name_plural = "بنکە"
 
 class Cat(models.Model):
+    war = models.ForeignKey(
+        Warehouse, related_name='Cat_warehouse', on_delete=models.CASCADE, default=1)
     image = models.ImageField(
         upload_to='images/', blank=True, null=True, verbose_name='وێنه‌')
     nameEg = models.CharField(max_length=100, verbose_name="ناوی بیانی")
@@ -300,7 +302,7 @@ class BnkaUser(models.Model):
     date_added = models.DateField(verbose_name='date added', auto_now_add=True)
 
     def __str__(self):
-        return self.bnka
+        return str(self.bnka) +" "+ str(self.user)
 
     def __unicode__(self):
         return

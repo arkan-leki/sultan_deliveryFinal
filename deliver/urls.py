@@ -46,6 +46,7 @@ urlpatterns = [
     path('requestView/<pk>', views.requestView, name="requestView"),
     path('requestDetailView/<pk>', views.requestDetailView, name="requestDetailView"),
     path('customer/<pk>', views.customer, name="customer"),
+    path('customers/', views.customers, name="customers"),
     path('login/', views.loginView, name="login"),
     path('logout/', views.logout_view, name="logout"),
     path('ajax/', views.ajax, name="ajax"),

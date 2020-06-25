@@ -40,16 +40,31 @@ def logout_view(request):
     logout(request)
     return redirect('deliver:home')
 
-@login_required(login_url='/accounts/login/')
+@login_required(login_url='/login/')
 def cat(request):
-    cats = Cat.objects.all()
-    context = {
-        'cats': cats,
-        'title': "Parent Food",
-    }
+    user = request.user
+    if user.is_staff:
+        war = Warehouse.objects.all()
+        cats = Cat.objects.all()
+        context = {
+            'warehouses': war,
+            'cats': cats,
+            'title': "Parent Food",
+        }
+    else:
+        for bnkas in user.BnkasUser.all():
+            bnka = bnkas.bnka
+        war = Warehouse.objects.filter(id=bnka.id)
+        cats = Cat.objects.filter(war=bnka.id)
+        context = {
+            'warehouses': war,
+            'cats': cats,
+            'title': "Parent Food",
+        }
     return render(request, 'deliver/screens/cats.html', context)
 
 
+@login_required(login_url='/login/')
 def catDetail(request, pk):
     cats = Cat.objects.get(id=pk)
     context = {
@@ -58,29 +73,45 @@ def catDetail(request, pk):
     }
     return render(request, 'deliver/screens/catDetail.html', context)
 
-
+@login_required(login_url='/login/')
 def catEdit(request, pk):
+    war = Warehouse.objects.all()
     cats = Cat.objects.get(id=pk)
     context = {
+        'warehouses': war,
         'cat': cats,
         'title': "Parent Food",
     }
     return render(request, 'deliver/screens/catEdit.html', context)
 
-
+@login_required(login_url='/login/')
 def foods(request):
-    cats = Cat.objects.filter(deleted=False)
-    foods = Food.objects.all()
-    foodz = Food.objects.filter(deleted=False)
-    context = {
-        'cats': cats,
-        'foods': foods,
-        'foodz': foodz,
-        'title': "Child Food",
-    }
+    user = request.user
+    if user.is_staff:
+        cats = Cat.objects.filter(deleted=False)
+        foods = Food.objects.all()
+        foodz = Food.objects.filter(deleted=False)
+        context = {
+            'cats': cats,
+            'foods': foods,
+            'foodz': foodz,
+            'title': "Child Food",
+        }
+    else:
+        for bnkas in user.BnkasUser.all():
+            bnka = bnkas.bnka
+        cats = Cat.objects.filter(deleted=False, war=bnka.id)
+        foods = Food.objects.all()
+        foodz = Food.objects.filter(deleted=False)
+        context = {
+            'cats': cats,
+            'foods': foods,
+            'foodz': foodz,
+            'title': "Child Food",
+        }
     return render(request, 'deliver/screens/foods.html', context)
 
-
+@login_required(login_url='/login/')
 def foodEdit(request, pk):
     foods = Food.objects.get(id=pk)
     cats = Cat.objects.filter(deleted=False)
@@ -91,7 +122,7 @@ def foodEdit(request, pk):
     }
     return render(request, 'deliver/screens/foodEdit.html', context)
 
-
+@login_required(login_url='/login/')
 def foodDetail(request, pk):
     foods = Food.objects.get(id=pk)
     context = {
@@ -100,7 +131,7 @@ def foodDetail(request, pk):
     }
     return render(request, 'deliver/screens/foodDetail.html', context)
 
-
+@login_required(login_url='/login/')
 def disprices(request):
     disprices = Dipricing.objects.all()
     foods = Food.objects.filter(deleted=False)
@@ -111,7 +142,7 @@ def disprices(request):
     }
     return render(request, 'deliver/screens/disprice.html', context)
 
-
+@login_required(login_url='/login/')
 def specifies(request):
     specifies = Specify.objects.all()
     foods = Food.objects.filter(deleted=False)
@@ -122,7 +153,7 @@ def specifies(request):
     }
     return render(request, 'deliver/screens/specify.html', context)
 
-
+@login_required(login_url='/login/')
 def transports(request):
     transports = Transport.objects.all()
     context = {
@@ -131,6 +162,7 @@ def transports(request):
     }
     return render(request, 'deliver/screens/transports.html', context)
 
+@login_required(login_url='/login/')
 def delivers(request):
     delivers = Dliver.objects.all()
     users = Account.objects.all()
@@ -143,6 +175,7 @@ def delivers(request):
     }
     return render(request, 'deliver/screens/delivers.html', context)
 
+@login_required(login_url='/login/')
 def deliverEdit(request, pk):
     delivers = Dliver.objects.all()
     users = Account.objects.all()
@@ -157,7 +190,7 @@ def deliverEdit(request, pk):
     }
     return render(request, 'deliver/screens/delivers.html', context)
 
-
+@login_required(login_url='/login/')
 def motors(request):
     motors = Motors.objects.all()
     context = {
@@ -166,6 +199,7 @@ def motors(request):
     }
     return render(request, 'deliver/screens/motors.html', context)
 
+@login_required(login_url='/login/')
 def motorEdit(request, pk):
     motor = Motors.objects.get(id=pk)
     motors = Motors.objects.all()
@@ -176,7 +210,7 @@ def motorEdit(request, pk):
     }
     return render(request, 'deliver/screens/motors.html', context)
 
-
+@login_required(login_url='/login/')
 def accounts(request):
     war = Warehouse.objects.all()
     accounts = Account.objects.all()
@@ -188,6 +222,7 @@ def accounts(request):
     }
     return render(request, 'deliver/screens/accounts.html', context)
 
+@login_required(login_url='/login/')
 def warehouse(request):
     ls = Warehouse.objects.all()
     context = {
@@ -197,6 +232,7 @@ def warehouse(request):
     }
     return render(request, 'deliver/screens/warehouse.html', context)
 
+@login_required(login_url='/login/')
 def requestDetail(request):
     requests = RequestDetail.objects.all()
     context = {
@@ -205,6 +241,7 @@ def requestDetail(request):
     }
     return render(request, 'deliver/screens/requestDetail.html', context)
 
+@login_required(login_url='/login/')
 def requestDetailView(request,pk):
     f = RequestDetail.objects.get(id=pk)
     context = {
@@ -213,7 +250,7 @@ def requestDetailView(request,pk):
     }
     return render(request, 'deliver/screens/RequestDetailView.html', context)
 
-
+@login_required(login_url='/login/')
 def requestView(request,pk):
     f = Request.objects.get(id=pk)
     context = {
@@ -222,6 +259,7 @@ def requestView(request,pk):
     }
     return render(request, 'deliver/screens/RequestView.html', context)
 
+@login_required(login_url='/login/')
 def customer(request,pk):
     f = Customer.objects.get(id=pk)
     context = {
@@ -230,7 +268,16 @@ def customer(request,pk):
     }
     return render(request, 'deliver/screens/customer.html', context)
 
+@login_required(login_url='/login/')
+def customers(request):
+    f = Customer.objects.all()
+    context = {
+        'customers': f,
+        'title': "Customers",
+    }
+    return render(request, 'deliver/screens/customers.html', context)
 
+@login_required(login_url='/login/')
 def requests(request):
     dlivers = Dliver.objects.all()
     requests = Request.objects.all()
@@ -340,6 +387,7 @@ def ajax(request):
                 return redirect('deliver:home')
         if request.POST.get('action') == 'add_cat':
             cat = Cat()
+            cat.war_id = request.POST.get('war')
             cat.nameKu = request.POST.get('nameKu')
             cat.nameEg = request.POST.get('nameEg')
             cat.image = request.FILES['images']
@@ -352,6 +400,7 @@ def ajax(request):
         elif request.POST.get('action') == 'cat_edit':
             id = request.POST.get('id')
             cat = Cat.objects.get(pk=id)
+            cat.war_id = request.POST.get('war')
             cat.nameKu = request.POST.get('nameKu')
             cat.nameEg = request.POST.get('nameEg')
             image = request.FILES.get('images', False)

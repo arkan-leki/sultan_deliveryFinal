@@ -40,6 +40,19 @@
                                 {% csrf_token %}
                                 <input name="action" value="cat_edit" hidden>
                                 <input type="hidden" name="id" value="{{ cat.id }}">
+                                <div class="form-group row">
+                                            <label class="col-md-3 form-control-label" for="appendedPrependedInput">دیاری کردنی بنکە</label>
+                                            <div class="col-md-9">
+                                                <div class="input-prepend input-group">
+                                                    <select id="select" name="war" class="form-control">
+                                                    {% for war in warehouses %}
+                                                        <option value="{{war.id}}" {% if war.id == cat.war_id %} selected="selected"{% endif %}>{{ war }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                    <a href="{% url 'deliver:warehouse' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
+                                                </div>
+                                            </div>
+                                </div>
                                 <div class="form-group">
                                     <label class="form-control-label" for="prependedInput">ناوی كوردی</label>
                                     <div class="controls">
