@@ -405,11 +405,12 @@
                             <p>بو فلتەوە کردنی خشتەکە :</p>
                             <input class="form-control" id="search" type="text" placeholder="بۆ .....">
                             <br>
-                            <table id="tab" class="table table-bordered table-striped table-sm">
+                            <table id="tab" class="table table-responsive table-bordered table-striped table-responsive table-sm">
                                 <thead>
                                     <tr>
                                         <th>#</th>
                                         <th>گروپ</th>
+                                        <th>بنکە</th>
                                         <th>ناو</th>
                                         <th>ب.زیادکردن</th>
                                         <th>ناونیشان </th>
@@ -428,20 +429,21 @@
                                     
                                     <tr><td>{{ food.id }}</td>
                                         <td>{{ food.category }}</td>
+                                        <td><span class="badge badge-primary">{{ food.warehouse }}</span></td>
                                         <td><a href="{% url 'deliver:foodDetail' food.id %}">{{ food.title }}</a></td>
                                         <td>{{food.date_add}}</td>
                                         <td>{{ food.subtitle }}</td>
                                         <td>{{ food.sell_price }}</td>
                                         <td>{{ food.cost }}</td>
-                                        <td class="fa-2x">                                            
+                                        <td class="fa-1x">                                            
                                         <span class="fa-layers fa-fw" style="background:MistyRose">
-                                                <i class="fa fa-star text-warning"></i>
-                                                <span class="fa-layers-text fa-inverse" data-fa-transform="shrink-11.5 rotate--30" style="font-weight:900">{{ food.avg_ratings }}</span>
+                                                <i class="fa fa-star fa-2x text-warning"></i>
+                                                <span class="fa-layers-text fa-inverse" data-fa-transform="shrink-11.5 rotate--30" style="font-weight:900"><p class="text-success">{{ food.avg_ratings }}</p></span>
                                             </span>                                        
                                         </td>
                                         <td>
                                             {% if food.image %}
-                                            <img src="{{ food.image.url }}" height="40">
+                                             <a data-fancybox="gallery" class="primary-btn" href="{{ food.image.url }}"><img src="{{ food.image.url }}" height="70" ></a>
                                             {% endif %}
                                         </td>
                                         <td>
