@@ -101,8 +101,8 @@ def foods(request):
         for bnkas in user.BnkasUser.all():
             bnka = bnkas.bnka
         cats = Cat.objects.filter(deleted=False, war=bnka.id)
-        foods = Food.objects.filter(warehouse=bnka.id)
-        foodz = Food.objects.filter(deleted=False, warehouse=bnka.id)
+        foods = Food.objects.filter(category__in=cats)
+        foodz = Food.objects.filter(deleted=False, category__in=cats)
         context = {
             'cats': cats,
             'foods': foods,
@@ -133,8 +133,15 @@ def foodDetail(request, pk):
 
 @login_required(login_url='/login/')
 def disprices(request):
-    disprices = Dipricing.objects.all()
-    foods = Food.objects.filter(deleted=False)
+    user = request.user
+    if user.is_staff:
+        disprices = Dipricing.objects.all()
+        foods = Food.objects.filter(deleted=False)
+    else:
+        for bnkas in user.BnkasUser.all():
+            bnka = bnkas.bnka
+        foods = Food.objects.filter(deleted=False, category__in=Cat.objects.filter(war=bnka.id))
+        disprices = Dipricing.objects.filter(food__in=foods)
     context = {
         'foods': foods,
         'disprices': disprices,
@@ -150,7 +157,8 @@ def specifies(request):
     else:
         for bnkas in request.user.BnkasUser.all():
             bnka = bnkas.bnka
-        foods = Food.objects.filter(deleted=False, warehouse=bnka.id)
+        foods = Food.objects.filter(deleted=False, category__in=Cat.objects.filter(war=bnka.id))
+        specifies = Specify.objects.filter(food__in=foods)
     context = {
         'foods': foods,
         'specifies': specifies,
@@ -419,7 +427,6 @@ def ajax(request):
         if request.POST.get('action') == 'food_add':
             food = Food()
             cat = Cat.objects.get(id=int(request.POST.get('catId')))
-            food.warehouse = cat.war
             food.category_id = int(request.POST.get('catId'))
             food.title = request.POST.get('title')
             food.subtitle = request.POST.get('subtitle')

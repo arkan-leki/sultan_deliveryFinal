@@ -410,7 +410,6 @@
                                     <tr>
                                         <th>#</th>
                                         <th>گروپ</th>
-                                        <th>بنکە</th>
                                         <th>ناو</th>
                                         <th>ب.زیادکردن</th>
                                         <th>ناونیشان </th>
@@ -429,7 +428,6 @@
                                     
                                     <tr><td>{{ food.id }}</td>
                                         <td>{{ food.category }}</td>
-                                        <td><span class="badge badge-primary">{{ food.warehouse }}</span></td>
                                         <td><a href="{% url 'deliver:foodDetail' food.id %}">{{ food.title }}</a></td>
                                         <td>{{food.date_add}}</td>
                                         <td>{{ food.subtitle }}</td>

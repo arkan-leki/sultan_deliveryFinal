@@ -111,8 +111,6 @@ class Cat(models.Model):
 
 
 class Food(models.Model):
-    warehouse = models.ForeignKey(
-        Warehouse, related_name='Food_warehouse', on_delete=models.CASCADE, default=1)
     category = models.ForeignKey(
         Cat, related_name='Food_category', on_delete=models.CASCADE)
     image = models.ImageField(
