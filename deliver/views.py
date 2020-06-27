@@ -44,8 +44,8 @@ def logout_view(request):
 def cat(request):
     user = request.user
     if user.is_staff:
-        war = Warehouse.objects.all()
-        cats = Cat.objects.all()
+        war = Warehouse.objects.filter(status=False)
+        cats = Cat.objects.filter(war__in=war)
         context = {
             'warehouses': war,
             'cats': cats,
@@ -54,8 +54,8 @@ def cat(request):
     else:
         for bnkas in user.BnkasUser.all():
             bnka = bnkas.bnka
-        war = Warehouse.objects.filter(id=bnka.id)
-        cats = Cat.objects.filter(war=bnka.id)
+        war = Warehouse.objects.filter(status=False, id=bnka.id)
+        cats = Cat.objects.filter(war__in=war)
         context = {
             'warehouses': war,
             'cats': cats,
@@ -75,7 +75,7 @@ def catDetail(request, pk):
 
 @login_required(login_url='/login/')
 def catEdit(request, pk):
-    war = Warehouse.objects.all()
+    war = Warehouse.objects.filter(status=False)
     cats = Cat.objects.get(id=pk)
     context = {
         'warehouses': war,
@@ -88,8 +88,8 @@ def catEdit(request, pk):
 def foods(request):
     user = request.user
     if user.is_staff:
-        cats = Cat.objects.filter(deleted=False)
-        foods = Food.objects.all()
+        cats = Cat.objects.filter(deleted=False, war__status=False)
+        foods = Food.objects.filter(category__in=cats)
         foodz = Food.objects.filter(deleted=False)
         context = {
             'cats': cats,
@@ -100,7 +100,7 @@ def foods(request):
     else:
         for bnkas in user.BnkasUser.all():
             bnka = bnkas.bnka
-        cats = Cat.objects.filter(deleted=False, war=bnka.id)
+        cats = Cat.objects.filter(deleted=False, war=bnka.id, war__status=False)
         foods = Food.objects.filter(category__in=cats)
         foodz = Food.objects.filter(deleted=False, category__in=cats)
         context = {
@@ -135,12 +135,13 @@ def foodDetail(request, pk):
 def disprices(request):
     user = request.user
     if user.is_staff:
-        disprices = Dipricing.objects.all()
         foods = Food.objects.filter(deleted=False)
+        disprices = Dipricing.objects.filter(food__in=foods)
     else:
         for bnkas in user.BnkasUser.all():
             bnka = bnkas.bnka
-        foods = Food.objects.filter(deleted=False, category__in=Cat.objects.filter(war=bnka.id))
+        cats = Cat.objects.filter(war=bnka.id, war__status=False)
+        foods = Food.objects.filter(deleted=False, category__in=cats)
         disprices = Dipricing.objects.filter(food__in=foods)
     context = {
         'foods': foods,
@@ -151,13 +152,14 @@ def disprices(request):
 
 @login_required(login_url='/login/')
 def specifies(request):
-    specifies = Specify.objects.all()
     if request.user.is_staff:
         foods = Food.objects.filter(deleted=False)
+        specifies = Specify.objects.filter(food__in=foods)
     else:
         for bnkas in request.user.BnkasUser.all():
             bnka = bnkas.bnka
-        foods = Food.objects.filter(deleted=False, category__in=Cat.objects.filter(war=bnka.id))
+        cats = Cat.objects.filter(war=bnka.id, war__status=False)
+        foods = Food.objects.filter(deleted=False, category__in=cats)
         specifies = Specify.objects.filter(food__in=foods)
     context = {
         'foods': foods,
@@ -225,7 +227,7 @@ def motorEdit(request, pk):
 
 @login_required(login_url='/login/')
 def accounts(request):
-    war = Warehouse.objects.all()
+    war = Warehouse.objects.filter(status=False)
     accounts = Account.objects.all()
     context = {
         'war': war,
