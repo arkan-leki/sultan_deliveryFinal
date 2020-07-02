@@ -21,6 +21,7 @@ from django.conf.urls import url
 
 urlpatterns = [
     path('', include('deliver.urls')),
+    path('api/', include('api.urls')),
     path('admin/', admin.site.urls),
 ]
 

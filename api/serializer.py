@@ -1,24 +1,36 @@
 # from django.contrib.auth.models import User
-from . import models
+from deliver import models
 from rest_framework import serializers
-from deliver.models import RequestDetail, Specify
+from deliver.models import RequestDetail, Specify, BnkaUser
 
 # Serializers define the API representation.
 class UserSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name="api:account-detail")
     class Meta:
         model = models.Account
         fields = ['id', 'url', 'username', 'email', 'is_staff']
 
-class CatSerializer(serializers.ModelSerializer):
+class BnkaSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name="api:warehouse-detail")
+    class Meta:
+        model = models.Warehouse
+        fields = ['id', 'url', 'title', 'status']
 
+class CatSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name="api:cat-detail")
+    war = serializers.HyperlinkedIdentityField(view_name="api:warehouse-detail")
     class Meta:
         model = models.Cat
-        fields = ['id', 'image', 'nameEg', 'nameKu', 'deleted','date_added']
+        fields = ['id', 'url', 'war', 'war_id', 'image', 'nameEg', 'nameKu', 'deleted','date_added']
 
-class FoodSerializer(serializers.ModelSerializer):
+class FoodSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name="api:food-detail")
+    category = serializers.HyperlinkedIdentityField(view_name="api:cat-detail")
+    popularity = serializers.CharField()
+    category_war =  serializers.ReadOnlyField(source='category.war_id')
     class Meta:
         model = models.Food
-        fields = ['id', 'category', 'category_id', 'image', 'sell_price', 'title', 'subtitle', 'detiles','date_add', 'deleted', 'cost']
+        fields = ['id', 'url', 'category', 'category_id', 'category_war', 'image', 'sell_price', 'title', 'subtitle', 'detiles','date_add', 'deleted', 'cost', 'popularity' , 'avg_ratings']
 
 class SpecifySerializer(serializers.ModelSerializer):
     class Meta:

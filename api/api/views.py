@@ -8,7 +8,7 @@ from django.contrib.auth import authenticate
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 
-from deliver.api.serializers import RegistrationSerializer, AccountPropertiesSerializer, ChangePasswordSerializer
+from api.api.serializers import RegistrationSerializer, AccountPropertiesSerializer, ChangePasswordSerializer
 from deliver.models import Account
 from rest_framework.authtoken.models import Token
 

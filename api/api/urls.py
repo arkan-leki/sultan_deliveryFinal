@@ -1,5 +1,5 @@
 from django.urls import path
-from deliver.api.views import(
+from api.api.views import(
 	registration_view,
 	ObtainAuthTokenView,
 	account_properties_view,

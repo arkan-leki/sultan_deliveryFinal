@@ -126,6 +126,11 @@ class Food(models.Model):
     def __str__(self):
         return self.title
 
+    @property
+    def popularity(self):
+        likes = self.rate_food.count
+        return likes
+
     def __unicode__(self):
         return
     
@@ -193,7 +198,7 @@ class Customer(models.Model):
 
     def __str__(self):
         return self.name
-        
+
 class Rate(models.Model):
     food = models.ForeignKey(Food, related_name='rate_food', on_delete=models.CASCADE)
     customer = models.ForeignKey(Customer, related_name='rate_user', on_delete=models.CASCADE)

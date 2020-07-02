@@ -1,10 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.models import User
 from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors, Customer, Rate, Warehouse, BnkaUser
-from rest_framework import viewsets
-from . import serializer
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -599,91 +595,3 @@ def ajax(request):
                     'message': errors
                 }
     return JsonResponse(data)
-
-
-# ViewSets define the view behavior.
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = Account.objects.all()
-    serializer_class = serializer.UserSerializer
-
-# ViewSets define the view behavior.
-
-
-class CatViewSet(viewsets.ModelViewSet):
-    queryset = Cat.objects.all()
-    serializer_class = serializer.CatSerializer
-
-# ViewSets define the view behavior.
-
-
-class FoodViewSet(viewsets.ModelViewSet):
-    queryset = Food.objects.all()
-    serializer_class = serializer.FoodSerializer
-
-
-class FoodListView(generics.ListAPIView):
-    queryset = Food.objects.all()
-    serializer_class = serializer.FoodSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['category_id']
-
-
-class SpecifyListView(generics.ListAPIView):
-    queryset = Specify.objects.all()
-    serializer_class = serializer.SpecifySerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['food_id']
-
-# ViewSets define the view behavior.
-
-
-class SpecifyViewSet(viewsets.ModelViewSet):
-    queryset = Specify.objects.all()
-    serializer_class = serializer.SpecifySerializer
-
-# ViewSets define the view behavior.
-
-
-class RequestViewSet(viewsets.ModelViewSet):
-    queryset = Request.objects.all()
-    serializer_class = serializer.RequestSerializer
-
-# ViewSets define the view behavior.
-
-
-class RequestDetailViewSet(viewsets.ModelViewSet):
-    queryset = RequestDetail.objects.all()
-    serializer_class = serializer.RequestDetailSerializer
-
-# ViewSets define the view behavior.
-
-
-class DliverViewSet(viewsets.ModelViewSet):
-    queryset = Dliver.objects.all()
-    serializer_class = serializer.DliverSerializer
-
-
-class RequestDetailListView(generics.ListAPIView):
-    queryset = RequestDetail.objects.all()
-    serializer_class = serializer.RequestDetailSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['phoneid', 'status']
-
-# ViewSets define the view behavior.
-
-
-class TransportViewSet(viewsets.ModelViewSet):
-    queryset = Transport.objects.all()
-    serializer_class = serializer.TransportSerializer
-
-class CustomerViewSet(viewsets.ModelViewSet):
-    queryset = Customer.objects.all()
-    serializer_class = serializer.CustomerSerializer
-
-class RateViewSet(viewsets.ModelViewSet):
-    queryset = Rate.objects.all()
-    serializer_class = serializer.RateSerializer
-
-class MotorViewSet(viewsets.ModelViewSet):
-    queryset = Motors.objects.all()
-    serializer_class = serializer.MotorSerializer
