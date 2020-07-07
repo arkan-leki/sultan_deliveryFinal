@@ -2,6 +2,7 @@
 from deliver import models
 from rest_framework import serializers
 from deliver.models import RequestDetail, Specify, BnkaUser
+from django_filters.rest_framework import DjangoFilterBackend
 
 # Serializers define the API representation.
 class UserSerializer(serializers.HyperlinkedModelSerializer):

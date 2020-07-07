@@ -26,6 +26,8 @@ class CatViewSet(viewsets.ModelViewSet):
 class FoodViewSet(viewsets.ModelViewSet):
     queryset = Food.objects.all()
     serializer_class = serializer.FoodSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['id', 'deleted']
 
 
 class FoodListView(generics.ListAPIView):
