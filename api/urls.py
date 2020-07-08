@@ -17,6 +17,7 @@ router.register(r'dlivers', views.DliverViewSet)
 router.register(r'transports', views.TransportViewSet)
 router.register(r'customers', views.CustomerViewSet)
 router.register(r'rates', views.RateViewSet)
+router.register(r'faves', views.FaveViewSet)
 router.register(r'motors', views.MotorViewSet)
 router.register(r'bnka', views.BnkaViewSet)
 

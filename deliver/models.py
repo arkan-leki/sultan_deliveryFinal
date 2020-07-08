@@ -199,6 +199,10 @@ class Customer(models.Model):
     def __str__(self):
         return self.name
 
+class Favorate(models.Model):
+    food = models.ForeignKey(Food, related_name='fav_food', on_delete=models.CASCADE)
+    customer = models.ForeignKey(Customer, related_name='fav_user', on_delete=models.CASCADE)
+
 class Rate(models.Model):
     food = models.ForeignKey(Food, related_name='rate_food', on_delete=models.CASCADE)
     customer = models.ForeignKey(Customer, related_name='rate_user', on_delete=models.CASCADE)

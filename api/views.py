@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors, Customer, Rate, Warehouse, BnkaUser
+from deliver.models import Account, BnkaUser, Cat, Customer, Dipricing, Dliver, Favorate, Food, Motors, Rate, Request, RequestDetail, Specify, Transport, Warehouse
 from . import serializer
 from rest_framework import generics
 from django_filters.rest_framework import DjangoFilterBackend
@@ -90,6 +90,10 @@ class CustomerViewSet(viewsets.ModelViewSet):
 class RateViewSet(viewsets.ModelViewSet):
     queryset = Rate.objects.all()
     serializer_class = serializer.RateSerializer
+
+class FaveViewSet(viewsets.ModelViewSet):
+    queryset = Favorate.objects.all()
+    serializer_class = serializer.FaveSerializer
 
 class MotorViewSet(viewsets.ModelViewSet):
     queryset = Motors.objects.all()
