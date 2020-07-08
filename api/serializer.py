@@ -22,7 +22,7 @@ class CatSerializer(serializers.ModelSerializer):
     # war = serializers.HyperlinkedIdentityField(view_name="api:warehouse-detail")
     class Meta:
         model = models.Cat
-        fields = ['id', 'url', 'war', 'image', 'nameEg', 'nameKu', 'deleted','date_added']
+        fields = ['id', 'war', 'image', 'nameEg', 'nameKu', 'deleted','date_added']
 
 class FoodSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:food-detail")
@@ -38,7 +38,7 @@ class SpecifySerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:specify-detail")
     class Meta:
         model = models.Specify
-        fields = ['id', 'url', 'food','title', 'price','date_added']
+        fields = ['id', 'food','title', 'price','date_added']
 
 class CustomerSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:customer-detail")
@@ -60,7 +60,7 @@ class FaveSerializer(serializers.ModelSerializer):
     # food = serializers.HyperlinkedIdentityField(view_name="api:food-detail")
     class Meta:
         model = models.Favorate
-        fields = ['id', 'url', 'food','customer']
+        fields = ['id', 'food','customer']
 
 class MotorSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:motor-detail")
