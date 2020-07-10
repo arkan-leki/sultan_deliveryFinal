@@ -1,8 +1,9 @@
 # from django.contrib.auth.models import User
 from deliver import models
 from rest_framework import serializers
-from deliver.models import RequestDetail, Specify, BnkaUser
+from deliver.models import RequestDetail, Specify, BnkaUser, Dipricing
 from django_filters.rest_framework import DjangoFilterBackend
+from datetime import datetime
 
 # Serializers define the API representation.
 class UserSerializer(serializers.ModelSerializer):
@@ -27,11 +28,12 @@ class CatSerializer(serializers.ModelSerializer):
 class FoodSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:food-detail")
     # category = serializers.HyperlinkedIdentityField(view_name="api:cat-detail")
+    # disprice = serializers.PrimaryKeyRelatedField(many=True, queryset=Dipricing.objects.filter(exp_date__gt=datetime.now()).order_by('-exp_date'))
     popularity = serializers.CharField()
     category_war =  serializers.ReadOnlyField(source='category.war_id')
     class Meta:
         model = models.Food
-        fields = ['id', 'category', 'category_war', 'image', 'sell_price', 'title', 'subtitle', 'detiles','date_add', 'deleted', 'cost', 'popularity' , 'avg_ratings']
+        fields = ['id', 'category', 'category_war', 'image', 'sell_price', 'title', 'subtitle', 'detiles','date_add', 'deleted', 'cost', 'popularity' , 'avg_ratings', 'isDispriced', 'disprice', 'dispriceTitle', 'dispriceId']
 
 class SpecifySerializer(serializers.ModelSerializer):
     # food = serializers.HyperlinkedIdentityField(view_name="api:food-detail")
@@ -71,7 +73,7 @@ class MotorSerializer(serializers.ModelSerializer):
 class RequestSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:request-detail")
     # customer = serializers.HyperlinkedIdentityField(view_name="api:customer-detail")
-    # request_detail = serializers.PrimaryKeyRelatedField(many=True, queryset= RequestDetail.objects.all())
+    request_detail = serializers.PrimaryKeyRelatedField(many=True, queryset= RequestDetail.objects.all())
     class Meta:
         model = models.Request
         fields = ['id', 'name', 'phone', 'address','total_price', 'dashkandin', 'request_detail','customer', 'date_added','last_edit' , 'status']

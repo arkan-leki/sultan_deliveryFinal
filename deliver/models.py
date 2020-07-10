@@ -7,6 +7,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 from django.utils.safestring import mark_safe
+from datetime import datetime
+from django.http.response import JsonResponse
 
 
 # Create your models here.
@@ -130,6 +132,21 @@ class Food(models.Model):
     def popularity(self):
         likes = self.rate_food.count
         return likes
+
+    def dispriceId(self):
+        queryset = self.disprice_food.get(exp_date__gt=datetime.now()).id
+        return queryset
+    
+    def dispriceTitle(self):
+        queryset = self.disprice_food.get(exp_date__gt=datetime.now()).title
+        return queryset
+    
+    def disprice(self):
+        queryset = self.disprice_food.get(exp_date__gt=datetime.now()).price
+        return queryset
+
+    def isDispriced(self):
+        return self.disprice_food.filter(exp_date__gt=datetime.now()).exists()
 
     def __unicode__(self):
         return
