@@ -9,6 +9,7 @@ from rest_framework.authtoken.models import Token
 from django.utils.safestring import mark_safe
 from datetime import datetime
 from django.http.response import JsonResponse
+from django.core.exceptions import ObjectDoesNotExist
 
 
 # Create your models here.
@@ -134,16 +135,26 @@ class Food(models.Model):
         return likes
 
     def dispriceId(self):
-        queryset = self.disprice_food.get(exp_date__gt=datetime.now()).id
-        return queryset
+        try:
+            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).id
+            return queryset
+        except ObjectDoesNotExist:
+            return self.disprice_food.filter(exp_date__gt=datetime.now()).exists()
+      
     
     def dispriceTitle(self):
-        queryset = self.disprice_food.get(exp_date__gt=datetime.now()).title
-        return queryset
+        try:
+            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).title
+            return queryset
+        except ObjectDoesNotExist:
+            return self.disprice_food.filter(exp_date__gt=datetime.now()).exists()
     
     def disprice(self):
-        queryset = self.disprice_food.get(exp_date__gt=datetime.now()).price
-        return queryset
+        try:
+            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).price
+            return queryset
+        except ObjectDoesNotExist:
+            return self.disprice_food.filter(exp_date__gt=datetime.now()).exists()
 
     def isDispriced(self):
         return self.disprice_food.filter(exp_date__gt=datetime.now()).exists()
