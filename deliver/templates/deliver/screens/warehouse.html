@@ -186,6 +186,9 @@
             text-align: center;
             color: #f00
         }
+
+
+
     </style>
     <div class="container-fluid">
         <div class="animated fadeIn">
@@ -197,21 +200,40 @@
                             <strong>بنکە و کۆگا</strong>
                         </div>
                         <div class="card-body">
-                            <form id="simpleForm" method="post" action="{% url 'deliver:ajax' %}">
+                              <form id="ajaxForm" method="POST" action="{% url 'deliver:ajax' %}" method="post"
+                                enctype="multipart/form-data" class="form-horizontal">
                                 <input name="action" type="text" value="warehouse" hidden>
                                 <div class="form-group row">
                                     <label class="col-sm-5 form-control-label" for="input-normal">ناو</label>
                                     <div class="col-sm-6">
                                         <input type="text" id="input-normal" name="title" class="form-control"
-                                            placeholder="ناو">
+                                               placeholder="ناو">
+                                    </div>
+                                </div>
+                                <div class="container">
+                                    <div class="panel">
+                                        <div class="button_outer">
+                                            <div class="btn_upload">
+                                                <input type="file" id="upload_file" name="image">
+                                                Upload Image
+                                            </div>
+                                            <div class="processing_bar"></div>
+                                            <div class="success_box"></div>
+                                        </div>
+                                    </div>
+                                    <div class="error_msg"></div>
+                                    <div class="uploaded_file_view" id="uploaded_view">
+                                        <span class="file_remove">X</span>
                                     </div>
                                 </div>
                                 <div class="card-footer">
                                     <div class="form-actions">
                                         <button type="submit" class="btn btn-sm btn-primary"><i
-                                                class="fa fa-plus"></i> زیادكردن</button>
+                                                class="fa fa-plus"></i> زیادكردن
+                                        </button>
                                         <button type="cancel" class="btn btn-sm btn-danger"><i class="fa fa-ban"></i>
-                                            وازهینان</button>
+                                            وازهینان
+                                        </button>
                                     </div>
                                 </div>
                             </form>
@@ -232,42 +254,51 @@
                             <br>
                             <table id="tab" class="table table-responsive table-bordered table-striped table-sm">
                                 <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>بنکە</th>
-                                        <th>بەرواری زیادکردن </th>
-                                        <th>بارودۆخ</th>
-                                        <th>کردارەکان</th>
-                                    </tr>
+                                <tr>
+                                    <th>#</th>
+                                    <th>بنکە</th>
+                                    <th>وێنە</th>
+                                    <th>بەرواری زیادکردن</th>
+                                    <th>بارودۆخ</th>
+                                    <th>کردارەکان</th>
+                                </tr>
                                 </thead>
                                 <tbody>
-                                    {% for warehouse in warehouses %}
-                                    <tr>
-                                        <td>{{ warehouse.id }}</td>
-                                        <td><a href="#">{{ warehouse.title }}</a></td>
-                                        <td>{{warehouse.add_date}}</td>
-                                        <td>
-                                                {% if warehouse.status %}
-                                                    <span class="badge badge-danger">سڕکراوە</span>
-                                                {% else %}
-                                                    <span class="badge badge-success">چالاکە</span>
-                                                {% endif %}
-                                                
-                                                    
-                                                </td>
-                                        <td>
-                                                    {% if warehouse.status %}
-                                                        <a role="button" href="{% url 'deliver:ajax' %}?action=warehousedelete&id={{warehouse.id}} " class="btn btn-primary">
-                                                        گەڕاندنەوە
-                                                        <i class="fa fa-refresh fa-1x" aria-hidden="true"></i></i>
-                                                    </a>{% else %}
-                                                        <a role="button" href="{% url 'deliver:ajax' %}?action=warehousedelete&id={{warehouse.id}} " class="btn btn-danger">
-                                                        سڕەینەوە
-                                                        <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
-                                                    </a>{% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
+                                {% for warehouse in warehouses %}
+                                <tr>
+                                    <td>{{ warehouse.id }}</td>
+                                    <td><a href="#">{{ warehouse.title }}</a></td>
+                                    <td>
+                                        {% if warehouse.image %}
+                                        <a data-fancybox="gallery" class="primary-btn" href="{{ warehouse.image.url }}"><img
+                                                src="{{ warehouse.image.url }}" height="70"></a>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{warehouse.add_date}}</td>
+                                    <td>
+                                        {% if warehouse.status %}
+                                        <span class="badge badge-danger">سڕکراوە</span>
+                                        {% else %}
+                                        <span class="badge badge-success">چالاکە</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if warehouse.status %}
+                                        <a role="button"
+                                           href="{% url 'deliver:ajax' %}?action=warehousedelete&id={{warehouse.id}} "
+                                           class="btn btn-primary">
+                                            گەڕاندنەوە
+                                            <i class="fa fa-refresh fa-1x" aria-hidden="true"></i></i>
+                                        </a>{% else %}
+                                        <a role="button"
+                                           href="{% url 'deliver:ajax' %}?action=warehousedelete&id={{warehouse.id}} "
+                                           class="btn btn-danger">
+                                            سڕەینەوە
+                                            <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
+                                        </a>{% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
                                 </tbody>
                             </table>
                             <script type="text/javascript">
@@ -282,6 +313,9 @@
                                 $(document).ready(function () {
                                     $('#tab').DataTable();
                                 });
+
+
+
                             </script>
                             <nav>
                                 <ul class="pagination">
@@ -304,7 +338,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!--/.row-->
         </div>
 

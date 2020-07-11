@@ -80,6 +80,8 @@ class Account(AbstractBaseUser):
 
 class Warehouse(models.Model):
     title =  models.CharField(max_length=110)
+    image = models.ImageField(
+        upload_to='images/', blank=True, null=True, verbose_name='وێنه‌')
     add_date = models.DateTimeField(verbose_name='add date', auto_now=True)
     status = models.BooleanField(default=False)
 
@@ -211,6 +213,7 @@ class Dipricing(models.Model):
 
 class Customer(models.Model):
     name = models.CharField(max_length=100)
+    email = models.EmailField(verbose_name="email", max_length=60, unique=True)
     password = models.CharField(max_length=100)
     instrument_purchase = models.CharField(max_length=100)
     house_no = models.CharField(max_length=100)

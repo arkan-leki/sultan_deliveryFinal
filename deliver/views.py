@@ -1,21 +1,16 @@
-from django.shortcuts import render
-from django.contrib.auth.models import User
-from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors, Customer, Rate, Warehouse, BnkaUser
+import datetime
+
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
-from django.template import loader
 # Create your views here.
 from django.views.decorators.csrf import csrf_exempt
-from django.core import files
-from io import BytesIO
-import requests
+
 from deliver.forms import UserForm
-import datetime
+from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors, \
+    Customer, Warehouse, BnkaUser
+
 
 # Create your views here.
 
@@ -26,15 +21,18 @@ def index(request):
     }
     return render(request, 'deliver/screens/home.html', context)
 
+
 def loginView(request):
     context = {
         'title': "Login",
     }
     return render(request, 'deliver/login.html', context)
 
+
 def logout_view(request):
     logout(request)
     return redirect('deliver:home')
+
 
 @login_required(login_url='/login/')
 def cat(request):
@@ -48,6 +46,7 @@ def cat(request):
             'title': "Parent Food",
         }
     else:
+        bnka = ''
         for bnkas in user.BnkasUser.all():
             bnka = bnkas.bnka
         war = Warehouse.objects.filter(status=False, id=bnka.id)
@@ -69,6 +68,7 @@ def catDetail(request, pk):
     }
     return render(request, 'deliver/screens/catDetail.html', context)
 
+
 @login_required(login_url='/login/')
 def catEdit(request, pk):
     war = Warehouse.objects.filter(status=False)
@@ -79,6 +79,7 @@ def catEdit(request, pk):
         'title': "Parent Food",
     }
     return render(request, 'deliver/screens/catEdit.html', context)
+
 
 @login_required(login_url='/login/')
 def foods(request):
@@ -107,6 +108,7 @@ def foods(request):
         }
     return render(request, 'deliver/screens/foods.html', context)
 
+
 @login_required(login_url='/login/')
 def foodEdit(request, pk):
     foods = Food.objects.get(id=pk)
@@ -118,6 +120,7 @@ def foodEdit(request, pk):
     }
     return render(request, 'deliver/screens/foodEdit.html', context)
 
+
 @login_required(login_url='/login/')
 def foodDetail(request, pk):
     foods = Food.objects.get(id=pk)
@@ -126,6 +129,7 @@ def foodDetail(request, pk):
         'title': "Food Detail",
     }
     return render(request, 'deliver/screens/foodDetail.html', context)
+
 
 @login_required(login_url='/login/')
 def disprices(request):
@@ -146,6 +150,7 @@ def disprices(request):
     }
     return render(request, 'deliver/screens/disprice.html', context)
 
+
 @login_required(login_url='/login/')
 def specifies(request):
     if request.user.is_staff:
@@ -164,6 +169,7 @@ def specifies(request):
     }
     return render(request, 'deliver/screens/specify.html', context)
 
+
 @login_required(login_url='/login/')
 def transports(request):
     transports = Transport.objects.all()
@@ -172,6 +178,7 @@ def transports(request):
         'title': "transports of Request",
     }
     return render(request, 'deliver/screens/transports.html', context)
+
 
 @login_required(login_url='/login/')
 def delivers(request):
@@ -185,6 +192,7 @@ def delivers(request):
         'title': "Delivers of Food",
     }
     return render(request, 'deliver/screens/delivers.html', context)
+
 
 @login_required(login_url='/login/')
 def deliverEdit(request, pk):
@@ -201,6 +209,7 @@ def deliverEdit(request, pk):
     }
     return render(request, 'deliver/screens/delivers.html', context)
 
+
 @login_required(login_url='/login/')
 def motors(request):
     motors = Motors.objects.all()
@@ -209,6 +218,7 @@ def motors(request):
         'title': "Motors",
     }
     return render(request, 'deliver/screens/motors.html', context)
+
 
 @login_required(login_url='/login/')
 def motorEdit(request, pk):
@@ -220,6 +230,7 @@ def motorEdit(request, pk):
         'title': "Motors Edit",
     }
     return render(request, 'deliver/screens/motors.html', context)
+
 
 @login_required(login_url='/login/')
 def accounts(request):
@@ -233,6 +244,7 @@ def accounts(request):
     }
     return render(request, 'deliver/screens/accounts.html', context)
 
+
 @login_required(login_url='/login/')
 def warehouse(request):
     ls = Warehouse.objects.all()
@@ -243,6 +255,7 @@ def warehouse(request):
     }
     return render(request, 'deliver/screens/warehouse.html', context)
 
+
 @login_required(login_url='/login/')
 def requestDetail(request):
     requests = RequestDetail.objects.all()
@@ -252,8 +265,9 @@ def requestDetail(request):
     }
     return render(request, 'deliver/screens/requestDetail.html', context)
 
+
 @login_required(login_url='/login/')
-def requestDetailView(request,pk):
+def requestDetailView(request, pk):
     f = RequestDetail.objects.get(id=pk)
     context = {
         'request': f,
@@ -261,8 +275,9 @@ def requestDetailView(request,pk):
     }
     return render(request, 'deliver/screens/RequestDetailView.html', context)
 
+
 @login_required(login_url='/login/')
-def requestView(request,pk):
+def requestView(request, pk):
     f = Request.objects.get(id=pk)
     context = {
         'request': f,
@@ -270,14 +285,16 @@ def requestView(request,pk):
     }
     return render(request, 'deliver/screens/RequestView.html', context)
 
+
 @login_required(login_url='/login/')
-def customer(request,pk):
+def customer(request, pk):
     f = Customer.objects.get(id=pk)
     context = {
         'customer': f,
         'title': "Customer",
     }
     return render(request, 'deliver/screens/customer.html', context)
+
 
 @login_required(login_url='/login/')
 def customers(request):
@@ -287,6 +304,7 @@ def customers(request):
         'title': "Customers",
     }
     return render(request, 'deliver/screens/customers.html', context)
+
 
 @login_required(login_url='/login/')
 def requests(request):
@@ -298,6 +316,7 @@ def requests(request):
         'title': "Detail Delivery of Request",
     }
     return render(request, 'deliver/screens/requests.html', context)
+
 
 @csrf_exempt
 def ajax(request):
@@ -373,7 +392,7 @@ def ajax(request):
     if request.GET.get('action') == 'warehousedelete':
         id = request.GET.get('id')
         sp = Warehouse.objects.get(pk=id)
-        sp.status =  not sp.status
+        sp.status = not sp.status
         sp.save()
         data = {
             'message': sp.status
@@ -419,7 +438,7 @@ def ajax(request):
                 cat.image = request.FILES.get('images')
             cat.save()
             data = {
-                'redirect': '/catDetail/'+id,
+                'redirect': '/catDetail/' + id,
                 'message': 'seccess'
             }
         if request.POST.get('action') == 'food_add':
@@ -481,7 +500,7 @@ def ajax(request):
             dp.title = request.POST.get('title')
             dp.number = request.POST.get('number')
             dp.image = request.FILES['images']
-            dp.status =  request.FILES['status']
+            dp.status = request.FILES['status']
             dp.save()
             data = {
                 'redirect': '/motors/',
@@ -504,6 +523,9 @@ def ajax(request):
             dp = Warehouse()
             dp.title = request.POST.get('title')
             dp.status = False
+            image = request.FILES.get('images', False)
+            if image:
+                dp.image = request.FILES['images']
             dp.save()
             data = {
                 'redirect': '/warehouse/',

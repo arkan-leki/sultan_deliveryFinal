@@ -16,7 +16,7 @@ class BnkaSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:warehouse-detail")
     class Meta:
         model = models.Warehouse
-        fields = ['id', 'title', 'status']
+        fields = ['id', 'title', 'image', 'status']
 
 class CatSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:cat-detail")
@@ -46,7 +46,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:customer-detail")
     class Meta:
         model = models.Customer
-        fields = ['id','name', 'password', 'instrument_purchase','house_no','address_line1', 'address_line2', 'phone', 'phoneid', 'zip_code', 'country', 'image']
+        fields = ['id','name', 'password', 'instrument_purchase','house_no','address_line1', 'address_line2', 'phone', 'phoneid', 'zip_code', 'country', 'image', 'email']
 
 class RateSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:rate-detail")
