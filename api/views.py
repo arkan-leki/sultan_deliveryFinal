@@ -32,7 +32,7 @@ class FoodListView(generics.ListAPIView):
     queryset = Food.objects.filter(deleted=False)
     serializer_class = serializer.FoodSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['id', 'category_id']
+    filterset_fields = ['id', 'category_id', 'isDispriced']
 
 
 class SpecifyListView(generics.ListAPIView):
