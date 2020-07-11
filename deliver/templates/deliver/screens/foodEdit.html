@@ -43,7 +43,7 @@
                                 <div class="form-group row">
                                             <label class="col-md-3 form-control-label" for="select">جوری خواردن</label>
                                             <div class="col-md-9">
-                                                <select id="select" name="war" class="form-control form-control-md">
+                                                <select id="select" name="catId" class="form-control form-control-md">
                                                     {% for cat in cats %}
                                                         <option value="{{cat.id}}" 
                                                         {% if cat.id == food.category_id %}selected="selected"{% endif %}
