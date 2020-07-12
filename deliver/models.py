@@ -138,7 +138,7 @@ class Food(models.Model):
 
     def dispriceDate(self):
         try:
-            queryset = self.disprice_food.get(exp_date__gt=datetime.now())
+            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).exp_date
             return queryset
         except ObjectDoesNotExist:
             return self.disprice_food.filter(exp_date__gt=datetime.now()).exists()
