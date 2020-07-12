@@ -1,11 +1,11 @@
 {% for field in form %}
 <div class="form-group">
-               <label class="form-control-label" for="prependedInput">{{ field.label_tag }}</label>
-                     <div class="controls">
-                   <div class="input-prepend input-group">
-                            {{ field }}    
-                            </div>
-              <p class="help-block">{{ field.errors }}</p>
-          </div>
-     </div>
+    <label class="form-control-label" for="prependedInput">{{ field.label_tag }}</label>
+    <div class="controls">
+        <div class="input-prepend input-group">
+            {{ field }}
+        </div>
+        <p class="help-block">{{ field.errors }}</p>
+    </div>
+</div>
 {% endfor %}

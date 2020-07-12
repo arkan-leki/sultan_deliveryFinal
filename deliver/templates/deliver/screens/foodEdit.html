@@ -1,6 +1,6 @@
 {% extends 'deliver/base.html' %}
- {% comment %} {% block title %} {{ title }} {% endblock title %}  {% endcomment %}
- {% block content %}
+{% comment %} {% block title %} {{ title }} {% endblock title %}  {% endcomment %}
+{% block content %}
 <!-- Main content -->
 <main class="main">
 
@@ -12,14 +12,13 @@
 
         <!-- Breadcrumb Menu-->
         <li class="breadcrumb-menu d-md-down-none">
-            <div class="btn-group" role="group" aria-label="Button group">
+            <div aria-label="Button group" class="btn-group" role="group">
                 <a class="btn" href="#"><i class="icon-speech"></i></a>
                 <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
                 <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;رێخستنەکان</a>
             </div>
         </li>
     </ol>
-
 
 
     <div class="container-fluid">
@@ -30,72 +29,79 @@
                         <div class="card-header">
                             <i class="fa fa-edit"></i>فورمی جوری خواردنه‌كان
                             <div class="card-actions">
-                                <a href="#" class="btn-setting"><i class="icon-settings"></i></a>
-                                <a href="#" class="btn-minimize"><i class="icon-arrow-up"></i></a>
-                                <a href="#" class="btn-close"><i class="icon-close"></i></a>
+                                <a class="btn-setting" href="#"><i class="icon-settings"></i></a>
+                                <a class="btn-minimize" href="#"><i class="icon-arrow-up"></i></a>
+                                <a class="btn-close" href="#"><i class="icon-close"></i></a>
                             </div>
                         </div>
                         <div class="card-body">
-                            <form enctype="multipart/form-data" class="form-horizontal" id="ajaxForm" method="POST" action="{% url 'deliver:ajax' %}">
+                            <form action="{% url 'deliver:ajax' %}" class="form-horizontal" enctype="multipart/form-data" id="ajaxForm"
+                                  method="POST">
                                 {% csrf_token %}
-                                <input name="action" value="food_edit" hidden>
-                                <input type="hidden" name="id" value="{{ food.id }}">
+                                <input hidden name="action" value="food_edit">
+                                <input name="id" type="hidden" value="{{ food.id }}">
                                 <div class="form-group row">
-                                            <label class="col-md-3 form-control-label" for="select">جوری خواردن</label>
-                                            <div class="col-md-9">
-                                                <select id="select" name="catId" class="form-control form-control-md">
-                                                    {% for cat in cats %}
-                                                        <option value="{{cat.id}}" 
-                                                        {% if cat.id == food.category_id %}selected="selected"{% endif %}
-                                                        >{{ cat.nameKu }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="form-group row">
-                                            <label class="col-md-3 form-control-label" for="text-input">ناو</label>
-                                            <div class="col-md-9">
-                                                <input type="text" id="text-input" name="title" class="form-control" placeholder="ناو" value="{{ food.title }}">
-                                                <span class="help-block">This is a help text</span>
-                                            </div>
-                                        </div>
-                                        <div class="form-group row">
-                                            <label class="col-md-3 form-control-label" for="text-input">ناونیشان</label>
-                                            <div class="col-md-9">
-                                                <input type="text" id="text-input" name="subtitle" class="form-control" placeholder="ناو" value="{{ food.subtitle }}">
-                                                <span class="help-block">This is a help text</span>
-                                            </div>
-                                        </div>
-                                        <div class="form-group row">
-                                            <label class="col-md-3 form-control-label" for="text-input">تێچوو</label>
-                                            <div class="col-md-9">
-                                                <input type="text" id="text-input" name="cost" class="form-control" placeholder="نرخ" value="{{ food.cost }}">
-                                                <span class="help-block">تێچووی دروستکدن</span>
-                                            </div>
-                                        </div>
-                                        <div class="form-group row">
-                                            <label class="col-md-3 form-control-label" for="text-input">نرخی فرۆشتن</label>
-                                            <div class="col-md-9">
-                                                <input type="text" id="text-input" name="sell_price" class="form-control" placeholder="نرخ" value="{{ food.sell_price }}">
-                                                <span class="help-block">This is a help text</span>
-                                            </div>
-                                        </div>
-                                        <div class="form-group row">
-                                            <label class="col-md-3 form-control-label" for="textarea-input">وردەکاری</label>
-                                            <div class="col-md-9">
-                                                <textarea id="textarea-input" name="detiles" rows="9" class="form-control" placeholder="پێکهاتەکانی خواردن...." value="detiles"></textarea>
-                                            </div>
-                                        </div>
+                                    <label class="col-md-3 form-control-label" for="select">جوری خواردن</label>
+                                    <div class="col-md-9">
+                                        <select class="form-control form-control-md" id="select" name="catId">
+                                            {% for cat in cats %}
+                                            <option %}
+                                                    %}selected="selected" cat.id== endif food.category_id if value="{{cat.id}}" {% {%
+                                            >{{ cat.nameKu }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-md-3 form-control-label" for="text-input">ناو</label>
+                                    <div class="col-md-9">
+                                        <input class="form-control" id="text-input" name="title" placeholder="ناو"
+                                               type="text" value="{{ food.title }}">
+                                        <span class="help-block">This is a help text</span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-md-3 form-control-label" for="text-input">ناونیشان</label>
+                                    <div class="col-md-9">
+                                        <input class="form-control" id="text-input" name="subtitle" placeholder="ناو"
+                                               type="text" value="{{ food.subtitle }}">
+                                        <span class="help-block">This is a help text</span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-md-3 form-control-label" for="text-input">تێچوو</label>
+                                    <div class="col-md-9">
+                                        <input class="form-control" id="text-input" name="cost" placeholder="نرخ"
+                                               type="text" value="{{ food.cost }}">
+                                        <span class="help-block">تێچووی دروستکدن</span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-md-3 form-control-label" for="text-input">نرخی فرۆشتن</label>
+                                    <div class="col-md-9">
+                                        <input class="form-control" id="text-input" name="sell_price" placeholder="نرخ"
+                                               type="text" value="{{ food.sell_price }}">
+                                        <span class="help-block">This is a help text</span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-md-3 form-control-label" for="textarea-input">وردەکاری</label>
+                                    <div class="col-md-9">
+                                        <textarea class="form-control" id="textarea-input" name="detiles" placeholder="پێکهاتەکانی خواردن...."
+                                                  rows="9" value="detiles"></textarea>
+                                    </div>
+                                </div>
                                 <div class="container">
                                     <div class="panel">
                                         <div class="card-body" id="inn">
-                                        {% if food.image %}
-                                            <img src="{{ food.image.url }}" height="300">
+                                            {% if food.image %}
+                                            <img height="300" src="{{ food.image.url }}">
                                             {% endif %}
                                         </div>
                                         <div class="button_outer">
                                             <div class="btn_upload">
-                                                <input type="file" id="upload_file" name="image"> Upload Image
+                                                <input id="upload_file" name="image" type="file"> Upload Image
                                             </div>
                                             <div class="processing_bar"></div>
                                             <div class="success_box"></div>
@@ -107,8 +113,8 @@
                                     </div>
                                 </div>
                                 <div class="form-actions">
-                                    <button type="submit" class="btn btn-primary">Save changes</button>
-                                    <button type="button" class="btn btn-secondary">Cancel</button>
+                                    <button class="btn btn-primary" type="submit">Save changes</button>
+                                    <button class="btn btn-secondary" type="button">Cancel</button>
                                 </div>
                             </form>
                         </div>
@@ -134,14 +140,13 @@
 
         <!-- Breadcrumb Menu-->
         <li class="breadcrumb-menu d-md-down-none">
-            <div class="btn-group" role="group" aria-label="Button group">
+            <div aria-label="Button group" class="btn-group" role="group">
                 <a class="btn" href="#"><i class="icon-speech"></i></a>
                 <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
                 <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;رێخستنەکان</a>
             </div>
         </li>
     </ol>
-
 
 
     <div class="container-fluid">
@@ -152,19 +157,19 @@
                         <div class="card-header">
                             <i class="fa fa-edit"></i>فورمی خواردنه‌كان
                             <div class="card-actions">
-                                <a href="#" class="btn-setting"><i class="icon-settings"></i></a>
-                                <a href="#" class="btn-minimize"><i class="icon-arrow-up"></i></a>
-                                <a href="#" class="btn-close"><i class="icon-close"></i></a>
+                                <a class="btn-setting" href="#"><i class="icon-settings"></i></a>
+                                <a class="btn-minimize" href="#"><i class="icon-arrow-up"></i></a>
+                                <a class="btn-close" href="#"><i class="icon-close"></i></a>
                             </div>
                         </div>
                         <div class="card-body">
-                            <form class="form-horizontal" method="POST" action="">
+                            <form action="" class="form-horizontal" method="POST">
                                 <div class="form-group">
                                     <label class="form-control-label" for="prependedInput">ناوی كوردی</label>
                                     <div class="controls">
                                         <div class="input-prepend input-group">
                                             <!-- <span class="input-group-addon">@</span> -->
-                                            <input id="prependedInput" class="form-control" size="16" type="text">
+                                            <input class="form-control" id="prependedInput" size="16" type="text">
                                         </div>
                                         <p class="help-block">Here's some help text</p>
                                     </div>
@@ -174,7 +179,7 @@
                                     <div class="controls">
                                         <div class="input-prepend input-group">
                                             <!-- <span class="input-group-addon">@</span> -->
-                                            <input id="prependedInput" class="form-control" size="16" type="text">
+                                            <input class="form-control" id="prependedInput" size="16" type="text">
                                         </div>
                                         <p class="help-block">Here's some help text</p>
                                     </div>
@@ -183,7 +188,7 @@
                                     <div class="panel">
                                         <div class="button_outer">
                                             <div class="btn_upload">
-                                                <input type="file" id="upload_file" name=""> Upload Image
+                                                <input id="upload_file" name="" type="file"> Upload Image
                                             </div>
                                             <div class="processing_bar"></div>
                                             <div class="success_box"></div>
@@ -195,8 +200,8 @@
                                     </div>
                                 </div>
                                 <div class="form-actions">
-                                    <button type="submit" class="btn btn-primary">Save changes</button>
-                                    <button type="button" class="btn btn-secondary">Cancel</button>
+                                    <button class="btn btn-primary" type="submit">Save changes</button>
+                                    <button class="btn btn-secondary" type="button">Cancel</button>
                                 </div>
                             </form>
                         </div>

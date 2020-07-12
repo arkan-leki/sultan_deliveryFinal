@@ -1,15 +1,13 @@
-from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
-from django.db.models import Avg
+from datetime import datetime
 
 from django.conf import settings
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import models
+from django.db.models import Avg
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
-from django.utils.safestring import mark_safe
-from datetime import datetime
-from django.http.response import JsonResponse
-from django.core.exceptions import ObjectDoesNotExist
 
 
 # Create your models here.
@@ -78,8 +76,9 @@ class Account(AbstractBaseUser):
     class Meta:
         verbose_name_plural = "هه‌ژمار"
 
+
 class Warehouse(models.Model):
-    title =  models.CharField(max_length=110)
+    title = models.CharField(max_length=110)
     image = models.ImageField(
         upload_to='images/', blank=True, null=True, verbose_name='وێنه‌')
     add_date = models.DateTimeField(verbose_name='add date', auto_now=True)
@@ -93,6 +92,7 @@ class Warehouse(models.Model):
 
     class Meta:
         verbose_name_plural = "بنکە"
+
 
 class Cat(models.Model):
     war = models.ForeignKey(
@@ -136,21 +136,27 @@ class Food(models.Model):
         likes = self.rate_food.count
         return likes
 
+    def dispriceDate(self):
+        try:
+            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).order_by('-exp_date').exp_date
+            return queryset
+        except ObjectDoesNotExist:
+            return self.disprice_food.filter(exp_date__gt=datetime.now()).order_by('-exp_date').exists()
+
     def dispriceId(self):
         try:
-            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).id
+            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).order_by('-exp_date').id
             return queryset
         except ObjectDoesNotExist:
-            return self.disprice_food.filter(exp_date__gt=datetime.now()).exists()
-      
-    
+            return self.disprice_food.filter(exp_date__gt=datetime.now()).order_by('-exp_date').exists()
+
     def dispriceTitle(self):
         try:
-            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).title
+            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).order_by('-exp_date').title
             return queryset
         except ObjectDoesNotExist:
-            return self.disprice_food.filter(exp_date__gt=datetime.now()).exists()
-    
+            return self.disprice_food.filter(exp_date__gt=datetime.now()).order_by('-exp_date').exists()
+
     def disprice(self):
         try:
             queryset = self.disprice_food.get(exp_date__gt=datetime.now()).price
@@ -163,10 +169,11 @@ class Food(models.Model):
 
     def __unicode__(self):
         return
-    
+
     def avg_ratings(self):
         the_values = self.rate_food.aggregate(Avg('stars')).values()
         return list(the_values)[0]
+
     class Meta:
         verbose_name_plural = "خواردنه‌كان"
 
@@ -193,12 +200,13 @@ class Specify(models.Model):
     class Meta:
         verbose_name_plural = "تام و چێش"
 
+
 class Dipricing(models.Model):
     food = models.ForeignKey(
         Food, related_name='disprice_food', on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     price = models.CharField(max_length=11, verbose_name="نرخ")
-    start_date =  models.DateField(verbose_name='start added')
+    start_date = models.DateField(verbose_name='start added')
     exp_date = models.DateField(verbose_name='expire added')
     date_added = models.DateField(verbose_name='date added', auto_now_add=True)
 
@@ -210,6 +218,7 @@ class Dipricing(models.Model):
 
     class Meta:
         verbose_name_plural = "disprice"
+
 
 class Customer(models.Model):
     name = models.CharField(max_length=100)
@@ -230,14 +239,17 @@ class Customer(models.Model):
     def __str__(self):
         return self.name
 
+
 class Favorate(models.Model):
     food = models.ForeignKey(Food, related_name='fav_food', on_delete=models.CASCADE)
     customer = models.ForeignKey(Customer, related_name='fav_user', on_delete=models.CASCADE)
+
 
 class Rate(models.Model):
     food = models.ForeignKey(Food, related_name='rate_food', on_delete=models.CASCADE)
     customer = models.ForeignKey(Customer, related_name='rate_user', on_delete=models.CASCADE)
     stars = models.IntegerField(default=0)
+
 
 class Request(models.Model):
     customer = models.ForeignKey(Customer, related_name='relcustomer', on_delete=models.CASCADE, default=1)
@@ -245,7 +257,7 @@ class Request(models.Model):
     phone = models.CharField(max_length=110)
     address = models.CharField(max_length=110)
     total_price = models.CharField(max_length=11)
-    dashkandin = models.CharField(max_length=11,blank=True)
+    dashkandin = models.CharField(max_length=11, blank=True)
     request_detail = models.ManyToManyField('RequestDetail')
     date_added = models.DateField(verbose_name='date added', auto_now_add=True)
     last_edit = models.DateTimeField(verbose_name='last edit', auto_now=True)
@@ -267,7 +279,7 @@ class RequestDetail(models.Model):
     quantity = models.CharField(max_length=11)
     specify = models.ManyToManyField('Specify')
     total_price = models.CharField(max_length=11)
-    dashkandin = models.CharField(max_length=11,blank=True)
+    dashkandin = models.CharField(max_length=11, blank=True)
     customer = models.ForeignKey(Customer, related_name='customerRequestD', on_delete=models.CASCADE, default=1)
     date_added = models.DateField(
         verbose_name='date added', auto_now_add=True)
@@ -275,7 +287,7 @@ class RequestDetail(models.Model):
     status = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.food.title+str(self.total_price)
+        return self.food.title + str(self.total_price)
 
     def __unicode__(self):
         return
@@ -283,13 +295,14 @@ class RequestDetail(models.Model):
     class Meta:
         verbose_name_plural = "ورده‌كاری داواكاری"
 
+
 class Motors(models.Model):
     title = models.CharField(max_length=110, blank=True, null=True)
     number = models.CharField(max_length=11, blank=True, null=True)
     image = models.ImageField(
-       upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
+        upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
     status = models.BooleanField(default=False)
-        
+
     def __str__(self):
         return str(self.title)
 
@@ -299,6 +312,7 @@ class Motors(models.Model):
     class Meta:
         verbose_name_plural = "Motors"
 
+
 class Dliver(models.Model):
     name = models.CharField(max_length=110, blank=True, null=True)
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
@@ -306,8 +320,8 @@ class Dliver(models.Model):
     phone = models.CharField(max_length=11, blank=True, null=True)
     phoneId = models.CharField(max_length=110, blank=True, null=True)
     image = models.ImageField(
-       upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
-    
+        upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
+
     def __str__(self):
         return str(self.name)
 
@@ -342,7 +356,7 @@ class BnkaUser(models.Model):
     date_added = models.DateField(verbose_name='date added', auto_now_add=True)
 
     def __str__(self):
-        return str(self.bnka) +" "+ str(self.user)
+        return str(self.bnka) + " " + str(self.user)
 
     def __unicode__(self):
         return

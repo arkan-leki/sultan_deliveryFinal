@@ -2,30 +2,30 @@
 <html lang="en-US">
 <head>
 	<meta charset="utf-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=Edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" type="text/css" href="style.css">
-	<link rel="icon" href="favicon.ico">
+	<meta content="IE=Edge" http-equiv="X-UA-Compatible">
+	<meta content="width=device-width, initial-scale=1" name="viewport">
+	<link href="style.css" rel="stylesheet" type="text/css">
+	<link href="favicon.ico" rel="icon">
 	<script src="samples.js"></script>
 	<script src="utils.js"></script>
 	<title>Chart.js samples</title>
 </head>
 <body>
-	<div class="content">
-		<div class="header">
-			<div class="chartjs-title">Samples</div>
-			<div class="chartjs-caption">Simple yet flexible JavaScript charting for designers &amp; developers</div>
-			<div class="chartjs-links">
-				<a class="btn btn-chartjs" href="https://www.chartjs.org">Website</a>
-				<a class="btn btn-docs" href="https://www.chartjs.org/docs">Documentation</a>
-				<a class="btn btn-gh" href="https://github.com/chartjs/Chart.js">GitHub</a>
-			</div>
+<div class="content">
+	<div class="header">
+		<div class="chartjs-title">Samples</div>
+		<div class="chartjs-caption">Simple yet flexible JavaScript charting for designers &amp; developers</div>
+		<div class="chartjs-links">
+			<a class="btn btn-chartjs" href="https://www.chartjs.org">Website</a>
+			<a class="btn btn-docs" href="https://www.chartjs.org/docs">Documentation</a>
+			<a class="btn btn-gh" href="https://github.com/chartjs/Chart.js">GitHub</a>
 		</div>
-
-		<div id="categories" class="samples-categories"></div>
 	</div>
 
-	<script>
+	<div class="samples-categories" id="categories"></div>
+</div>
+
+<script>
 		function createCategory(item) {
 			var el = document.createElement('div');
 			el.className = 'samples-category';
@@ -53,6 +53,7 @@
 
 			categories.appendChild(category);
 		});
-	</script>
+
+</script>
 </body>
 </html>

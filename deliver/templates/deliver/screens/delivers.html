@@ -10,18 +10,18 @@
     <ol class="breadcrumb">
         <li class="breadcrumb-item">مێزیكار</li>
 
-        <li class="breadcrumb-item active">شۆفێرەکان </li>
+        <li class="breadcrumb-item active">شۆفێرەکان</li>
 
         <!-- Breadcrumb Menu-->
         <li class="breadcrumb-menu d-md-down-none">
-            <div class="btn-group" role="group" aria-label="Button group">
+            <div aria-label="Button group" class="btn-group" role="group">
                 <a class="btn" href="#"><i class="icon-speech"></i></a>
                 <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
                 <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;رێخستنەکان</a>
             </div>
         </li>
     </ol>
-            <style>
+    <style>
                 * {
                     margin: 0;
                     padding: 0;
@@ -185,86 +185,91 @@
                     text-align: center;
                     color: #f00
                 }
-            </style>
+
+    </style>
     <div class="container-fluid">
         <div class="animated fadeIn">
             <div class="row">
                 <div class="col-lg-12">
                     <div class="card">
                         <div class="card-header">
-                                    <i class="fa fa-edit"></i>فورمی شۆفێرەکان
-                                    <div class="card-actions">
-                                        <a href="#" class="btn-setting"><i class="icon-settings"></i></a>
-                                        <a href="#" class="btn-minimize"><i class="icon-arrow-up"></i></a>
-                                        <a href="#" class="btn-close"><i class="icon-close"></i></a>
-                                    </div>
-                                </div>
+                            <i class="fa fa-edit"></i>فورمی شۆفێرەکان
+                            <div class="card-actions">
+                                <a class="btn-setting" href="#"><i class="icon-settings"></i></a>
+                                <a class="btn-minimize" href="#"><i class="icon-arrow-up"></i></a>
+                                <a class="btn-close" href="#"><i class="icon-close"></i></a>
+                            </div>
+                        </div>
                         <div class="card-body">
-                            <form id="ajaxForm" method="POST" action="{% url 'deliver:ajax' %}" method="post"
-                                enctype="multipart/form-data" class="form-horizontal">
+                            <form action="{% url 'deliver:ajax' %}" class="form-horizontal" enctype="multipart/form-data" id="ajaxForm"
+                                  method="POST" method="post">
                                 {% if deliver %}
-                                        <input name="action" type="text" value="deliver_edit" hidden>
-                                        <input name="id" type="text" value="{{deliver.id}}" hidden>
+                                <input hidden name="action" type="text" value="deliver_edit">
+                                <input hidden name="id" type="text" value="{{deliver.id}}">
                                 {% else %}
-                                        <input name="action" type="text" value="deliver_add" hidden>
+                                <input hidden name="action" type="text" value="deliver_add">
                                 {% endif %}
                                 <div class="form-group ">
-                                    <label class="col-md-3 form-control-label" for="appendedPrependedInput">بەکارهینەری چونەژورەوە</label>
-                                            <div class="controls">
+                                    <label class="col-md-3 form-control-label" for="appendedPrependedInput">بەکارهینەری
+                                        چونەژورەوە</label>
+                                    <div class="controls">
                                         <div class="input-prepend input-group">
-                                            <select id="select" name="user" class="form-control">
-                                            <option value="0">بەکارهینەرەکان</option>
-                                            {% for user in users %}
+                                            <select class="form-control" id="select" name="user">
+                                                <option value="0">بەکارهینەرەکان</option>
+                                                {% for user in users %}
                                                 {% if user.id is deliver.user.id %}
-                                                        <option value="{{ user.id }}" selected>{{ user.username }}</option>
+                                                <option selected value="{{ user.id }}">{{ user.username }}</option>
                                                 {% else %}
-                                                        <option value="{{ user.id }}">{{ user.username }}</option>
+                                                <option value="{{ user.id }}">{{ user.username }}</option>
                                                 {% endif %}
-                                            {% endfor %}
-                                        </select>
-                                            <a href="{% url 'deliver:foods' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
+                                                {% endfor %}
+                                            </select>
+                                            <a class="btn btn-success" href="{% url 'deliver:foods' %}" role="button"><i
+                                                    class="fa fa-plus"></i></a>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="form-group  ">
-                                    <label class="col-md-3 form-control-label" for="appendedPrependedInput">دیاری ماتور </label>
-                                            <div class="controls">
+                                    <label class="col-md-3 form-control-label" for="appendedPrependedInput">دیاری
+                                        ماتور </label>
+                                    <div class="controls">
                                         <div class="input-prepend input-group">
-                                            <select id="select" name="motor" class="form-control">
-                                            <option value="0">مـاتورەکان</option>
-                                            {% for motor in motors %}
+                                            <select class="form-control" id="select" name="motor">
+                                                <option value="0">مـاتورەکان</option>
+                                                {% for motor in motors %}
                                                 {% if motor.id is deliver.motor.id %}
-                                                        <option value="{{ motor.id }}" selected>{{ motor.title }}</option>
+                                                <option selected value="{{ motor.id }}">{{ motor.title }}</option>
                                                 {% else %}
-                                                        <option value="{{ motor.id }}">{{ motor.title }}</option>
+                                                <option value="{{ motor.id }}">{{ motor.title }}</option>
                                                 {% endif %}
-                                            {% endfor %}
-                                        </select>
-                                            <a href="{% url 'deliver:motors' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
+                                                {% endfor %}
+                                            </select>
+                                            <a class="btn btn-success" href="{% url 'deliver:motors' %}"
+                                               role="button"><i class="fa fa-plus"></i></a>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="form-group ">
                                     <label class="col-md-3 form-control-label" for="text-input">ناو</label>
-                                            <div class="controls">
-                                        <input type="text" id="text-input" name="name" class="form-control"
-                                            placeholder="ناو" value="{{deliver.name}}">
+                                    <div class="controls">
+                                        <input class="form-control" id="text-input" name="name" placeholder="ناو"
+                                               type="text" value="{{deliver.name}}">
                                         <span class="help-block">This is a help text</span>
                                     </div>
                                 </div>
                                 <div class="form-group ">
                                     <label class="col-md-3 form-control-label" for="text-input">ژمارەی موبایل</label>
-                                            <div class="controls">
-                                        <input type="text" id="text-input" name="phone" class="form-control"
-                                            placeholder="٠٧٧٠٢٣٤٥١١٢" value="{{ deliver.phone }}">
+                                    <div class="controls">
+                                        <input class="form-control" id="text-input" name="phone" placeholder="٠٧٧٠٢٣٤٥١١٢"
+                                               type="text" value="{{ deliver.phone }}">
                                         <span class="help-block">This is a help text</span>
                                     </div>
                                 </div>
                                 <div class="form-group ">
                                     <label class="col-md-3 form-control-label" for="text-input">موبایل ئێستا</label>
-                                            <div class="controls">
-                                        <input type="text" id="text-input" name="phoneId" class="form-control"
-                                            placeholder="نرخ" disabled value="{{ deliver.phoneId }}">
+                                    <div class="controls">
+                                        <input class="form-control" disabled id="text-input" name="phoneId"
+                                               placeholder="نرخ" type="text" value="{{ deliver.phoneId }}">
                                         <span class="help-block">ژمارەی دوبارەنەبوی ئۆتۆماتیکی</span>
                                     </div>
                                 </div>
@@ -272,12 +277,12 @@
                                     <div class="panel">
                                         <div class="card-body" id="inn">
                                             {% if deliver.image %}
-                                            <img src="{{ deliver.image.url }}" height="200">
+                                            <img height="200" src="{{ deliver.image.url }}">
                                             {% endif %}
                                         </div>
                                         <div class="button_outer">
                                             <div class="btn_upload">
-                                                <input type="file" id="upload_file" name="image">
+                                                <input id="upload_file" name="image" type="file">
                                                 Upload Image
                                             </div>
                                             <div class="processing_bar"></div>
@@ -290,10 +295,12 @@
                                     </div>
                                 </div>
                                 <div class="form-actions">
-                                    <button type="submit" class="btn btn-sm btn-primary"><i
-                                            class="fa fa-plus"></i> زیادكردن</button>
-                                    <button type="cancel" class="btn btn-sm btn-danger"><i class="fa fa-ban"></i>
-                                        وازهینان</button>
+                                    <button class="btn btn-sm btn-primary" type="submit"><i
+                                            class="fa fa-plus"></i> زیادكردن
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" type="cancel"><i class="fa fa-ban"></i>
+                                        وازهینان
+                                    </button>
                                 </div>
 
                             </form>
@@ -311,76 +318,77 @@
                             <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
                             <h2>گەڕان لە خواردنەکان</h2>
                             <p>بو فلتەوە کردنی خشتەکە :</p>
-                            <input class="form-control" id="search" type="text" placeholder="بۆ .....">
+                            <input class="form-control" id="search" placeholder="بۆ ....." type="text">
                             <br>
-                            <table id="tab" class="table table-responsive table-bordered table-striped table-sm">
+                            <table class="table table-responsive table-bordered table-striped table-sm" id="tab">
                                 <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>ناو</th>
-                                        <th>ماتور</th>
-                                        <th>ژ.موبایل</th>
-                                        <th>بەکارهینەر </th>
-                                        <th>ژ.ماتور</th>
-                                        <th>وینەی ماتور</th>
-                                        <th>وینەی شۆفهر</th>
-                                        <th>بارودۆخ</th>
-                                        <th>كرداره‌كان</th>
-                                        <th hidden>تابەیمەندیەکان</th>
-                                    </tr>
+                                <tr>
+                                    <th>#</th>
+                                    <th>ناو</th>
+                                    <th>ماتور</th>
+                                    <th>ژ.موبایل</th>
+                                    <th>بەکارهینەر</th>
+                                    <th>ژ.ماتور</th>
+                                    <th>وینەی ماتور</th>
+                                    <th>وینەی شۆفهر</th>
+                                    <th>بارودۆخ</th>
+                                    <th>كرداره‌كان</th>
+                                    <th hidden>تابەیمەندیەکان</th>
+                                </tr>
                                 </thead>
                                 <tbody>
-                                
-                                    {% for data in delivers %}
-                                    
-                                    <tr><td>{{ data.id }}</td>
-                                        <td>{{ data.name }}</td>
-                                        <td><a href="{% url 'deliver:motorEdit' data.motor.id %}">{{ data.motor }}</a></td>
-                                        <td>{{data.phone}}</td>
-                                        <td>{{ data.user.username }}</td>
-                                        <td>{{ data.motor.number }}</td>
-                                        <td>
-                                            {% if data.motor.image %}
-                                            <img src="{{ data.motor.image.url }}" height="40">
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if data.image %}
-                                            <img src="{{ data.image.url }}" height="40">
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                                {% if data.user.isActive and data.motor.status %}
-                                                    <span class="badge badge-danger">سڕکراوە</span>
-                                                {% else %}
-                                                    <span class="badge badge-success">چالاکە</span>
-                                                {% endif %}
-                                        </td>
-                                        <td><a role="button" href="{% url 'deliver:deliverEdit' data.id %}"
-                                                class="btn btn-warning">
-                                                دەستکاریکردن
-                                                <i class="fa fa-edit fa-1x" aria-hidden="true"></i></i>
-                                            </a>
-                                            <a role="button"
-                                                href="{% url 'deliver:ajax' %}?action=deliverdelete&id={{data.id}} "
-                                                class="btn btn-danger">
-                                                سڕەینەوە
-                                                <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
-                                            </a>
-                                        </td>
-                                        <td hidden>
-                                           
-                                                    {% for specify in food.specifies.all %}
-                                                       <span class="badge badge-success" >
+
+                                {% for data in delivers %}
+
+                                <tr>
+                                    <td>{{ data.id }}</td>
+                                    <td>{{ data.name }}</td>
+                                    <td><a href="{% url 'deliver:motorEdit' data.motor.id %}">{{ data.motor }}</a></td>
+                                    <td>{{data.phone}}</td>
+                                    <td>{{ data.user.username }}</td>
+                                    <td>{{ data.motor.number }}</td>
+                                    <td>
+                                        {% if data.motor.image %}
+                                        <img height="40" src="{{ data.motor.image.url }}">
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.image %}
+                                        <img height="40" src="{{ data.image.url }}">
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.user.isActive and data.motor.status %}
+                                        <span class="badge badge-danger">سڕکراوە</span>
+                                        {% else %}
+                                        <span class="badge badge-success">چالاکە</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><a class="btn btn-warning" href="{% url 'deliver:deliverEdit' data.id %}"
+                                           role="button">
+                                        دەستکاریکردن
+                                        <i aria-hidden="true" class="fa fa-edit fa-1x"></i></i>
+                                    </a>
+                                        <a class="btn btn-danger"
+                                           href="{% url 'deliver:ajax' %}?action=deliverdelete&id={{data.id}} "
+                                           role="button">
+                                            سڕەینەوە
+                                            <i aria-hidden="true" class="fa fa-trash fa-1x"></i></i>
+                                        </a>
+                                    </td>
+                                    <td hidden>
+
+                                        {% for specify in food.specifies.all %}
+                                        <span class="badge badge-success">
                                                         {{ specify }}
                                                 </span>
 
-                                                    {% endfor %}    
-                                                    
-                                        </td>
-                                    </tr>
-                                    
-                                    {% endfor %}
+                                        {% endfor %}
+
+                                    </td>
+                                </tr>
+
+                                {% endfor %}
                                 </tbody>
                             </table>
                             <nav>

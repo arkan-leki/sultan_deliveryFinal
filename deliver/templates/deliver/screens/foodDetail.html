@@ -1,51 +1,51 @@
-{% extends 'deliver/base.html' %} 
+{% extends 'deliver/base.html' %}
 
 {% block title %} {{ title }}
 {% endblock title %}
 {% block content %}
 
 <!-- Main content -->
-         <main class="main">
- 
- 
-             <!-- Breadcrumb -->
-             <ol class="breadcrumb">
-                 <li class="breadcrumb-item">میزکار</li>
-              
-                 <li class="breadcrumb-item active"> خواردنەکان</li>
- 
-                 <!-- Breadcrumb Menu-->
-                 <li class="breadcrumb-menu d-md-down-none">
-                     <div class="btn-group" role="group" aria-label="Button group">
-                         <a class="btn" href="#"><i class="icon-speech"></i></a>
-                         <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
-                         <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;رێخستنەکان</a>
-                     </div>
-                 </li>
-             </ol>
- 
- 
-             <div class="container-fluid">
-                 <div class="animated fadeIn">
-                    <div class="col-sm-6 col-md-4">
-                        <div class="card animated fadeInLeft">
-                            <img src="{{ food.image.url }}" class="card-img-top img-responsive" alt="">
-                            <div class="card-img-overlay">
-                                <a href="{% url 'deliver:foodEdit' food.id %}" class="btn btn-primary">Edit</a>
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">{{ food.title }}</h5>
-                                <p class="card-text">{{ food.detiles }}</p>
-                                <a href="#" class="btn btn-primary">د.ع{{ food.sell_price }}</a>
-                                
-                            </div>
-                            <div class="card-footer">{{ food.subtitle }}</div>
-                           
+<main class="main">
+
+
+    <!-- Breadcrumb -->
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">میزکار</li>
+
+        <li class="breadcrumb-item active"> خواردنەکان</li>
+
+        <!-- Breadcrumb Menu-->
+        <li class="breadcrumb-menu d-md-down-none">
+            <div aria-label="Button group" class="btn-group" role="group">
+                <a class="btn" href="#"><i class="icon-speech"></i></a>
+                <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
+                <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;رێخستنەکان</a>
+            </div>
+        </li>
+    </ol>
+
+
+    <div class="container-fluid">
+        <div class="animated fadeIn">
+            <div class="col-sm-6 col-md-4">
+                <div class="card animated fadeInLeft">
+                    <img alt="" class="card-img-top img-responsive" src="{{ food.image.url }}">
+                    <div class="card-img-overlay">
+                        <a class="btn btn-primary" href="{% url 'deliver:foodEdit' food.id %}">Edit</a>
                     </div>
-                 </div>
- 
-             </div>
-             <!-- /.conainer-fluid -->
-         </main>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ food.title }}</h5>
+                        <p class="card-text">{{ food.detiles }}</p>
+                        <a class="btn btn-primary" href="#">د.ع{{ food.sell_price }}</a>
+
+                    </div>
+                    <div class="card-footer">{{ food.subtitle }}</div>
+
+                </div>
+            </div>
+
+        </div>
+        <!-- /.conainer-fluid -->
+</main>
 
 {% endblock %}

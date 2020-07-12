@@ -22,19 +22,20 @@
 			flex-wrap: wrap;
 			justify-content: center;
 		}
+
 	</style>
 </head>
 
 <body>
-	<div class="container">
-		<div class="chart-container">
-			<canvas id="chart-legend-normal"></canvas>
-		</div>
-		<div class="chart-container">
-			<canvas id="chart-legend-pointstyle"></canvas>
-		</div>
+<div class="container">
+	<div class="chart-container">
+		<canvas id="chart-legend-normal"></canvas>
 	</div>
-	<script>
+	<div class="chart-container">
+		<canvas id="chart-legend-pointstyle"></canvas>
+	</div>
+</div>
+<script>
 		var color = Chart.helpers.color;
 		function createConfig(colorName) {
 			return {
@@ -110,7 +111,8 @@
 				new Chart(ctx, details.config);
 			});
 		};
-	</script>
+
+</script>
 </body>
 
 </html>

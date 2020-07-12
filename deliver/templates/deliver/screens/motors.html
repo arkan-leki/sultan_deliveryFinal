@@ -10,11 +10,11 @@
     <ol class="breadcrumb">
         <li class="breadcrumb-item">مێزیكار</li>
 
-        <li class="breadcrumb-item active">ماتۆڕەکان </li>
+        <li class="breadcrumb-item active">ماتۆڕەکان</li>
 
         <!-- Breadcrumb Menu-->
         <li class="breadcrumb-menu d-md-down-none">
-            <div class="btn-group" role="group" aria-label="Button group">
+            <div aria-label="Button group" class="btn-group" role="group">
                 <a class="btn" href="#"><i class="icon-speech"></i></a>
                 <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
                 <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;رێخستنەکان</a>
@@ -186,6 +186,7 @@
             text-align: center;
             color: #f00
         }
+
     </style>
     <div class="container-fluid">
         <div class="animated fadeIn">
@@ -197,26 +198,27 @@
                             <strong>ماتۆڕەکان</strong>
                         </div>
                         <div class="card-body">
-                            <form id="ajaxForm" method="POST" action="{% url 'deliver:ajax' %}" method="post"
-                                enctype="multipart/form-data" class="form-horizontal">
+                            <form action="{% url 'deliver:ajax' %}" class="form-horizontal" enctype="multipart/form-data" id="ajaxForm"
+                                  method="POST" method="post">
                                 {% if motor %}
-                                <input name="id" type="text" value="{{motor.id}}" hidden>                                
-                                <input name="action" type="text" value="motorEdit" hidden>
+                                <input hidden name="id" type="text" value="{{motor.id}}">
+                                <input hidden name="action" type="text" value="motorEdit">
                                 {% else %}
-                                <input name="action" type="text" value="add_motor" hidden>
+                                <input hidden name="action" type="text" value="add_motor">
                                 {% endif %}
                                 <div class="form-group row">
                                     <label class="col-sm-5 form-control-label" for="input-normal">ناو</label>
                                     <div class="col-sm-6">
-                                        <input type="text" id="input-normal" name="title" class="form-control"
-                                            placeholder="ناو" value="{{ motor.title }}">
+                                        <input class="form-control" id="input-normal" name="title" placeholder="ناو"
+                                               type="text" value="{{ motor.title }}">
                                     </div>
                                 </div>
                                 <div class="form-group row">
                                     <label class="col-sm-5 form-control-label" for="input-large">ژمارە</label>
                                     <div class="col-sm-6">
-                                        <input type="text" id="input-large" name="number"
-                                            class="form-control form-control-lg" placeholder=" سولیمانی ١٢٣٤"  value="{{ motor.number }}">
+                                        <input class="form-control form-control-lg" id="input-large" name="number"
+                                               placeholder=" سولیمانی ١٢٣٤" type="text"
+                                               value="{{ motor.number }}">
                                     </div>
                                 </div>
                                 <div class="form-group row">
@@ -224,22 +226,23 @@
                                     <div class="col-sm-6">
                                         <div class="checkbox">
                                             <label for="checkbox1">
-                                                <input type="checkbox" id="checkbox1" name="status" value="False" {% if motors.status %}checked{% endif %}> Status
+                                                <input %} %}checked{% endif id="checkbox1" if motors.status
+                                                       name="status" type="checkbox" value="False" {%> Status
                                             </label>
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="control">
                                     <div class="panel">
                                         <div class="card-body" id="inn">
-                                        {% if motor.image %}
-                                            <img src="{{ motor.image.url }}" height="200">
+                                            {% if motor.image %}
+                                            <img height="200" src="{{ motor.image.url }}">
                                             {% endif %}
                                         </div>
                                         <div class="button_outer">
                                             <div class="btn_upload">
-                                                <input type="file" id="upload_file" name="image">
+                                                <input id="upload_file" name="image" type="file">
                                                 Upload Image
                                             </div>
                                             <div class="processing_bar"></div>
@@ -253,10 +256,12 @@
                                 </div>
                                 <div class="card-footer">
                                     <div class="form-actions">
-                                        <button type="submit" class="btn btn-sm btn-primary"><i
-                                                class="fa fa-dot-circle-o"></i> زیادكردن</button>
-                                        <button type="cancel" class="btn btn-sm btn-danger"><i class="fa fa-ban"></i>
-                                            وازهینان</button>
+                                        <button class="btn btn-sm btn-primary" type="submit"><i
+                                                class="fa fa-dot-circle-o"></i> زیادكردن
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" type="cancel"><i class="fa fa-ban"></i>
+                                            وازهینان
+                                        </button>
                                     </div>
                                 </div>
                             </form>
@@ -273,42 +278,46 @@
                             <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
                             <h2>گەڕان لە خواردنەکان</h2>
                             <p>بو فلتەوە کردنی خشتەکە :</p>
-                            <input class="form-control" id="search" type="text" placeholder="بۆ .....">
+                            <input class="form-control" id="search" placeholder="بۆ ....." type="text">
                             <br>
-                            <table id="tab" class="table table-responsive table-bordered table-striped table-sm">
+                            <table class="table table-responsive table-bordered table-striped table-sm" id="tab">
                                 <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>خواردن</th>
-                                        <th>ناونیشان</th>
-                                        <th>وێنە</th>
-                                        <th>سڕینەوە</th>
-                                    </tr>
+                                <tr>
+                                    <th>#</th>
+                                    <th>خواردن</th>
+                                    <th>ناونیشان</th>
+                                    <th>وێنە</th>
+                                    <th>سڕینەوە</th>
+                                </tr>
                                 </thead>
                                 <tbody>
-                                    {% for data in motors %}
-                                    <tr>
-                                        <td>{{ data.id }}</td>
-                                        <td><a href="{% url 'deliver:motorEdit' data.id %}">{{ data.title }}</a></td>
-                                        <td>{{ data.number }}</td>
-                                        <td>
-                                            {% if data.image %}
-                                           <a href="{{data.image.url}} ">
-                                                <img src="{{ data.image.url }}" height="50">
-                                            </a>
-                                            {% endif %}</td>
-                                        <th>
-                                         </a>
-                                                <a role="button" href="{% url 'deliver:motorEdit' data.id %}" class="btn btn-warning">
-                                                <i class="fa fa-edit fa-1x" aria-hidden="true"></i></i>
-                                            </a>
-                                            </a>
-                                                <a role="button" href="{% url 'deliver:ajax' %}?action=motordelete&id={{data.id}} " class="btn btn-danger">
-                                                <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
-                                            </a>
-                                        </th>
-                                    </tr>
-                                    {% endfor %}
+                                {% for data in motors %}
+                                <tr>
+                                    <td>{{ data.id }}</td>
+                                    <td><a href="{% url 'deliver:motorEdit' data.id %}">{{ data.title }}</a></td>
+                                    <td>{{ data.number }}</td>
+                                    <td>
+                                        {% if data.image %}
+                                        <a href="{{data.image.url}} ">
+                                            <img height="50" src="{{ data.image.url }}">
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                    <th>
+                                        </a>
+                                        <a class="btn btn-warning" href="{% url 'deliver:motorEdit' data.id %}"
+                                           role="button">
+                                            <i aria-hidden="true" class="fa fa-edit fa-1x"></i></i>
+                                        </a>
+                                        </a>
+                                        <a class="btn btn-danger"
+                                           href="{% url 'deliver:ajax' %}?action=motordelete&id={{data.id}} "
+                                           role="button">
+                                            <i aria-hidden="true" class="fa fa-trash fa-1x"></i></i>
+                                        </a>
+                                    </th>
+                                </tr>
+                                {% endfor %}
                                 </tbody>
                             </table>
                             <script type="text/javascript">
@@ -323,6 +332,7 @@
                                 $(document).ready(function () {
                                     $('#tab').DataTable();
                                 });
+
                             </script>
                             <nav>
                                 <ul class="pagination">

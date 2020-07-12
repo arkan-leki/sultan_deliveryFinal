@@ -1,10 +1,11 @@
 from django import forms
 from django.contrib import admin
-from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.models import Group
-from deliver.models import Account, BnkaUser, Cat, Customer, Dipricing, Dliver, Favorate, Food, Rate, Request, RequestDetail, Specify, Transport, Warehouse
-from django.utils.html import format_html
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
+
+from deliver.models import Account, BnkaUser, Cat, Customer, Dipricing, Favorate, Food, Rate, Request, \
+    RequestDetail, Warehouse
+
 
 # # Register your models here.
 # class CatAdmin(admin.ModelAdmin):
@@ -23,7 +24,6 @@ from django.utils.html import format_html
 # admin.site.register(Cat, CatAdmin)
 
 
-
 # # Register your models here.
 # class FoodAdmin(admin.ModelAdmin):
 #     # inlines = [SpecifyInlines]
@@ -36,7 +36,7 @@ from django.utils.html import format_html
 #             'fields': ('image', 'title', 'price','category',),
 #         }),
 #         ("داشكاندن", {
-           
+
 #             'fields': ('disprice',),
 #         }),
 #         ('ورده‌كاری', {
@@ -115,7 +115,7 @@ class UserChangeForm(forms.ModelForm):
 
     class Meta:
         model = Account
-        fields = ('email', 'password', 'username', 'is_active', 'is_admin','is_superuser')
+        fields = ('email', 'password', 'username', 'is_active', 'is_admin', 'is_superuser')
 
     def clean_password(self):
         # Regardless of what the user provides, return the initial value.
@@ -132,28 +132,27 @@ class UserAdmin(BaseUserAdmin):
     # The fields to be used in displaying the User model.
     # These override the definitions on the base UserAdmin
     # that reference specific fields on auth.User.
-    list_display = ('email', 'username','is_active', 'is_admin','is_staff','is_superuser')
+    list_display = ('email', 'username', 'is_active', 'is_admin', 'is_staff', 'is_superuser')
     list_filter = ('is_admin',)
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         ('زانیاری كه‌سی', {'fields': ('username',)}),
-        ('ریگه‌پیدان', {'fields': ('is_admin','is_active','is_staff','is_superuser')}),
+        ('ریگه‌پیدان', {'fields': ('is_admin', 'is_active', 'is_staff', 'is_superuser')}),
     )
     # add_fieldsets is not a standard ModelAdmin attribute. UserAdmin
     # overrides get_fieldsets to use this attribute when creating a user.
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'username', 'password1', 'password2','is_staff', 'is_admin','is_superuser'),
+            'fields': ('email', 'username', 'password1', 'password2', 'is_staff', 'is_admin', 'is_superuser'),
         }),
     )
     search_fields = ('email',)
     ordering = ('email',)
     filter_horizontal = ()
 
+
 admin.site.register(Account, UserAdmin)
-
-
 
 admin.site.register(Cat)
 admin.site.register(Food)

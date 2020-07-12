@@ -1,9 +1,8 @@
-from django.conf.urls import url, include
-from django.contrib.auth.models import User
-from deliver.models import Account, Cat, Dliver, Food, Request, RequestDetail, Specify, Transport, Dipricing, Motors, Customer, Rate, Warehouse, BnkaUser
-from rest_framework import routers, serializers, viewsets
-from . import views
+from django.conf.urls import url
 from django.urls import path, include
+from rest_framework import routers
+
+from . import views
 
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()

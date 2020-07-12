@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<page xmlns="http://projectmallard.org/1.0/" xmlns:its="http://www.w3.org/2005/11/its" type="topic" style="problem" id="net-slow" xml:lang="ta">
+<page xmlns="http://projectmallard.org/1.0/" type="topic" style="problem"
+      id="net-slow" xml:lang="ta">
 
-  <info>
-    <link type="guide" xref="net-problem"/>
+    <info>
+        <link type="guide" xref="net-problem"/>
 
-    <revision pkgversion="3.4.0" date="2012-02-21" status="final"/>
-    <revision pkgversion="3.18" date="2015-09-28" status="final"/>
+        <revision pkgversion="3.4.0" date="2012-02-21" status="final"/>
+        <revision pkgversion="3.18" date="2015-09-28" status="final"/>
 
-    <credit type="author">
-      <name>ஃபில் புல்</name>
-      <email>philbull@gmail.com</email>
-    </credit>
+        <credit type="author">
+            <name>ஃபில் புல்</name>
+            <email>philbull@gmail.com</email>
+        </credit>
 
-    <include xmlns="http://www.w3.org/2001/XInclude" href="legal.xml"/>
+        <include xmlns="http://www.w3.org/2001/XInclude" href="legal.xml"/>
 
-    <desc>மற்றவை ஏதேனும் பதிவிறக்கிக் கொண்டிருக்கப்படலாம், அல்லது உங்கள் இணைப்பு சரியாக இல்லாதிருக்கலாம் அல்லது அந்த நேரத்தில் அது பணிமிகுதிய�
+        <desc>மற்றவை ஏதேனும் பதிவிறக்கிக் கொண்டிருக்கப்படலாம், அல்லது உங்கள் இணைப்பு சரியாக இல்லாதிருக்கலாம் அல்லது அந்த
+            நேரத்தில் அது பணிமிகுதிய�

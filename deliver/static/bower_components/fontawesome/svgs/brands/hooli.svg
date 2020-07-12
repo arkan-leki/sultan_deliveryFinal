@@ -1,26 +1,65 @@
-class="parameter"><code><a href="../glib/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
-<p>Gets Access Control List (ACL) for the <em class="parameter"><code>uri</code></em>
-, or, in case it's <a href="../glib/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>, for the URI
-defined in associated <a class="link" href="ESource.html" title="ESource"><span class="type">ESource</span></a>.</p>
-<p>This function doesn't read general <a class="link" href="EWebDAVSession.html#E-WEBDAV-ACE-PRINCIPAL-PROPERTY:CAPS"><span class="type">E_WEBDAV_ACE_PRINCIPAL_PROPERTY</span></a>.</p>
-<p>Free the returned <em class="parameter"><code>out_entries</code></em>
- with
+class="parameter">
+<code>
+    <a href="../glib/glib-Error-Reporting.html#GError">
+        <span class="type">GError</span>
+    </a>
+    **error
+</code></em>);</pre>
+<p>Gets Access Control List (ACL) for the
+<em class="parameter">
+    <code>uri</code>
+</em>
+, or, in case it's
+<a href="../glib/glib-Standard-Macros.html#NULL:CAPS">
+    <code class="literal">NULL</code>
+</a>
+, for the URI
+defined in associated
+<a class="link" href="ESource.html" title="ESource">
+    <span class="type">ESource</span>
+</a>
+.
+</p>
+<p>This function doesn't read general
+<a class="link" href="EWebDAVSession.html#E-WEBDAV-ACE-PRINCIPAL-PROPERTY:CAPS">
+    <span class="type">E_WEBDAV_ACE_PRINCIPAL_PROPERTY</span>
+</a>
+.
+</p>
+<p>Free the returned
+<em class="parameter">
+    <code>out_entries</code>
+</em>
+with
 g_slist_free_full (entries, e_webdav_access_control_entry_free);
-when no longer needed.</p>
+when no longer needed.
+</p>
 <div class="refsect3">
-<a name="e-webdav-session-get-acl-sync.parameters"></a><h4>Parameters</h4>
-<div class="informaltable"><table class="informaltable" width="100%" border="0">
-<colgroup>
-<col width="150px" class="parameters_name">
-<col class="parameters_description">
-<col width="200px" class="parameters_annotations">
-</colgroup>
-<tbody>
-<tr>
-<td class="parameter_name"><p>webdav</p></td>
-<td class="parameter_description"><p>an <a class="link" href="EWebDAVSession.html" title="EWebDAVSession"><span class="type">EWebDAVSession</span></a></p></td>
-<td class="parameter_annotations"> </td>
-</tr>
-<tr>
-<td class="parameter_name"><p>uri</p></td>
-<td class="par
+<a name="e-webdav-session-get-acl-sync.parameters"></a>
+<h4>Parameters</h4>
+<div class="informaltable">
+    <table class="informaltable" width="100%" border="0">
+        <colgroup>
+            <col width="150px" class="parameters_name">
+            <col class="parameters_description">
+            <col width="200px" class="parameters_annotations">
+        </colgroup>
+        <tbody>
+            <tr>
+                <td class="parameter_name">
+                    <p>webdav</p>
+                </td>
+                <td class="parameter_description">
+                    <p>an
+                        <a class="link" href="EWebDAVSession.html" title="EWebDAVSession">
+                            <span class="type">EWebDAVSession</span>
+                        </a>
+                    </p>
+                </td>
+                <td class="parameter_annotations"> </td>
+            </tr>
+            <tr>
+                <td class="parameter_name">
+                    <p>uri</p>
+                </td>
+                <td class="par

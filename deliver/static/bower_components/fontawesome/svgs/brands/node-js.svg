@@ -1,31 +1,34 @@
-��হে যেতিয়া আপোনাৰ চিস্টেমত এটাতকৈ অধিক ব্যৱহাৰকাৰী একাওন্ট থাকে।</p>
-  </note>
+��হে যেতিয়া আপোনাৰ চিস্টেমত এটাতকৈ অধিক ব্যৱহাৰকাৰী একাওন্ট থাকে।</p>
+        </note>
 
-</section>
+        </section>
 
 <section id="lock-screen">
-  <info>
-    <link type="seealso" xref="session-screenlocks"/>
-  </info>
+    <info>
+        <link type="seealso" xref="session-screenlocks"/>
+    </info>
 
-  <title>পৰ্দা লক কৰক</title>
+    <title>পৰ্দা লক কৰক</title>
 
-  <p>If you’re leaving your computer for a short time, you should lock your
-  screen to prevent other people from accessing your files or running
-  applications. When you return, you will see the
-  <link xref="shell-lockscreen">lock screen</link>. Enter your
-  password to log back in. If you don’t lock your screen, it will lock
-  automatically after a certain amount of time.</p>
+    <p>If you’re leaving your computer for a short time, you should lock your
+        screen to prevent other people from accessing your files or running
+        applications. When you return, you will see the
+        <link xref="shell-lockscreen">lock screen</link>. Enter your
+        password to log back in. If you don’t lock your screen, it will lock
+        automatically after a certain amount of time.
+    </p>
 
-  <p>To lock your screen, click the system menu on the right side of the top
-  bar and select <gui>Lock</gui> from the menu.</p>
+    <p>To lock your screen, click the system menu on the right side of the top
+        bar and select <gui>Lock</gui> from the menu.
+    </p>
 
-  <p>When your screen is locked, other users can log in to their own accounts
-  by clicking <gui>Log in as another user</gui> at the bottom right of the login
-  screen. You can switch back to your desktop when they are finished.</p>
+    <p>When your screen is locked, other users can log in to their own accounts
+        by clicking <gui>Log in as another user</gui> at the bottom right of the login
+        screen. You can switch back to your desktop when they are finished.
+    </p>
 
 </section>
 
 <section id="suspend">
-  <info>
+<info>
     <link type

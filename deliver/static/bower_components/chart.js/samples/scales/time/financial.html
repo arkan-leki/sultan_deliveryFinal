@@ -12,31 +12,34 @@
 			-webkit-user-select: none;
 			-ms-user-select: none;
 		}
+
 	</style>
 </head>
 
 <body>
-	<div style="width:1000px">
-		<p>This example demonstrates a time series scale by drawing a financial line chart using just the core library. For more specific functionality for financial charts, please see <a href="https://github.com/chartjs/chartjs-chart-financial">chartjs-chart-financial</a></p>
-		<canvas id="chart1"></canvas>
-	</div>
-	<br>
-	<br>
-	Chart Type:
-	<select id="type">
-		<option value="line">Line</option>
-		<option value="bar">Bar</option>
-	</select>
-	<select id="unit">
-		<option value="second">Second</option>
-		<option value="minute">Minute</option>
-		<option value="hour">Hour</option>
-		<option value="day" selected>Day</option>
-		<option value="month">Month</option>
-		<option value="year">Year</option>
-	</select>
-	<button id="update">update</button>
-	<script>
+<div style="width:1000px">
+	<p>This example demonstrates a time series scale by drawing a financial line chart using just the core library. For
+		more specific functionality for financial charts, please see <a
+			href="https://github.com/chartjs/chartjs-chart-financial">chartjs-chart-financial</a></p>
+	<canvas id="chart1"></canvas>
+</div>
+<br>
+<br>
+Chart Type:
+<select id="type">
+	<option value="line">Line</option>
+	<option value="bar">Bar</option>
+</select>
+<select id="unit">
+	<option value="second">Second</option>
+	<option value="minute">Minute</option>
+	<option value="hour">Hour</option>
+	<option selected value="day">Day</option>
+	<option value="month">Month</option>
+	<option value="year">Year</option>
+</select>
+<button id="update">update</button>
+<script>
 		function generateData() {
 			var unit = document.getElementById('unit').value;
 
@@ -194,7 +197,8 @@
 			chart.update();
 		});
 
-	</script>
+
+</script>
 </body>
 
 </html>

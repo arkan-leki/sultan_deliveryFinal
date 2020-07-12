@@ -1,8 +1,36 @@
 /td>
-<td class="parameter_description"><p>return location for principal kind. </p></td>
-<td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter for returning results. Default is transfer full."><span class="acronym">out</span></acronym>]</span></td>
-</tr>
+<td class="parameter_description">
+    <p>return location for principal kind.</p>
+</td>
+<td class="parameter_annotations">
+<span class="annotation">[
+    <acronym title="Parameter for returning results. Default is transfer full.">
+        <span class="acronym">out</span>
+    </acronym>
+    ]
+</span>
+</td>
+        </tr>
 <tr>
-<td class="parameter_name"><p>out_principal_hrefs</p></td>
-<td class="parameter_description"><p>return location for a <a href="../glib/glib-Singly-Linked-Lists.html#GSList"><span class="type">GSList</span></a> of principal href-s. </p></td>
-<td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter for returning results. Default is transfer full."><span class="acronym">out</span></acronym>][<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>][<acronym title=
+<td class="parameter_name">
+    <p>out_principal_hrefs</p>
+</td>
+<td class="parameter_description">
+    <p>return location for a
+        <a href="../glib/glib-Singly-Linked-Lists.html#GSList">
+            <span class="type">GSList</span>
+        </a>
+        of principal href-s.
+    </p>
+</td>
+<td class="parameter_annotations">
+    <span class="annotation">[
+        <acronym title="Parameter for returning results. Default is transfer full.">
+            <span class="acronym">out</span>
+        </acronym>
+        ][
+        <acronym title="Free data after the code is done.">
+            <span class="acronym">transfer full</span>
+        </acronym>
+        ][
+        <acronym title=

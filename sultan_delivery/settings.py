@@ -11,11 +11,11 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+
 import django_heroku
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
@@ -27,7 +27,6 @@ SECRET_KEY = '=rj8fiq+pafti*^kidwz9j2ex$ayjd%5lfgzrepf=1w%uu4@po'
 DEBUG = True
 
 ALLOWED_HOSTS = ['sultan-delivery-v1.herokuapp.com', ]
-
 
 # Application definition
 
@@ -81,7 +80,6 @@ TEMPLATES = [
 AUTH_USER_MODEL = 'deliver.Account'
 WSGI_APPLICATION = 'sultan_delivery.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
@@ -91,7 +89,6 @@ DATABASES = {
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
@@ -122,7 +119,6 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     )
 }
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
@@ -197,17 +193,14 @@ else:
     STATIC_ROOT = os.path.join(BASE_DIR, 'static_root')
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-
 django_heroku.settings(locals())
-
-
 
 SUIT_CONFIG = {
     'ADMIN_NAME': 'Django Suit',
     'MENU': (
         'sites',
-        {'app': 'auth', 'icon':'icon-lock', 'models': ('user', 'group')},
-        {'label': 'Settings', 'icon':'icon-cog', 'models': ('auth.user', 'auth.group')},
-        {'label': 'Support', 'icon':'icon-question-sign', 'url': '/support/'},
+        {'app': 'auth', 'icon': 'icon-lock', 'models': ('user', 'group')},
+        {'label': 'Settings', 'icon': 'icon-cog', 'models': ('auth.user', 'auth.group')},
+        {'label': 'Support', 'icon': 'icon-question-sign', 'url': '/support/'},
     ),
 }

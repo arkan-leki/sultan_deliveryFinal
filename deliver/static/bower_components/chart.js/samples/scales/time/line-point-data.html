@@ -12,19 +12,20 @@
 			-webkit-user-select: none;
 			-ms-user-select: none;
 		}
+
 	</style>
 </head>
 
 <body>
-	<div style="width:75%;">
-		<canvas id="canvas"></canvas>
-	</div>
-	<br>
-	<br>
-	<button id="randomizeData">Randomize Data</button>
-	<button id="addData">Add Data</button>
-	<button id="removeData">Remove Data</button>
-	<script>
+<div style="width:75%;">
+	<canvas id="canvas"></canvas>
+</div>
+<br>
+<br>
+<button id="randomizeData">Randomize Data</button>
+<button id="addData">Add Data</button>
+<button id="removeData">Remove Data</button>
+<script>
 		function newDate(days) {
 			return moment().add(days, 'd').toDate();
 		}
@@ -143,7 +144,8 @@
 
 			window.myLine.update();
 		});
-	</script>
+
+</script>
 </body>
 
 </html>

@@ -14,7 +14,7 @@
 
         <!-- Breadcrumb Menu-->
         <li class="breadcrumb-menu d-md-down-none">
-            <div class="btn-group" role="group" aria-label="Button group">
+            <div aria-label="Button group" class="btn-group" role="group">
                 <a class="btn" href="#"><i class="icon-speech"></i></a>
                 <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
                 <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;رێخستنەکان</a>
@@ -189,6 +189,7 @@
 
 
 
+
     </style>
     <div class="container-fluid">
         <div class="animated fadeIn">
@@ -200,21 +201,21 @@
                             <strong>بنکە و کۆگا</strong>
                         </div>
                         <div class="card-body">
-                              <form id="ajaxForm" method="POST" action="{% url 'deliver:ajax' %}" method="post"
-                                enctype="multipart/form-data" class="form-horizontal">
-                                <input name="action" type="text" value="warehouse" hidden>
+                            <form action="{% url 'deliver:ajax' %}" class="form-horizontal" enctype="multipart/form-data" id="ajaxForm"
+                                  method="POST" method="post">
+                                <input hidden name="action" type="text" value="warehouse">
                                 <div class="form-group row">
                                     <label class="col-sm-5 form-control-label" for="input-normal">ناو</label>
                                     <div class="col-sm-6">
-                                        <input type="text" id="input-normal" name="title" class="form-control"
-                                               placeholder="ناو">
+                                        <input class="form-control" id="input-normal" name="title" placeholder="ناو"
+                                               type="text">
                                     </div>
                                 </div>
                                 <div class="container">
                                     <div class="panel">
                                         <div class="button_outer">
                                             <div class="btn_upload">
-                                                <input type="file" id="upload_file" name="image">
+                                                <input id="upload_file" name="image" type="file">
                                                 Upload Image
                                             </div>
                                             <div class="processing_bar"></div>
@@ -228,10 +229,10 @@
                                 </div>
                                 <div class="card-footer">
                                     <div class="form-actions">
-                                        <button type="submit" class="btn btn-sm btn-primary"><i
+                                        <button class="btn btn-sm btn-primary" type="submit"><i
                                                 class="fa fa-plus"></i> زیادكردن
                                         </button>
-                                        <button type="cancel" class="btn btn-sm btn-danger"><i class="fa fa-ban"></i>
+                                        <button class="btn btn-sm btn-danger" type="cancel"><i class="fa fa-ban"></i>
                                             وازهینان
                                         </button>
                                     </div>
@@ -250,9 +251,9 @@
                             <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
                             <h2>گەڕان لە خواردنەکان</h2>
                             <p>بو فلتەوە کردنی خشتەکە :</p>
-                            <input class="form-control" id="search" type="text" placeholder="بۆ .....">
+                            <input class="form-control" id="search" placeholder="بۆ ....." type="text">
                             <br>
-                            <table id="tab" class="table table-responsive table-bordered table-striped table-sm">
+                            <table class="table table-responsive table-bordered table-striped table-sm" id="tab">
                                 <thead>
                                 <tr>
                                     <th>#</th>
@@ -270,8 +271,8 @@
                                     <td><a href="#">{{ warehouse.title }}</a></td>
                                     <td>
                                         {% if warehouse.image %}
-                                        <a data-fancybox="gallery" class="primary-btn" href="{{ warehouse.image.url }}"><img
-                                                src="{{ warehouse.image.url }}" height="70"></a>
+                                        <a class="primary-btn" data-fancybox="gallery" href="{{ warehouse.image.url }}"><img
+                                                height="70" src="{{ warehouse.image.url }}"></a>
                                         {% endif %}
                                     </td>
                                     <td>{{warehouse.add_date}}</td>
@@ -284,17 +285,17 @@
                                     </td>
                                     <td>
                                         {% if warehouse.status %}
-                                        <a role="button"
+                                        <a class="btn btn-primary"
                                            href="{% url 'deliver:ajax' %}?action=warehousedelete&id={{warehouse.id}} "
-                                           class="btn btn-primary">
+                                           role="button">
                                             گەڕاندنەوە
-                                            <i class="fa fa-refresh fa-1x" aria-hidden="true"></i></i>
+                                            <i aria-hidden="true" class="fa fa-refresh fa-1x"></i></i>
                                         </a>{% else %}
-                                        <a role="button"
+                                        <a class="btn btn-danger"
                                            href="{% url 'deliver:ajax' %}?action=warehousedelete&id={{warehouse.id}} "
-                                           class="btn btn-danger">
+                                           role="button">
                                             سڕەینەوە
-                                            <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
+                                            <i aria-hidden="true" class="fa fa-trash fa-1x"></i></i>
                                         </a>{% endif %}
                                     </td>
                                 </tr>
@@ -313,6 +314,7 @@
                                 $(document).ready(function () {
                                     $('#tab').DataTable();
                                 });
+
 
 
 

@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-<title> Animation Callbacks </title>
+	<title> Animation Callbacks </title>
 	<script src="../../dist/Chart.min.js"></script>
 	<script src="../utils.js"></script>
 	<style>
@@ -10,18 +10,19 @@
 			-webkit-user-select: none;
 			-ms-user-select: none;
 		}
+
 	</style>
 </head>
 
 <body>
-	<div style="width: 75%;">
-		<canvas id="canvas"></canvas>
-		<progress id="animationProgress" max="1" value="0" style="width: 100%"></progress>
-	</div>
-	<br>
-	<br>
-	<button id="randomizeData">Randomize Data</button>
-	<script>
+<div style="width: 75%;">
+	<canvas id="canvas"></canvas>
+	<progress id="animationProgress" max="1" style="width: 100%" value="0"></progress>
+</div>
+<br>
+<br>
+<button id="randomizeData">Randomize Data</button>
+<script>
 		var progress = document.getElementById('animationProgress');
 		var config = {
 			type: 'line',
@@ -90,7 +91,8 @@
 
 			window.myLine.update();
 		});
-	</script>
+
+</script>
 </body>
 
 </html>

@@ -31,18 +31,19 @@
 			height: 10px;
 			margin-right: 10px;
 		}
+
 	</style>
 </head>
 
 <body>
-	<div id="canvas-holder" style="width: 300px;">
-		<canvas id="chart-area" width="300" height="300"></canvas>
-		<div id="chartjs-tooltip">
-			<table></table>
-		</div>
+<div id="canvas-holder" style="width: 300px;">
+	<canvas height="300" id="chart-area" width="300"></canvas>
+	<div id="chartjs-tooltip">
+		<table></table>
 	</div>
+</div>
 
-	<script>
+<script>
 		Chart.defaults.global.tooltips.custom = function(tooltip) {
 			// Tooltip Element
 			var tooltipEl = document.getElementById('chartjs-tooltip');
@@ -140,7 +141,8 @@
 			var ctx = document.getElementById('chart-area').getContext('2d');
 			window.myPie = new Chart(ctx, config);
 		};
-	</script>
+
+</script>
 </body>
 
 </html>

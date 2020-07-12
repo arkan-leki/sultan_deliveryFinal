@@ -22,25 +22,26 @@
 			flex-wrap: wrap;
 			justify-content: center;
 		}
+
 	</style>
 </head>
 
 <body>
-	<div class="container">
-		<div class="chart-container">
-			<canvas id="chart-legend-top"></canvas>
-		</div>
-		<div class="chart-container">
-			<canvas id="chart-legend-right"></canvas>
-		</div>
-		<div class="chart-container">
-			<canvas id="chart-legend-bottom"></canvas>
-		</div>
-		<div class="chart-container">
-			<canvas id="chart-legend-left"></canvas>
-		</div>
+<div class="container">
+	<div class="chart-container">
+		<canvas id="chart-legend-top"></canvas>
 	</div>
-	<script>
+	<div class="chart-container">
+		<canvas id="chart-legend-right"></canvas>
+	</div>
+	<div class="chart-container">
+		<canvas id="chart-legend-bottom"></canvas>
+	</div>
+	<div class="chart-container">
+		<canvas id="chart-legend-left"></canvas>
+	</div>
+</div>
+<script>
 		var color = Chart.helpers.color;
 		function createConfig(legendPosition, colorName) {
 			return {
@@ -115,7 +116,8 @@
 				new Chart(ctx, config);
 			});
 		};
-	</script>
+
+</script>
 </body>
 
 </html>

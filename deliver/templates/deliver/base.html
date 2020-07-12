@@ -6,34 +6,37 @@
  * @license MIT
  -->
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html dir="rtl" lang="fa">
 
 <head>
     {% load static %}
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="CoreUI - Open Source Bootstrap Admin Template">
-    <meta name="author" content="Łukasz Holeczek">
-    <meta name="keyword" content="Bootstrap,Admin,Template,Open,Source,AngularJS,Angular,Angular2,Angular 2,Angular4,Angular 4,jQuery,CSS,HTML,RWD,Dashboard,React,React.js,Vue,Vue.js">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
+    <meta content="CoreUI - Open Source Bootstrap Admin Template" name="description">
+    <meta content="Łukasz Holeczek" name="author">
+    <meta content="Bootstrap,Admin,Template,Open,Source,AngularJS,Angular,Angular2,Angular 2,Angular4,Angular 4,jQuery,CSS,HTML,RWD,Dashboard,React,React.js,Vue,Vue.js"
+          name="keyword">
     <title>{% block title %}
-    {% endblock title %}</title>
+        {% endblock title %}</title>
 
     <!-- Icons -->
     <link href="{% static 'css/font-awesome.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/simple-line-icons.css' %}" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet" />
-    {% comment %} <script defer src="https://use.fontawesome.com/releases/v5.11.2/js/all.js"></script> {% endcomment %}
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet"/>
+    {% comment %}
+    <script defer src="https://use.fontawesome.com/releases/v5.11.2/js/all.js"></script>
+    {% endcomment %}
 
-                                            <link href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.0/jquery.fancybox.min.css" rel="stylesheet" />
-                                        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-                                        <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.0/jquery.fancybox.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.0/jquery.fancybox.min.css" rel="stylesheet"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.0/jquery.fancybox.min.js"></script>
 
-                                        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.0/jquery.fancybox.min.css">
-                                        
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.0/jquery.fancybox.min.css" rel="stylesheet">
+
     <!-- Main styles for this application -->
     <link href="{% static 'css/style.css' %}" rel="stylesheet">
-    
+
     <style>
 .table-image td, th {
     vertical-align: middle;
@@ -59,6 +62,7 @@ body {background: #f6f6f6; color: #444; font-family: 'Roboto', sans-serif; font-
 .uploaded_file_view img {max-width: 100%;}
 .uploaded_file_view.show {opacity: 1;}
 .error_msg {text-align: center; color: #f00}
+
     </style>
 
 </head>
@@ -89,37 +93,41 @@ body {background: #f6f6f6; color: #444; font-family: 'Roboto', sans-serif; font-
 -->
 
 <body class="app header-fixed sidebar-fixed aside-menu-fixed aside-menu-hidden">
-    {% include 'includes/navbar.html' %}
-    <div class="app-body">
-        {% include 'includes/sidebar.html' %} {% block content %} {% endblock content %} {% include 'includes/aside.html' %}
-    </div>
+{% include 'includes/navbar.html' %}
+<div class="app-body">
+    {% include 'includes/sidebar.html' %} {% block content %} {% endblock content %} {% include 'includes/aside.html' %}
+</div>
 
-    <footer class="app-footer ltr">
-        <a href="http://coreui.io">CoreUI - RTL </a> © 2017 creativeLabs.
-        <span class="float-left">Powered by <a href="http://coreui.io">CoreUI</a>
+<footer class="app-footer ltr">
+    <a href="http://coreui.io">CoreUI - RTL </a> © 2017 creativeLabs.
+    <span class="float-left">Powered by <a href="http://coreui.io">CoreUI</a>
         </span>
-    </footer>
+</footer>
 
 
-        <!-- Bootstrap and necessary plugins -->
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<!-- Bootstrap and necessary plugins -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script crossorigin="anonymous"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+<script crossorigin="anonymous"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
 
 
-
-    {% comment %} <!-- Bootstrap and necessary plugins -->
-    <script src="{% static 'bower_components/jquery/dist/jquery.min.js' %}"></script>
-    <script src="{% static 'bower_components/popper.js/dist/umd/popper.min.js' %}"></script>
-    <script src="{% static 'bower_components/bootstrap/dist/js/bootstrap.min.js' %}"></script>
-    <script src="{% static 'bower_components/pace/pace.min.js' %}"></script> {% endcomment %}
-
-
-    <!-- Plugins and scripts required by all views -->
-    <script src="{% static 'bower_components/chart.js/dist/Chart.min.js' %}"></script>
+{% comment %} <!-- Bootstrap and necessary plugins -->
+<script src="{% static 'bower_components/jquery/dist/jquery.min.js' %}"></script>
+<script src="{% static 'bower_components/popper.js/dist/umd/popper.min.js' %}"></script>
+<script src="{% static 'bower_components/bootstrap/dist/js/bootstrap.min.js' %}"></script>
+<script src="{% static 'bower_components/pace/pace.min.js' %}"></script>
+{% endcomment %}
 
 
- <script type='text/javascript'>
+<!-- Plugins and scripts required by all views -->
+<script src="{% static 'bower_components/chart.js/dist/Chart.min.js' %}"></script>
+
+
+<script type='text/javascript'>
 
   var btnUpload = $("#upload_file"),
 		btnOuter = $(".button_outer");
@@ -429,14 +437,15 @@ $(document).ready(function(){
 
 // Attach a submit handler to the form
 
-     </script>
 
-    <!-- GenesisUI main scripts -->
-    1
-    <script src="{% static 'js/app.js' %}"></script>
+</script>
 
-    <!-- Plugins and scripts required by this views -->
-      <script type="text/javascript">
+<!-- GenesisUI main scripts -->
+1
+<script src="{% static 'js/app.js' %}"></script>
+
+<!-- Plugins and scripts required by this views -->
+<script type="text/javascript">
                                 $(document).ready(function () {
                                     $("#search").on("keyup", function () {
                                         var value = $(this).val().toLowerCase();
@@ -448,9 +457,10 @@ $(document).ready(function(){
                                 $(document).ready(function () {
                                     $('#tab').DataTable();
                                 });
-                            </script>
-    <!-- Custom scripts required by this view -->
-    <script src="{% static 'js/views/main.js' %}"></script>
+
+</script>
+<!-- Custom scripts required by this view -->
+<script src="{% static 'js/views/main.js' %}"></script>
 
 </body>
 

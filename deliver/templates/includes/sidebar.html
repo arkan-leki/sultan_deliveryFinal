@@ -2,14 +2,15 @@
     <nav class="sidebar-nav">
         <ul class="nav">
             <li class="nav-item">
-                <a class="nav-link" href="{% url 'deliver:home' %}"><i class="icon-speedometer"></i> میزکار <span class="badge badge-primary">جدید</span></a>
+                <a class="nav-link" href="{% url 'deliver:home' %}"><i class="icon-speedometer"></i> میزکار <span
+                        class="badge badge-primary">جدید</span></a>
             </li>
 
             <li class="nav-title">
                 عناصر گرافیکی
             </li>
             <li class="nav-item nav-dropdown">
-                <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-puzzle"></i>  كامپونێنته‌كان</a>
+                <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-puzzle"></i> كامپونێنته‌كان</a>
                 <ul class="nav-dropdown-items">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'deliver:cats' %}"><i class="icon-puzzle"></i> جۆه‌كانی خواردن</a>
@@ -18,36 +19,42 @@
                         <a class="nav-link" href="{% url 'deliver:foods' %}"><i class="icon-puzzle"></i> خواردنه‌كان</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'deliver:specifies' %}"><i class="icon-puzzle"></i> زیادكراوه‌كان</a>
+                        <a class="nav-link" href="{% url 'deliver:specifies' %}"><i class="icon-puzzle"></i>
+                            زیادكراوه‌كان</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'deliver:disprice' %}"><i class="icon-puzzle"></i> داشکاندکراوەکان</a>
+                        <a class="nav-link" href="{% url 'deliver:disprice' %}"><i class="icon-puzzle"></i>
+                            داشکاندکراوەکان</a>
                     </li>
                 </ul>
             </li>
             <li class="nav-item nav-dropdown">
-                <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-direction"></i>  شۆفێره‌كان</a>
+                <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-direction"></i> شۆفێره‌كان</a>
                 <ul class="nav-dropdown-items">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'deliver:delivers' %}"><i class="icon-puzzle"></i> شۆفێره‌كان</a>
+                        <a class="nav-link" href="{% url 'deliver:delivers' %}"><i class="icon-puzzle"></i>
+                            شۆفێره‌كان</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'deliver:motors' %}"><i class="icon-puzzle"></i> گه‌یاندنه‌كان</a>
                     </li>
-                    
+
                 </ul>
             </li>
             <li class="nav-item nav-dropdown">
-                <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-direction"></i>  گەیاندنەکان</a>
+                <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-direction"></i> گەیاندنەکان</a>
                 <ul class="nav-dropdown-items">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'deliver:requestDetail' %}"><i class="icon-puzzle"></i> داواكردنه‌كان</a>
+                        <a class="nav-link" href="{% url 'deliver:requestDetail' %}"><i class="icon-puzzle"></i>
+                            داواكردنه‌كان</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'deliver:requests' %}"><i class="icon-puzzle"></i> ورده‌كاری گه‌یاندن</a>
+                        <a class="nav-link" href="{% url 'deliver:requests' %}"><i class="icon-puzzle"></i> ورده‌كاری
+                            گه‌یاندن</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'deliver:transports' %}"><i class="icon-puzzle"></i>  بارکراوەکان</a>
+                        <a class="nav-link" href="{% url 'deliver:transports' %}"><i class="icon-puzzle"></i>
+                            بارکراوەکان</a>
                     </li>
                 </ul>
             </li>
@@ -55,20 +62,23 @@
                 <a class="nav-link" href="charts.html"><i class="icon-pie-chart"></i> ئاماره‌كان</a>
             </li>
             {% if user.is_staff %}
-                <li class="divider"></li>
+            <li class="divider"></li>
             <li class="nav-title">
                 ئه‌دمینی سه‌ره‌كی
             </li>
             <li class="nav-item nav-dropdown">
-                <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-user"></i> به‌رێوه‌بردنی هه‌ژماره‌كان</a>
+                <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-user"></i> به‌رێوه‌بردنی
+                    هه‌ژماره‌كان</a>
                 <ul class="nav-dropdown-items">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'deliver:accounts' %}" target="_top"><i class="icon-star"></i> هه‌ژماره‌كان</a>
+                        <a class="nav-link" href="{% url 'deliver:accounts' %}" target="_top"><i class="icon-star"></i>
+                            هه‌ژماره‌كان</a>
                     </li>
                 </ul>
                 <ul class="nav-dropdown-items">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'deliver:warehouse' %}" target="_top"><i class="icon-star"></i> بنکەکان</a>
+                        <a class="nav-link" href="{% url 'deliver:warehouse' %}" target="_top"><i class="icon-star"></i>
+                            بنکەکان</a>
                     </li>
                 </ul>
             </li>
@@ -76,12 +86,14 @@
                 <a class="nav-link nav-dropdown-toggle" href="#"><i class="icon-call-end"></i> خه‌لك </a>
                 <ul class="nav-dropdown-items">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'deliver:customers' %}" target="_top"><i class="icon-star"></i> کڕیاران</a>
+                        <a class="nav-link" href="{% url 'deliver:customers' %}" target="_top"><i class="icon-star"></i>
+                            کڕیاران</a>
                     </li>
                 </ul>
                 <ul class="nav-dropdown-items">
                     <li class="nav-item">
-                        <a class="nav-link" href="pages-login.html" target="_top"><i class="icon-star"></i> ره‌خنه‌كان و هه‌له‌كان </a>
+                        <a class="nav-link" href="pages-login.html" target="_top"><i class="icon-star"></i> ره‌خنه‌كان و
+                            هه‌له‌كان </a>
                     </li>
                 </ul>
             </li>

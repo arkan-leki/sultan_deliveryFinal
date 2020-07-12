@@ -10,11 +10,11 @@
     <ol class="breadcrumb">
         <li class="breadcrumb-item">مێزیكار</li>
 
-        <li class="breadcrumb-item active">داشکاندنەکان </li>
+        <li class="breadcrumb-item active">داشکاندنەکان</li>
 
         <!-- Breadcrumb Menu-->
         <li class="breadcrumb-menu d-md-down-none">
-            <div class="btn-group" role="group" aria-label="Button group">
+            <div aria-label="Button group" class="btn-group" role="group">
                 <a class="btn" href="#"><i class="icon-speech"></i></a>
                 <a class="btn" href="./"><i class="icon-graph"></i> &nbsp;میزکار</a>
                 <a class="btn" href="#"><i class="icon-settings"></i> &nbsp;رێخستنەکان</a>
@@ -186,66 +186,72 @@
             text-align: center;
             color: #f00
         }
+
     </style>
     <div class="container-fluid">
         <div class="animated fadeIn">
             <div class="row">
                 <div class="col-md-6">
-                <div class="card">
+                    <div class="card">
                         <div class="card-header">
                             داشکاندی
                             <strong>خواردن</strong>
                         </div>
                         <div class="card-body">
-                            <form method="POST" class="simpleForm" action="{% url 'deliver:ajax' %}">
-                                <input name="action" type="text" value="disprice" hidden>
+                            <form action="{% url 'deliver:ajax' %}" class="simpleForm" method="POST">
+                                <input hidden name="action" type="text" value="disprice">
                                 <div class="form-group row">
-                                    <label class="col-md-5 form-control-label" for="appendedPrependedInput">دیاری کردنی خوارن</label>
+                                    <label class="col-md-5 form-control-label" for="appendedPrependedInput">دیاری کردنی
+                                        خوارن</label>
                                     <div class="col-md-6">
                                         <div class="input-prepend input-group">
-                                            <select id="select" name="foodId" class="form-control">
-                                            <option value="0">خواردنەکان</option>
-                                            {% for food in foods %}
-                                            <option value="{{ food.id }}">{{ food.title }}</option>
-                                            {% endfor %}
-                                        </select>
-                                            <a href="{% url 'deliver:foods' %}" role="button" class="btn btn-success"><i class="fa fa-plus"></i></a>
+                                            <select class="form-control" id="select" name="foodId">
+                                                <option value="0">خواردنەکان</option>
+                                                {% for food in foods %}
+                                                <option value="{{ food.id }}">{{ food.title }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <a class="btn btn-success" href="{% url 'deliver:foods' %}" role="button"><i
+                                                    class="fa fa-plus"></i></a>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="form-group row">
                                     <label class="col-sm-5 form-control-label" for="input-normal">ناو</label>
                                     <div class="col-sm-6">
-                                        <input type="text" id="input-normal" name="title" class="form-control"
-                                            placeholder="ناو">
+                                        <input class="form-control" id="input-normal" name="title" placeholder="ناو"
+                                               type="text">
                                     </div>
                                 </div>
                                 <div class="form-group row">
-                                    <label class="col-sm-5 form-control-label" for="appendedPrependedInput">نرخی داشکاند</label>
+                                    <label class="col-sm-5 form-control-label" for="appendedPrependedInput">نرخی
+                                        داشکاند</label>
                                     <div class="col-sm-6">
                                         <div class="input-prepend input-group">
                                             <span class="input-group-addon">$</span>
-                                            <input id="appendedPrependedInput" class="form-control" size="16"
-                                                type="text" name="price">
+                                            <input class="form-control" id="appendedPrependedInput" name="price"
+                                                   size="16" type="text">
                                             <span class="input-group-addon">.00</span>
                                         </div>
                                     </div>
                                 </div>
-                                    <div class="form-group">
+                                <div class="form-group">
                                     <div class="controls">
-                                    <div class="input-daterange input-group" id="datepicker">
-                                        <input type="date" class="input-sm form-control" name="start_date" />
-                                        <span class="input-group-addon">بۆ</span>
-                                        <input type="date" class="input-sm form-control" name="exp_date" />
-                                    </div>
+                                        <div class="input-daterange input-group" id="datepicker">
+                                            <input class="input-sm form-control" name="start_date" type="date"/>
+                                            <span class="input-group-addon">بۆ</span>
+                                            <input class="input-sm form-control" name="exp_date" type="date"/>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="card-footer">
                                     <div class="form-actions">
-                                        <button type="submit" class="btn btn-sm btn-primary"><i
-                                                class="fa fa-plus"></i> زیادكردن</button>
-                                        <button type="cancel" class="btn btn-sm btn-danger"><i class="fa fa-ban"></i>
-                                            وازهینان</button>
+                                        <button class="btn btn-sm btn-primary" type="submit"><i
+                                                class="fa fa-plus"></i> زیادكردن
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" type="cancel"><i class="fa fa-ban"></i>
+                                            وازهینان
+                                        </button>
                                     </div>
                                 </div>
                             </form>
@@ -262,35 +268,37 @@
                             <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
                             <h2>گەڕان لە خواردنەکان</h2>
                             <p>بو فلتەوە کردنی خشتەکە :</p>
-                            <input class="form-control" id="search" type="text" placeholder="بۆ .....">
+                            <input class="form-control" id="search" placeholder="بۆ ....." type="text">
                             <br>
-                            <table id="tab" class="table table-responsive table-bordered table-striped table-sm">
+                            <table class="table table-responsive table-bordered table-striped table-sm" id="tab">
                                 <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>خواردن</th>
-                                        <th>ناونیشان</th>
-                                        <th>نرخی داشکاندن</th>
-                                        <th>بەرواری دەستپێك</th>
-                                        <th>سڕینەوە </th>
-                                    </tr>
+                                <tr>
+                                    <th>#</th>
+                                    <th>خواردن</th>
+                                    <th>ناونیشان</th>
+                                    <th>نرخی داشکاندن</th>
+                                    <th>بەرواری دەستپێك</th>
+                                    <th>سڕینەوە</th>
+                                </tr>
                                 </thead>
                                 <tbody>
-                                    {% for disprice in disprices %}
-                                    <tr>
-                                        <td>{{ disprice.id }}</td>
-                                        <td>{{ disprice.food }}</td>
-                                        <td><a href="#">{{ disprice.title }}</a></td>
-                                        <td>{{ disprice.price }}</td>
-                                        <td>{{disprice.start_date}}-{{disprice.exp_date}}</td>
-                                        <th>
-                                            </a>
-                                                <a role="button" href="{% url 'deliver:ajax' %}?action=disdelete&id={{disprice.id}} " class="btn btn-danger">
-                                                <i class="fa fa-trash fa-1x" aria-hidden="true"></i></i>
-                                            </a>
-                                        </th>
-                                    </tr>
-                                    {% endfor %}
+                                {% for disprice in disprices %}
+                                <tr>
+                                    <td>{{ disprice.id }}</td>
+                                    <td>{{ disprice.food }}</td>
+                                    <td><a href="#">{{ disprice.title }}</a></td>
+                                    <td>{{ disprice.price }}</td>
+                                    <td>{{disprice.start_date}}-{{disprice.exp_date}}</td>
+                                    <th>
+                                        </a>
+                                        <a class="btn btn-danger"
+                                           href="{% url 'deliver:ajax' %}?action=disdelete&id={{disprice.id}} "
+                                           role="button">
+                                            <i aria-hidden="true" class="fa fa-trash fa-1x"></i></i>
+                                        </a>
+                                    </th>
+                                </tr>
+                                {% endfor %}
                                 </tbody>
                             </table>
                             <script type="text/javascript">
@@ -305,6 +313,7 @@
                                 $(document).ready(function () {
                                     $('#tab').DataTable();
                                 });
+
                             </script>
                             <nav>
                                 <ul class="pagination">

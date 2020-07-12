@@ -2,24 +2,26 @@
 <html lang="en-US">
 <head>
 	<meta charset="utf-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=Edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta content="IE=Edge" http-equiv="X-UA-Compatible">
+	<meta content="width=device-width, initial-scale=1" name="viewport">
 	<title>Scriptable > Bar | Chart.js sample</title>
-	<link rel="stylesheet" type="text/css" href="../style.css">
+	<link href="../style.css" rel="stylesheet" type="text/css">
 	<script src="../../dist/Chart.min.js"></script>
 	<script src="../utils.js"></script>
 </head>
 <body>
-	<div class="content">
-		<div class="wrapper"><canvas id="chart-0"></canvas></div>
-		<div class="toolbar">
-			<button onclick="randomize(this)">Randomize</button>
-			<button onclick="addDataset(this)">Add Dataset</button>
-			<button onclick="removeDataset(this)">Remove Dataset</button>
-		</div>
+<div class="content">
+	<div class="wrapper">
+		<canvas id="chart-0"></canvas>
 	</div>
+	<div class="toolbar">
+		<button onclick="randomize(this)">Randomize</button>
+		<button onclick="addDataset(this)">Add Dataset</button>
+		<button onclick="removeDataset(this)">Remove Dataset</button>
+	</div>
+</div>
 
-	<script>
+<script>
 		var DATA_COUNT = 16;
 
 		var utils = Samples.utils;
@@ -90,6 +92,7 @@
 			chart.data.datasets.shift();
 			chart.update();
 		}
-	</script>
+
+</script>
 </body>
 </html>

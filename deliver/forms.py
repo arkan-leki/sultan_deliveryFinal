@@ -5,16 +5,16 @@ from .models import Cat, Dipricing, Customer
 
 
 class CatForm(forms.ModelForm):
-
     class Meta:
         model = Cat
         fields = ['nameKu', 'nameEg', 'image']
 
+
 class DipricingForm(forms.ModelForm):
-    
     class Meta:
         model = Dipricing
         fields = ['food', 'title', 'price', 'start_date', 'exp_date']
+
 
 class UserForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
@@ -63,4 +63,6 @@ class CustomerForm(forms.ModelForm):
 
     class Meta:
         model = Customer
-        fields = ('name', 'password', 'instrument_purchase', 'house_no', 'address_line1', 'address_line2', 'phone', 'zip_code', 'state', 'country')
+        fields = (
+        'name', 'password', 'instrument_purchase', 'house_no', 'address_line1', 'address_line2', 'phone', 'zip_code',
+        'state', 'country')
