@@ -138,24 +138,24 @@ class Food(models.Model):
 
     def dispriceDate(self):
         try:
-            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).order_by('-exp_date').exp_date
+            queryset = self.disprice_food.get(exp_date__gt=datetime.now())
             return queryset
         except ObjectDoesNotExist:
-            return self.disprice_food.filter(exp_date__gt=datetime.now()).order_by('-exp_date').exists()
+            return self.disprice_food.filter(exp_date__gt=datetime.now()).exists()
 
     def dispriceId(self):
         try:
-            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).order_by('-exp_date').id
+            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).id
             return queryset
         except ObjectDoesNotExist:
-            return self.disprice_food.filter(exp_date__gt=datetime.now()).order_by('-exp_date').exists()
+            return self.disprice_food.filter(exp_date__gt=datetime.now()).exists()
 
     def dispriceTitle(self):
         try:
-            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).order_by('-exp_date').title
+            queryset = self.disprice_food.get(exp_date__gt=datetime.now()).title
             return queryset
         except ObjectDoesNotExist:
-            return self.disprice_food.filter(exp_date__gt=datetime.now()).order_by('-exp_date').exists()
+            return self.disprice_food.filter(exp_date__gt=datetime.now()).exists()
 
     def disprice(self):
         try:
