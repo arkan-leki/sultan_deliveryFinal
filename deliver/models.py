@@ -84,6 +84,11 @@ class Warehouse(models.Model):
     add_date = models.DateTimeField(verbose_name='add date', auto_now=True)
     status = models.BooleanField(default=False)
 
+    @property
+    def items(self):
+        items = self.Cat_warehouse.count
+        return items
+
     def __str__(self):
         return str(self.title)
 

@@ -96,6 +96,8 @@ class TransportViewSet(viewsets.ModelViewSet):
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
     serializer_class = serializer.CustomerSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['id', 'phoneid']
 
 
 class RateViewSet(viewsets.ModelViewSet):
