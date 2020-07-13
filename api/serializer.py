@@ -17,7 +17,7 @@ class BnkaSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:warehouse-detail")
     class Meta:
         model = models.Warehouse
-        fields = ['id', 'title', 'image', 'status']
+        fields = ['id', 'title', 'image', 'status', 'items']
 
 
 class CatSerializer(serializers.ModelSerializer):
