@@ -1,5 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics
+from rest_framework import generics, filters
 from rest_framework import viewsets
 
 from deliver.models import Account, Cat, Customer, Dliver, Favorate, Food, Motors, Rate, Request, \
@@ -32,11 +32,18 @@ class FoodViewSet(viewsets.ModelViewSet):
     serializer_class = serializer.FoodSerializer
 
 
+class DynamicSearchFilter(filters.SearchFilter):
+    def get_search_fields(self, view, request):
+        return request.GET.getlist('search_fields', [])
+
+
 class FoodListView(generics.ListAPIView):
     queryset = Food.objects.filter(deleted=False)
     serializer_class = serializer.FoodSerializer
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter)
+    search_fields = ['title', 'subtitle']
     filterset_fields = ['id', 'category_id']
+    ordering_fields = ['date_add', 'rate_food', 'title']
 
 
 class SpecifyListView(generics.ListAPIView):
