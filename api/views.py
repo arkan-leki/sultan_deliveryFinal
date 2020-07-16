@@ -22,6 +22,8 @@ class UserViewSet(viewsets.ModelViewSet):
 class CatViewSet(viewsets.ModelViewSet):
     queryset = Cat.objects.filter(deleted=False)
     serializer_class = serializer.CatSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['id', 'war']
 
 
 # ViewSets define the view behavior.
@@ -42,7 +44,7 @@ class FoodListView(generics.ListAPIView):
     serializer_class = serializer.FoodSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter)
     search_fields = ['title', 'subtitle']
-    filterset_fields = ['id', 'category_id', 'category_war']
+    filterset_fields = ['id', 'category']
     ordering_fields = ['date_add', 'rate_food', 'title']
 
 
