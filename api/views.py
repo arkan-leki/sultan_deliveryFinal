@@ -20,7 +20,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class CatViewSet(viewsets.ModelViewSet):
-    queryset = Cat.objects.filter(deleted=False)
+    queryset = Cat.objects.filter(deleted=False, war__status=False)
     serializer_class = serializer.CatSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['id', 'war']
@@ -30,7 +30,9 @@ class CatViewSet(viewsets.ModelViewSet):
 
 
 class FoodViewSet(viewsets.ModelViewSet):
-    queryset = Food.objects.filter(deleted=False)
+    cats = Cat.objects.filter(deleted=False, war__status=False)
+    foods = Food.objects.filter(deleted=False, category__in=cats)
+    queryset = foods
     serializer_class = serializer.FoodSerializer
 
 
@@ -40,7 +42,9 @@ class DynamicSearchFilter(filters.SearchFilter):
 
 
 class FoodListView(generics.ListAPIView):
-    queryset = Food.objects.filter(deleted=False)
+    cats = Cat.objects.filter(deleted=False, war__status=False)
+    foods = Food.objects.filter(deleted=False, category__in=cats)
+    queryset = foods
     serializer_class = serializer.FoodSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter)
     search_fields = ['title', 'subtitle']
@@ -125,5 +129,5 @@ class MotorViewSet(viewsets.ModelViewSet):
 
 
 class BnkaViewSet(viewsets.ModelViewSet):
-    queryset = Warehouse.objects.all()
+    queryset = Warehouse.objects.filter(status=False)
     serializer_class = serializer.BnkaSerializer
