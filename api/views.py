@@ -53,7 +53,9 @@ class FoodListView(generics.ListAPIView):
 
 
 class SpecifyListView(generics.ListAPIView):
-    queryset = Specify.objects.all()
+    foods = Food.objects.filter(deleted=False)
+    specifies = Specify.objects.filter(food__in=foods)
+    queryset = specifies
     serializer_class = serializer.SpecifySerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['food_id']
