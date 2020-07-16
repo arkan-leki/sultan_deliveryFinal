@@ -42,7 +42,7 @@ class FoodListView(generics.ListAPIView):
     serializer_class = serializer.FoodSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter)
     search_fields = ['title', 'subtitle']
-    filterset_fields = ['id', 'category_id']
+    filterset_fields = ['id', 'category_id', 'category_war']
     ordering_fields = ['date_add', 'rate_food', 'title']
 
 
