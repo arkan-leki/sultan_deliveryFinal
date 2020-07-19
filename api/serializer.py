@@ -34,12 +34,17 @@ class FoodSerializer(serializers.ModelSerializer):
     # many=True, queryset=Dipricing.objects.filter(exp_date__gt=datetime.now()).order_by('-exp_date'))
     popularity = serializers.CharField()
     category_war = serializers.ReadOnlyField(source='category.war_id')
+    fav_food = serializers.SlugRelatedField(
+        many=True,
+        read_only=True,
+        slug_field='customer_id'
+     )
 
     class Meta:
         model = models.Food
         fields = ['id', 'category', 'category_war', 'image', 'sell_price', 'title', 'subtitle', 'detiles', 'date_add',
                   'deleted', 'cost', 'popularity', 'avg_ratings', 'isDispriced', 'disprice', 'dispriceTitle',
-                  'dispriceId', 'dispriceDate']
+                  'dispriceId', 'dispriceDate', 'fav_food']
 
 
 class SpecifySerializer(serializers.ModelSerializer):
@@ -52,6 +57,7 @@ class SpecifySerializer(serializers.ModelSerializer):
 
 class CustomerSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:customer-detail")
+
     class Meta:
         model = models.Customer
         fields = ['id', 'name', 'password', 'instrument_purchase', 'house_no', 'address_line1', 'address_line2',
@@ -71,6 +77,7 @@ class FaveSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:favorate-detail")
     # customer = serializers.HyperlinkedIdentityField(view_name="api:customer-detail")
     # food = serializers.HyperlinkedIdentityField(view_name="api:food-detail")
+
     class Meta:
         model = models.Favorate
         fields = ['id', 'food', 'customer']
