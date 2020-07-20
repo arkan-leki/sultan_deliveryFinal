@@ -57,11 +57,16 @@ class SpecifySerializer(serializers.ModelSerializer):
 
 class CustomerSerializer(serializers.ModelSerializer):
     # url = serializers.HyperlinkedIdentityField(view_name="api:customer-detail")
+    fav_user = serializers.SlugRelatedField(
+        many=True,
+        read_only=True,
+        slug_field='food_id'
+     )
 
     class Meta:
         model = models.Customer
         fields = ['id', 'name', 'password', 'instrument_purchase', 'house_no', 'address_line1', 'address_line2',
-                  'phone', 'phoneid', 'zip_code', 'country', 'image', 'email']
+                  'phone', 'phoneid', 'zip_code', 'country', 'image', 'email', 'fav_user']
 
 
 class RateSerializer(serializers.ModelSerializer):
