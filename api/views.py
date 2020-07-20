@@ -123,6 +123,8 @@ class RateViewSet(viewsets.ModelViewSet):
 class FaveViewSet(viewsets.ModelViewSet):
     queryset = Favorate.objects.all()
     serializer_class = serializer.FaveSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['id', 'customer', 'food']
 
 
 class MotorViewSet(viewsets.ModelViewSet):
