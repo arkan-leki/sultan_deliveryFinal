@@ -8,7 +8,7 @@ from django.db.models import Avg
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
-
+from django_resized import ResizedImageField
 
 # Create your models here.
 class MyAccountManager(BaseUserManager):
@@ -123,7 +123,7 @@ class Cat(models.Model):
 class Food(models.Model):
     category = models.ForeignKey(
         Cat, related_name='Food_category', on_delete=models.CASCADE)
-    image = models.ImageField(
+    image = ResizedImageField(size=[600, 400], quality=50,
         upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
     sell_price = models.CharField(max_length=11, verbose_name="نرخ")
     title = models.CharField(max_length=50, verbose_name="ناو")
