@@ -203,16 +203,27 @@
                         <div class="card-body">
                             <form action="{% url 'deliver:ajax' %}" class="form-horizontal" enctype="multipart/form-data" id="ajaxForm"
                                   method="POST" method="post">
+                                 {% if warehouse %}
+                                <input hidden name="id" type="text" value="{{warehouse.id}}">
+                                <input hidden name="action" type="text" value="edit_warehouse">
+                                {% else %}
                                 <input hidden name="action" type="text" value="warehouse">
+                                {% endif %}
                                 <div class="form-group row">
                                     <label class="col-sm-5 form-control-label" for="input-normal">ناو</label>
                                     <div class="col-sm-6">
                                         <input class="form-control" id="input-normal" name="title" placeholder="ناو"
-                                               type="text">
+                                               type="text"  value="{{ warehouse.title }}">
                                     </div>
                                 </div>
-                                <div class="container">
+
+                                <div class="control">
                                     <div class="panel">
+                                        <div class="card-body" id="inn">
+                                            {% if warehouse.image %}
+                                            <img height="200" src="{{ warehouse.image.url }}">
+                                            {% endif %}
+                                        </div>
                                         <div class="button_outer">
                                             <div class="btn_upload">
                                                 <input id="upload_file" name="image" type="file">
@@ -227,6 +238,7 @@
                                         <span class="file_remove">X</span>
                                     </div>
                                 </div>
+
                                 <div class="card-footer">
                                     <div class="form-actions">
                                         <button class="btn btn-sm btn-primary" type="submit"><i
@@ -283,19 +295,23 @@
                                         <span class="badge badge-success">چالاکە</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td><a class="btn btn-warning" href="{% url 'deliver:warehouseEdit' warehouse.id %}"
+                                           role="button">
+                                        دەستکاریکردن
+                                        <i aria-hidden="true" class="fa fa-edit fa-1x"></i>
+                                    </a>
                                         {% if warehouse.status %}
                                         <a class="btn btn-primary"
                                            href="{% url 'deliver:ajax' %}?action=warehousedelete&id={{warehouse.id}} "
                                            role="button">
                                             گەڕاندنەوە
-                                            <i aria-hidden="true" class="fa fa-refresh fa-1x"></i></i>
+                                            <i aria-hidden="true" class="fa fa-refresh fa-1x"></i>
                                         </a>{% else %}
                                         <a class="btn btn-danger"
                                            href="{% url 'deliver:ajax' %}?action=warehousedelete&id={{warehouse.id}} "
                                            role="button">
                                             سڕەینەوە
-                                            <i aria-hidden="true" class="fa fa-trash fa-1x"></i></i>
+                                            <i aria-hidden="true" class="fa fa-trash fa-1x"></i>
                                         </a>{% endif %}
                                     </td>
                                 </tr>
@@ -314,10 +330,6 @@
                                 $(document).ready(function () {
                                     $('#tab').DataTable();
                                 });
-
-
-
-
                             </script>
                             <nav>
                                 <ul class="pagination">

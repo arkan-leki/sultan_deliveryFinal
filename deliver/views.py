@@ -256,6 +256,18 @@ def warehouse(request):
     return render(request, 'deliver/screens/warehouse.html', context)
 
 
+def warehouseEdit(request, pk):
+    ls = Warehouse.objects.all()
+    warehouse = Warehouse.objects.get(id=pk)
+    context = {
+        'userform': UserForm,
+        'warehouses': ls,
+        'warehouse': warehouse,
+        'title': "Warehouse Edit",
+    }
+    return render(request, 'deliver/screens/warehouse.html', context)
+
+
 @login_required(login_url='/login/')
 def requestDetail(request):
     requests = RequestDetail.objects.all()
@@ -523,6 +535,18 @@ def ajax(request):
             dp = Warehouse()
             dp.title = request.POST.get('title')
             dp.status = False
+            image = request.FILES.get('images', False)
+            if image:
+                dp.image = request.FILES['images']
+            dp.save()
+            data = {
+                'redirect': '/warehouse/',
+                'message': 'success'
+            }
+        elif request.POST.get('action') == 'edit_warehouse':
+            id = request.POST.get('id')
+            dp = Warehouse.objects.get(pk=id)
+            dp.title = request.POST.get('title')
             image = request.FILES.get('images', False)
             if image:
                 dp.image = request.FILES['images']

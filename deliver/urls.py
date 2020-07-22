@@ -30,4 +30,5 @@ urlpatterns = [
     path('logout/', views.logout_view, name="logout"),
     path('ajax/', views.ajax, name="ajax"),
     path('warehouse/', views.warehouse, name="warehouse"),
+    path('warehouseEdit/<pk>', views.warehouseEdit, name="warehouseEdit"),
 ]
