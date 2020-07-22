@@ -79,7 +79,7 @@ class Account(AbstractBaseUser):
 
 class Warehouse(models.Model):
     title = models.CharField(max_length=110)
-    image = models.ImageField(
+    image = ResizedImageField(size=[300, 300], quality=50,
         upload_to='images/', blank=True, null=True, verbose_name='وێنه‌')
     add_date = models.DateTimeField(verbose_name='add date', auto_now=True)
     status = models.BooleanField(default=False)
@@ -102,7 +102,7 @@ class Warehouse(models.Model):
 class Cat(models.Model):
     war = models.ForeignKey(
         Warehouse, related_name='Cat_warehouse', on_delete=models.CASCADE, default=1)
-    image = models.ImageField(
+    image = ResizedImageField(size=[400, 400], quality=50,
         upload_to='images/', blank=True, null=True, verbose_name='وێنه‌')
     nameEg = models.CharField(max_length=100, verbose_name="ناوی بیانی")
     nameKu = models.CharField(max_length=100, verbose_name="ناوی كوردی")
@@ -123,7 +123,7 @@ class Cat(models.Model):
 class Food(models.Model):
     category = models.ForeignKey(
         Cat, related_name='Food_category', on_delete=models.CASCADE)
-    image = ResizedImageField(size=[600, 400], quality=50,
+    image = ResizedImageField(size=[400, 400], quality=50,
         upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
     sell_price = models.CharField(max_length=11, verbose_name="نرخ")
     title = models.CharField(max_length=50, verbose_name="ناو")
@@ -238,7 +238,7 @@ class Customer(models.Model):
     zip_code = models.CharField(max_length=20)
     state = models.CharField(max_length=100)
     country = models.CharField(max_length=100)
-    image = models.ImageField(
+    image = ResizedImageField(size=[300, 300], quality=50,
         upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
 
     def __str__(self):
@@ -304,7 +304,7 @@ class RequestDetail(models.Model):
 class Motors(models.Model):
     title = models.CharField(max_length=110, blank=True, null=True)
     number = models.CharField(max_length=11, blank=True, null=True)
-    image = models.ImageField(
+    image = ResizedImageField(size=[300, 300], quality=50,
         upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
     status = models.BooleanField(default=False)
 
@@ -324,7 +324,7 @@ class Dliver(models.Model):
     motor = models.ForeignKey(Motors, related_name='owed_motor', on_delete=models.CASCADE)
     phone = models.CharField(max_length=11, blank=True, null=True)
     phoneId = models.CharField(max_length=110, blank=True, null=True)
-    image = models.ImageField(
+    image = ResizedImageField(size=[200, 200], quality=50,
         upload_to='images/', blank=True, null=True, verbose_name="وێنه‌")
 
     def __str__(self):
