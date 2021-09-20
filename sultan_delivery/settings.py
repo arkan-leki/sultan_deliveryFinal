@@ -34,7 +34,7 @@ INSTALLED_APPS = [
     'django_filters',
     'rest_framework',
     'corsheaders',
-    'deliver.apps.DeliverConfig',
+    'myapp.apps.MyappConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -77,7 +77,7 @@ TEMPLATES = [
     },
 ]
 
-AUTH_USER_MODEL = 'deliver.Account'
+AUTH_USER_MODEL = 'myapp.Account'
 WSGI_APPLICATION = 'sultan_delivery.wsgi.application'
 
 # Database
@@ -160,8 +160,8 @@ CORS_ORIGIN_ALLOW_ALL = True
 
 # Static files (CSS, JavaScript, Images)
 #  https://docs.djangoproject.com/en/3.0/howto/static-files/
-JET_PROJECT = 'sultan'
-JET_TOKEN = '761cea6d-aea8-42ed-a825-590465aa67d1'
+# JET_PROJECT = 'sultan'
+# JET_TOKEN = '761cea6d-aea8-42ed-a825-590465aa67d1'
 # JET_CORS_HEADERS = False
 
 
