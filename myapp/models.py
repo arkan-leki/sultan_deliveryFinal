@@ -759,7 +759,7 @@ class VendorUser(models.Model):
         verbose_name_plural = "مەندوب بەکارهێنەر"
 
 
-class RequestSell(models.Model):
+class RequestOrder(models.Model):
     customer = models.ForeignKey(TradeCompany, related_name='reqtrader', on_delete=models.CASCADE, default=1)
     request_detail = models.ManyToManyField('RequestDetail')
     totalprice = models.CharField(max_length=11)
