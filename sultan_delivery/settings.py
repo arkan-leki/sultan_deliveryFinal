@@ -27,7 +27,7 @@ SECRET_KEY = '=rj8fiq+pafti*^kidwz9j2ex$ayjd%5lfgzrepf=1w%uu4@po'
 DEBUG = True
 
 # ALLOWED_HOSTS = ['sultan-delivery-v1.herokuapp.com', ]
-# ALLOWED_HOSTS = ['*', ]
+ALLOWED_HOSTS = ['*', ]
 
 # Application definition
 
