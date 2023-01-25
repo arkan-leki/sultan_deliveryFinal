@@ -26,7 +26,8 @@ SECRET_KEY = '=rj8fiq+pafti*^kidwz9j2ex$ayjd%5lfgzrepf=1w%uu4@po'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['sultan-delivery-v1.herokuapp.com', ]
+# ALLOWED_HOSTS = ['sultan-delivery-v1.herokuapp.com', ]
+# ALLOWED_HOSTS = ['*', ]
 
 # Application definition
 
@@ -165,7 +166,7 @@ JET_TOKEN = '761cea6d-aea8-42ed-a825-590465aa67d1'
 # JET_CORS_HEADERS = False
 
 
-USE_S3 = True
+USE_S3 = False
 
 if USE_S3:
     # aws settings
