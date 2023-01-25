@@ -9,8 +9,10 @@ django-select2==7.2.3
 django-storages==1.9.1
 django-suit2==2.0a1
 djangorestframework==3.11.0
+gunicorn==20.1.0
 pilkit==2.0
 Pillow==9.4.0
+psycopg2==2.9.5
 pytz==2022.7.1
 six==1.16.0
 sqlparse==0.4.3
