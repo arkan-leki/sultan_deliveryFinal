@@ -2,7 +2,7 @@ asgiref==3.6.0
 Django==3.0.3
 django-appconf==1.0.4
 django-cors-headers==3.2.1
-django-filter==2.2.0
+django-filter==2.4.0
 django-imagekit==4.0.2
 django-resized==1.0.2
 django-select2==7.2.3
